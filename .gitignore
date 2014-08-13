@@ -1,0 +1,22 @@
+*.class
+.classpath
+target
+.settings
+.project
+eclipse-classes
+dependency-reduced-pom.xml
+.DS_Store
+
+#Python
+*.pyc
+*.egg-info
+dist
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.swo
+.vagrant
+*~
+
