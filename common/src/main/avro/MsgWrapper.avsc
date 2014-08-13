@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "namespace": "com.quantiply.schema",
+  "name": "MsgWrapper",
+  "doc": "Wraps messages to allow for headers",
+  "fields": [
+    {
+      "name": "headers",
+      "type": {"type": "map", "values": "string"}
+    },
+    {
+      "name": "body",
+      "type": "bytes"
+    }        
+  ]
+}
