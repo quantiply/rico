@@ -1,14 +1,19 @@
 package com.quantiply.firestone.tools;
 
+import java.util.Properties;
+import static java.nio.charset.StandardCharsets.*;
+
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-//import kafka.javaapi.producer.KafkaProducer;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class KafkaAvroLoader {
   
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     Namespace ns = parseCmdLineArgs(args);
     
     String bucket = ns.getString("bucket");
@@ -28,7 +33,15 @@ public class KafkaAvroLoader {
     //new ProducerRecord("the-topic", "key, "value")
     //enqueue(producer, headers, body)
     
-    //KafkaProducer producer = new KafkaProducer();
+    Properties props = new Properties();
+    KafkaProducer producer = new KafkaProducer(props);
+    ProducerRecord record = new ProducerRecord(topic, "Hello".getBytes(UTF_8));
+    try {
+        producer.send(record).get();
+    }
+    finally {
+        producer.close();
+    }
     
     System.out.println("topic " + topic + " File " + file);
   }
