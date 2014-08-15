@@ -23,6 +23,12 @@
       	<groupId>net.sourceforge.argparse4j</groupId>
       	<artifactId>argparse4j</artifactId>
       </dependency>
+      
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka_2.10</artifactId>
+      </dependency>
+      
     </dependencies>
 
     <build>

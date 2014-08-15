@@ -42,6 +42,40 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
+              <groupId>org.apache.kafka</groupId>
+              <artifactId>kafka_2.10</artifactId>
+              <version>0.8.1.1</version>
+              <!-- rhoover: ran into issue with a reference to Maven 2
+              No connector available to access repository java.net (https://maven-repository.dev.java.net/nonav/repository) of type legacy using the available factories WagonRepositoryConnectorFactory
+              I think they're coming from log4j - http://stackoverflow.com/questions/20611991/pom-xml-shows-multiple-errors-on-including-log4j-dependency
+              -->
+              <exclusions>
+                <exclusion>
+                  <groupId>javax.jms</groupId>
+                  <artifactId>jms</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>com.sun.jdmk</groupId>
+                  <artifactId>jmxtools</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>com.sun.jmx</groupId>
+                  <artifactId>jmxri</artifactId>
+                </exclusion>
+                <!-- rhoover: excluding these as Kafka's own build does
+                https://github.com/apache/kafka/blob/0.8.1/build.gradle#L236-L242
+                -->
+                <exclusion>
+                  <groupId>javax.mail</groupId>
+                  <artifactId>mail</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>jline</groupId>
+                  <artifactId>jline</artifactId>
+                </exclusion>
+              </exclusions>
+            </dependency>
+            <dependency>
             	<groupId>net.sourceforge.argparse4j</groupId>
             	<artifactId>argparse4j</artifactId>
             	<version>0.4.3</version>
