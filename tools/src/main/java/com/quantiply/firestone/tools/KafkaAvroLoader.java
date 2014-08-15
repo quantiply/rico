@@ -2,6 +2,7 @@ package com.quantiply.firestone.tools;
 
 import java.util.Properties;
 import static java.nio.charset.StandardCharsets.*;
+import org.apache.log4j.BasicConfigurator;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -14,6 +15,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 public class KafkaAvroLoader {
   
   public static void main(String[] args) throws Exception {
+    BasicConfigurator.configure();
     Namespace ns = parseCmdLineArgs(args);
     
     String bucket = ns.getString("bucket");
@@ -34,6 +36,7 @@ public class KafkaAvroLoader {
     //enqueue(producer, headers, body)
     
     Properties props = new Properties();
+    props.setProperty("bootstrap.servers", "localhost:9092");
     KafkaProducer producer = new KafkaProducer(props);
     ProducerRecord record = new ProducerRecord(topic, "Hello".getBytes(UTF_8));
     try {
