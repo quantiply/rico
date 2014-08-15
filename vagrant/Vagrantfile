@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#To start:
+#  vagrant up zk --provider=docker
+#  vagrant up kafka --provider=docker
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.define "zk" do |c|
+    c.vm.hostname = "zk"
+
+    c.vm.provider "docker" do |d|
+      d.image = "stealthly/docker-zookeeper"
+      d.name = "zk"
+      d.ports = ["2181:2181"]
+      d.vagrant_vagrantfile = "./Vagrantfile.proxy"
+    end    
+  end
+  
+  config.vm.define "kafka" do |c|
+    c.vm.hostname = "kafka"
+
+    c.vm.provider "docker" do |d|
+      d.image = "stealthly/docker-kafka"
+      d.link("zk:zk")
+      d.env = {
+        "BROKER_ID" => "1",
+        "HOST_IP" => "localhost",
+        "PORT" => "2181"
+      }
+      d.ports = ["9092:9092"]
+      d.vagrant_vagrantfile = "./Vagrantfile.proxy"
+    end
+  end
+  
+end
