@@ -25,11 +25,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     c.vm.provider "docker" do |d|
       d.image = "stealthly/docker-kafka"
+      d.name = "kafka"
       d.link("zk:zk")
       d.env = {
         "BROKER_ID" => "1",
-        "HOST_IP" => "localhost",
-        "PORT" => "2181"
+        "HOST_IP" => "127.0.0.1",
+        "PORT" => "9092"
       }
       d.ports = ["9092:9092"]
       d.vagrant_vagrantfile = "./Vagrantfile.proxy"
