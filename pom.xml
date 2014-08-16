@@ -131,6 +131,13 @@
                     <artifactId>clients</artifactId>
                     <version>0.8.2-SNAPSHOT</version>
                     <packaging>jar</packaging>
+                    <!-- rhoover:
+                    These were made on 08/15/14 by doing
+                      git clone git://git.apache.org/kafka.git
+                      cd kafka
+                      ./gradlew clients:install
+                      Then copy from ~/.m2/repository/org/apache/kafka/kafka-clients/0.8.2-SNAPSHOT/
+                    -->
                     <file>${basedir}/lib/kafka-clients-0.8.2-SNAPSHOT.jar</file>
                     <pomFile>${basedir}/lib/kafka-clients-0.8.2-SNAPSHOT.pom</pomFile>
                   </configuration>
