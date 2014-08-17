@@ -13,7 +13,7 @@
         <maven.compiler.hadoop.source>1.7</maven.compiler.hadoop.source>
         <maven.compiler.hadoop.target>1.7</maven.compiler.hadoop.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <avro.version>1.7.5</avro.version>
+        <avro.version>1.7.7</avro.version>
     </properties>
 
     <groupId>com.quantiply.firestone</groupId>
