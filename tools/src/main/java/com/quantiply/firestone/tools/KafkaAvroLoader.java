@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -18,6 +19,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import org.apache.avro.SchemaNormalization;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -30,6 +32,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.BaseEncoding;
 import com.quantiply.schema.WrappedMsg;
 
 public class KafkaAvroLoader {
@@ -66,7 +69,7 @@ public class KafkaAvroLoader {
     }
 
     private static RecordMetadata send(KafkaProducer producer, String topic, GenericRecord avroRecord)
-            throws IOException, InterruptedException, ExecutionException {
+            throws IOException, InterruptedException, ExecutionException, NoSuchAlgorithmException {
         
         GenericDatumWriter<GenericRecord> recWriter = new GenericDatumWriter<GenericRecord>(avroRecord.getSchema());
         ByteArrayOutputStream recOut = new ByteArrayOutputStream();
@@ -74,8 +77,15 @@ public class KafkaAvroLoader {
         recWriter.write(avroRecord, recEncoder);
         recEncoder.flush();
         
+        //TODO - register the schema if necessary
+        //  - could use Bloom filter for existence check
+        //  - config option to skip registration
+        
+        byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
+        
         Map<String, String> headers = new HashMap<String, String>();
-        //ImmutableMap.of((CharSequence)"Content-Type", (CharSequence)"text/plain");
+        headers.put("Content-Type", "application/x-avro-binary");
+        headers.put("X-Avro-Fingerprint-64", BaseEncoding.base64().encode(fingerprint));
         //TODO - add magic byte
         recOut.toByteArray();
         WrappedMsg msg = WrappedMsg.newBuilder()
