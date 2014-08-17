@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import static java.nio.charset.StandardCharsets.*;
-
 import org.apache.log4j.BasicConfigurator;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -31,7 +29,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import com.quantiply.schema.WrappedMsg;
 
