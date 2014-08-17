@@ -39,7 +39,7 @@
 
   <build>
     <plugins>
-      <!-- Example: mvn exec:java -Dexec.args="-b sys -s perf avroFile"-->
+      <!-- Example: mvn exec:java -Dexec.args="-b sys -s perf /Users/rhoover/Work/et/opintel/kafka/test.avro"-->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
