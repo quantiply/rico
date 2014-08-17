@@ -1,7 +1,11 @@
 package com.quantiply.firestone.tools;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.Properties;
+
 import static java.nio.charset.StandardCharsets.*;
+
 import org.apache.log4j.BasicConfigurator;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -9,8 +13,14 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+
+import com.quantiply.schema.WrappedMsg;
 
 public class KafkaAvroLoader {
   
@@ -38,7 +48,15 @@ public class KafkaAvroLoader {
     Properties props = new Properties();
     props.setProperty("bootstrap.servers", "localhost:9092");
     KafkaProducer producer = new KafkaProducer(props);
-    ProducerRecord record = new ProducerRecord(topic, "Hello".getBytes(UTF_8));
+    WrappedMsg msg = WrappedMsg.newBuilder()
+            .setBody(ByteBuffer.wrap("Hello".getBytes(UTF_8)))
+            .build();
+    GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(WrappedMsg.getClassSchema());
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+    writer.write(msg, encoder);
+    encoder.flush();
+    ProducerRecord record = new ProducerRecord(topic, out.toByteArray());
     try {
         producer.send(record).get();
     }
