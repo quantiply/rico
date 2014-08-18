@@ -85,7 +85,6 @@ public class KafkaAvroLoader {
         headers.put("Content-Type", "application/x-avro-binary");
         //X-Schema-Id?
         headers.put("X-Avro-Fingerprint-64", BaseEncoding.base64().encode(fingerprint));
-        recOut.toByteArray();
         WrappedMsg msg = WrappedMsg.newBuilder()
                 .setHeaders(headers)
                 .setBody(ByteBuffer.wrap(recOut.toByteArray()))
