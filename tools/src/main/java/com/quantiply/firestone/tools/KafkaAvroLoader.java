@@ -81,7 +81,9 @@ public class KafkaAvroLoader {
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
         
         Map<String, String> headers = new HashMap<String, String>();
+        //Or should we just reference a schema id here and assume the rest can be looked up???
         headers.put("Content-Type", "application/x-avro-binary");
+        //X-Schema-Id?
         headers.put("X-Avro-Fingerprint-64", BaseEncoding.base64().encode(fingerprint));
         //TODO - add magic byte
         recOut.toByteArray();
