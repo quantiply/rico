@@ -16,23 +16,23 @@
         <avro.version>1.7.7</avro.version>
     </properties>
 
-    <groupId>com.quantiply.firestone</groupId>
+    <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     
     <packaging>pom</packaging>
-    <name>Quantiply Firestone Platform Parent</name>
+    <name>Quantiply Rico Parent</name>
     <description>Streaming Enrichment Platform</description>
     
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.quantiply.firestone</groupId>
+                <groupId>com.quantiply.rico</groupId>
                 <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.quantiply.firestone</groupId>
+                <groupId>com.quantiply.rico</groupId>
                 <artifactId>tools</artifactId>
                 <version>${project.version}</version>
             </dependency>

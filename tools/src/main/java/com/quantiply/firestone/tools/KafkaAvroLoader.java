@@ -1,4 +1,4 @@
-package com.quantiply.firestone.tools;
+package com.quantiply.rico.tools;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
     
   <parent>
-    <groupId>com.quantiply.firestone</groupId>
+    <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
     
-  <groupId>com.quantiply.firestone</groupId>
+  <groupId>com.quantiply.rico</groupId>
   <artifactId>tools</artifactId>
     
   <name>tools</name>
@@ -16,7 +16,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.quantiply.firestone</groupId>
+      <groupId>com.quantiply.rico</groupId>
       <artifactId>common</artifactId>
     </dependency>
     <dependency>
@@ -51,7 +51,7 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>com.quantiply.firestone.tools.KafkaAvroLoader</mainClass>
+          <mainClass>com.quantiply.rico.tools.KafkaAvroLoader</mainClass>
         </configuration>
       </plugin>
       <plugin>
@@ -60,7 +60,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.quantiply.firestone.tools.KafkaAvroLoader</mainClass>
+              <mainClass>com.quantiply.rico.tools.KafkaAvroLoader</mainClass>
             </manifest>
           </archive>
         </configuration>
