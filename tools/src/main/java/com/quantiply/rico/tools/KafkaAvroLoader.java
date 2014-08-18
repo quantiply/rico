@@ -85,7 +85,6 @@ public class KafkaAvroLoader {
         headers.put("Content-Type", "application/x-avro-binary");
         //X-Schema-Id?
         headers.put("X-Avro-Fingerprint-64", BaseEncoding.base64().encode(fingerprint));
-        //TODO - add magic byte
         recOut.toByteArray();
         WrappedMsg msg = WrappedMsg.newBuilder()
                 .setHeaders(headers)
@@ -93,6 +92,8 @@ public class KafkaAvroLoader {
                 .build();
         GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(WrappedMsg.getClassSchema());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final byte MSG_FORMAT_VERSION = 0x1;
+        out.write(MSG_FORMAT_VERSION);
         Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
         writer.write(msg, encoder);
         encoder.flush();
