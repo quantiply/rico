@@ -17,7 +17,7 @@ import org.apache.avro.specific.SpecificRecord;
  * @author rhoover
  *
  */
-public class AvroEncoder<T extends GenericRecord> {
+public class AvroEncoder {
 
     public static final String AVRO_CONTENT_TYPE = "application/x-avro-binary";
     
@@ -25,18 +25,18 @@ public class AvroEncoder<T extends GenericRecord> {
     private org.apache.avro.io.BinaryEncoder avroEncoder = null;
     private Encoder encoder = new Encoder();
     
-    public byte[] encode(final AvroMessage<T> msg) throws IOException {
-        //TODO - do this in a util?
+    public byte[] encode(final AvroMessage<GenericRecord> msg) throws IOException {
+        //TODO - move this in a util?
         msg.headers().put("Content-Type", AVRO_CONTENT_TYPE);
         msg.headers().put("X-Rico-Schema-Id", msg.schemaId());
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
-        DatumWriter<T> writer;
+        DatumWriter<GenericRecord> writer;
         if (msg.body() instanceof SpecificRecord)
-            writer = new SpecificDatumWriter<T>(msg.schema());
+            writer = new SpecificDatumWriter<GenericRecord>(msg.schema());
         else
-            writer = new GenericDatumWriter<T>(msg.schema());
+            writer = new GenericDatumWriter<GenericRecord>(msg.schema());
         
         avroEncoder = encoderFactory.directBinaryEncoder(out, avroEncoder); 
         writer.write(msg.body(), avroEncoder);

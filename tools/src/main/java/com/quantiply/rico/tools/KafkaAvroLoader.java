@@ -3,10 +3,7 @@ package com.quantiply.rico.tools;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -30,7 +27,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.google.common.io.BaseEncoding;
-import com.quantiply.schema.WrappedMsg;
+import com.quantiply.rico.common.codec.AvroEncoder;
+import com.quantiply.rico.common.codec.AvroMessage;
 
 public class KafkaAvroLoader {
 
@@ -79,24 +77,11 @@ public class KafkaAvroLoader {
         //  - config option to skip registration
         
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
+        String schemaId = BaseEncoding.base64().encode(fingerprint);
+        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(avroRecord.getSchema(), schemaId, avroRecord);
         
-        Map<String, String> headers = new HashMap<String, String>();
-        //Or should we just reference a schema id here and assume the rest can be looked up???
-        headers.put("Content-Type", "application/x-avro-binary");
-        //X-Schema-Id?
-        headers.put("X-Avro-Fingerprint-64", BaseEncoding.base64().encode(fingerprint));
-        WrappedMsg msg = WrappedMsg.newBuilder()
-                .setHeaders(headers)
-                .setBody(ByteBuffer.wrap(recOut.toByteArray()))
-                .build();
-        GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(WrappedMsg.getClassSchema());
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final byte MSG_FORMAT_VERSION = 0x1;
-        out.write(MSG_FORMAT_VERSION);
-        Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-        writer.write(msg, encoder);
-        encoder.flush();
-        ProducerRecord record = new ProducerRecord(topic, out.toByteArray());
+        AvroEncoder encoder = new AvroEncoder();
+        ProducerRecord record = new ProducerRecord(topic, encoder.encode(msg));
         return producer.send(record).get();
     }
 
