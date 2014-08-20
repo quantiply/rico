@@ -1,16 +1,27 @@
 package com.quantiply.rico.common.codec;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Object to hold messages
+ * Object to hold deserialized messages
  */
-public final class Message {
+public class Message<T> {
 
-    private final ImmutableMap<String, String> headers;
-    private final byte[] body;
+    //public static final String HDR_CONTENT_TYPE = "Content-Type";
+    //public static final String HDR_SCHEMA_ID = "X-Rico-Schema-Id";
+    
+    private final Map<String, String> headers;
+    private final T body;
 
-    public Message(byte[] body, ImmutableMap<String, String> headers) {
+    public Message(T body) {
+        this(body, new HashMap<String, String>());
+    }
+    
+    public Message(T body, Map<String, String> headers) {
+        if (headers == null) {
+            headers = new HashMap<String, String>();
+        }
         this.body = body;
         this.headers = headers;
     }
@@ -18,14 +29,14 @@ public final class Message {
     /**
      * The message headers
      */
-    public ImmutableMap<String, String> headers() {
+    public Map<String, String> headers() {
         return this.headers;
     }
 
     /**
      * The message body
      */
-    public byte[] body() {
+    public T body() {
         return this.body;
     }
 

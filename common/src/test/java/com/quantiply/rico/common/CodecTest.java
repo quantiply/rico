@@ -15,7 +15,7 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.ImmutableMap;
 import com.quantiply.rico.common.codec.Decoder;
 import com.quantiply.rico.common.codec.Encoder;
-import com.quantiply.rico.common.codec.Message;
+import com.quantiply.rico.common.codec.RawMessage;
 
 public class CodecTest {
     @Rule
@@ -66,7 +66,7 @@ public class CodecTest {
         assertEquals(expectedHex, byteStr);
         
         Decoder decoder = getDecoder();
-        Message decoded = decoder.decode(bytes);
+        RawMessage decoded = decoder.decode(bytes);
         assertArrayEquals(body, decoded.body());
         assertEquals(hdrs, decoded.headers());
         
@@ -75,7 +75,7 @@ public class CodecTest {
         String byteStr2 = DatatypeConverter.printHexBinary(bytes2);
         assertEquals(expectedHex, byteStr2);
 
-        Message decoded2 = decoder.decode(bytes2);
+        RawMessage decoded2 = decoder.decode(bytes2);
         assertArrayEquals(body, decoded2.body());
         assertEquals(hdrs, decoded2.headers());
     }

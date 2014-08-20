@@ -18,7 +18,7 @@ public class Decoder {
     private org.apache.avro.io.BinaryDecoder decoder = null;
     private final DatumReader<WrappedMsg> reader = new SpecificDatumReader<WrappedMsg>(WrappedMsg.class);
     
-    public Message decode(byte[] payload) throws IOException {
+    public RawMessage decode(byte[] payload) throws IOException {
         //Check version byte
         ByteBuffer buffer = getByteBuffer(payload);
         
@@ -26,7 +26,7 @@ public class Decoder {
         decoder = decoderFactory.binaryDecoder(buffer.array(), buffer.position(), buffer.remaining(), decoder);
         reader.read(wrapped, decoder);
         
-        return new Message(wrapped.getBody().array(), ImmutableMap.copyOf(wrapped.getHeaders()));
+        return new RawMessage(wrapped.getBody().array(), ImmutableMap.copyOf(wrapped.getHeaders()));
     }
     
     private ByteBuffer getByteBuffer(byte[] payload) {

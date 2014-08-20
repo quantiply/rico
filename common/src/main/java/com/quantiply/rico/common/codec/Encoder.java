@@ -66,7 +66,7 @@ public class Encoder {
         return out.toByteArray();
     }
     
-    public byte[] encode(final Message msg) throws IOException {
+    public byte[] encode(final RawMessage msg) throws IOException {
         return encode(msg.body(), msg.headers());
     }
     
