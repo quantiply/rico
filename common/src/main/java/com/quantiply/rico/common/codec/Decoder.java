@@ -22,7 +22,7 @@ public class Decoder {
         //Check version byte
         ByteBuffer buffer = getByteBuffer(payload);
         
-        //Decode wrapped
+        //Decode wrapped msg
         decoder = decoderFactory.binaryDecoder(buffer.array(), buffer.position(), buffer.remaining(), decoder);
         reader.read(wrapped, decoder);
         
