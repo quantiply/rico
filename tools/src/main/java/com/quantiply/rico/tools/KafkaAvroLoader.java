@@ -78,7 +78,7 @@ public class KafkaAvroLoader {
         
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
         String schemaId = BaseEncoding.base64().encode(fingerprint);
-        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(avroRecord.getSchema(), schemaId, avroRecord);
+        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(schemaId, avroRecord);
         
         AvroEncoder encoder = new AvroEncoder();
         ProducerRecord record = new ProducerRecord(topic, encoder.encode(msg));

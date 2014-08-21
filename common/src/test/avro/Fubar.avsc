@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "namespace": "com.quantiply.schema.test",
+  "name": "Fubar",
+  "doc": "Dummy schema for tests",
+  "fields": [
+    {
+      "name": "foo",
+      "type": "string"
+    },
+    {
+      "name": "bar",
+      "type": "int"
+    }        
+  ]
+}

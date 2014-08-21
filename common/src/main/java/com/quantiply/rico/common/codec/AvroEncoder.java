@@ -25,7 +25,7 @@ public class AvroEncoder {
     private org.apache.avro.io.BinaryEncoder avroEncoder = null;
     private Encoder encoder = new Encoder();
     
-    public byte[] encode(final AvroMessage<GenericRecord> msg) throws IOException {
+    public byte[] encode(final AvroMessage<? extends GenericRecord> msg) throws IOException {
         //TODO - move this in a util?
         msg.headers().put("Content-Type", AVRO_CONTENT_TYPE);
         msg.headers().put("X-Rico-Schema-Id", msg.schemaId());

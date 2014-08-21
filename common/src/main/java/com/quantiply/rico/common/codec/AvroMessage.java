@@ -3,16 +3,17 @@ package com.quantiply.rico.common.codec;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 
-public class AvroMessage<T> extends SchemaMessage<T, Schema> {
+public class AvroMessage<T extends GenericRecord> extends SchemaMessage<T, Schema> {
 
-    public AvroMessage(Schema schema, String schemaId, T body,
+    public AvroMessage(String schemaId, T body,
             Map<String, String> headers) {
-        super(schema, schemaId, body, headers);
+        super(body.getSchema(), schemaId, body, headers);
     }
 
-    public AvroMessage(Schema schema, String schemaId, T body) {
-        super(schema, schemaId, body, null);
+    public AvroMessage(String schemaId, T body) {
+        this(schemaId, body, null);
     }
 
 }
