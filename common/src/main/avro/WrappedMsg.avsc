@@ -23,7 +23,7 @@
             "doc": "Identifies the schema used to encode this message (optional)."
           },
           {
-            "name": "occured",
+            "name": "occurred",
             "type": "string",
             "doc": "Datetime the event occured in ISO 1806 format."
           },

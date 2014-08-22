@@ -67,10 +67,10 @@ public class Encoder {
     }
 
     protected com.quantiply.schema.Headers getAvroHeaders(final Headers headers) {
-        String occuredStr = dateFormatter.print(headers.getOccured());
+        String occurredStr = dateFormatter.print(headers.getOccured());
         com.quantiply.schema.Headers.Builder builder = com.quantiply.schema.Headers.newBuilder();
         builder.setId(headers.getId())
-            .setOccured(occuredStr)
+            .setOccurred(occurredStr)
             .setKv(headers.getKv());
         if (headers.getSchemaId() != null) {
             builder.setSchemaId(headers.getSchemaId());

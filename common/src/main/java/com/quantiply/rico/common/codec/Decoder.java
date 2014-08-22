@@ -32,8 +32,8 @@ public class Decoder {
     }
     
     protected Headers getHeaders(com.quantiply.schema.Headers avroHeaders) {
-        DateTime occured = dateFormatter.parseDateTime(avroHeaders.getOccured());
-        return new Headers(avroHeaders.getId(), occured, avroHeaders.getSchemaId(), avroHeaders.getKv());
+        DateTime occurred = dateFormatter.parseDateTime(avroHeaders.getOccurred());
+        return new Headers(avroHeaders.getId(), occurred, avroHeaders.getSchemaId(), avroHeaders.getKv());
     }
     
     private ByteBuffer getByteBuffer(byte[] payload) {
