@@ -25,10 +25,12 @@ import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.joda.time.format.ISODateTimeFormat;
 
 import com.google.common.io.BaseEncoding;
 import com.quantiply.rico.common.codec.AvroEncoder;
 import com.quantiply.rico.common.codec.AvroMessage;
+import com.quantiply.rico.common.codec.Headers;
 
 public class KafkaAvroLoader {
 
@@ -103,7 +105,8 @@ public class KafkaAvroLoader {
         
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
         String schemaId = BaseEncoding.base64().encode(fingerprint);
-        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(schemaId, avroRecord);
+        Headers hdrs = new Headers("fakeId", ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z"), schemaId, null);
+        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(avroRecord, hdrs);
         
         AvroEncoder encoder = new AvroEncoder();
         ProducerRecord record = new ProducerRecord(topic, encoder.encode(msg));
