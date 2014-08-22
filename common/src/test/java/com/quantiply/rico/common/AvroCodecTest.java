@@ -3,6 +3,7 @@ package com.quantiply.rico.common;
 import java.io.IOException;
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.joda.time.DateTime;
@@ -28,6 +29,16 @@ public class AvroCodecTest {
     protected Headers getHeaders() {
         DateTime occured = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
         return new Headers("msgId", occured, "fakeSchemaId", null);
+    }
+    
+    protected Schema getV2SchemaWithConflictingName() {
+        return SchemaBuilder
+                .record("Fubar").namespace("com.quantiply.schema.test")
+                        .fields()
+                          .name("foo").type("string").noDefault()
+                          .name("bar").type("int").noDefault()
+                          .name("newParam").type("int").withDefault(new Integer(42))
+                        .endRecord();
     }
     
     @Test
@@ -84,5 +95,16 @@ public class AvroCodecTest {
         });
         
         assertEquals(origRec, decoded.getBody());
+        
+        //Now decode with a newer schema that also uses the same record name
+        AvroDecoder<GenericRecord> v2Decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);
+        AvroMessage<GenericRecord> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, Schema>() {
+            @Override
+            public Schema call(RawMessage input) throws Exception {
+                return getV2SchemaWithConflictingName();
+            }
+        });
+        //Check that the new parameter is present with it's default value
+        assertEquals(42, ((Integer)v2Decoded.getBody().get("newParam")).intValue());
     }
 }
