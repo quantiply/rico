@@ -22,10 +22,6 @@ import com.quantiply.schema.test.Fubar2;
 
 public class AvroCodecTest {
 
-    protected AvroEncoder getEncoder() {
-        return new AvroEncoder();
-    }
-    
     protected Headers getHeaders() {
         DateTime occured = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
         return new Headers("msgId", occured, "fakeSchemaId", null);
@@ -48,7 +44,7 @@ public class AvroCodecTest {
         Headers hdrs = getHeaders();
         AvroMessage<Fubar> msg = new AvroMessage<Fubar>(origRec, hdrs);
         
-        AvroEncoder encoder = getEncoder();
+        AvroEncoder<Fubar> encoder = new AvroEncoder<Fubar>();
         final byte[] bytes = encoder.encode(msg);
         
         AvroDecoder<Fubar> decoder = new AvroDecoder<Fubar>(Fubar.class);
@@ -83,7 +79,7 @@ public class AvroCodecTest {
         
         AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(origRec, getHeaders());
         
-        AvroEncoder encoder = getEncoder();
+        AvroEncoder<GenericRecord> encoder = new AvroEncoder<GenericRecord>();
         final byte[] bytes = encoder.encode(msg);
         
         AvroDecoder<GenericRecord> decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);

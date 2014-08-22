@@ -12,19 +12,19 @@ import org.junit.*;
 import static org.junit.Assert.*;
 
 import com.google.common.collect.ImmutableMap;
-import com.quantiply.rico.common.codec.Decoder;
-import com.quantiply.rico.common.codec.Encoder;
+import com.quantiply.rico.common.codec.RawMessageDecoder;
+import com.quantiply.rico.common.codec.RawMessageEncoder;
 import com.quantiply.rico.common.codec.Headers;
 import com.quantiply.rico.common.codec.RawMessage;
 
 public class CodecTest {
 
-    protected Encoder getEncoder() {
-        return new Encoder();
+    protected RawMessageEncoder getEncoder() {
+        return new RawMessageEncoder();
     }
     
-    protected Decoder getDecoder() {
-        return new Decoder();
+    protected RawMessageDecoder getDecoder() {
+        return new RawMessageDecoder();
     }
     
     protected Headers getHeaders(Map<String, String> kv) {
@@ -54,7 +54,7 @@ public class CodecTest {
         String hexMsg = "e04fd020ea3a6910a2d808002b30309d";
         byte[] body = DatatypeConverter.parseHexBinary(hexMsg);
 
-        Encoder encoder = getEncoder();
+        RawMessageEncoder encoder = getEncoder();
         byte[] bytes = encoder.encode(body, getHeaders(null));
         String byteStr = DatatypeConverter.printHexBinary(bytes);
        assertEquals(expectedHex, byteStr);
@@ -67,13 +67,13 @@ public class CodecTest {
         Map<String, String> kv = ImmutableMap.of("foo", "bar", "hi", "mom");
         byte[] body = DatatypeConverter.parseHexBinary(hexMsg);
 
-        Encoder encoder = getEncoder();
+        RawMessageEncoder encoder = getEncoder();
         Headers hdrs = getHeaders(kv);
         final byte[] bytes = encoder.encode(body, hdrs);
         String byteStr = DatatypeConverter.printHexBinary(bytes);
         assertEquals(expectedHex, byteStr);
         
-        Decoder decoder = getDecoder();
+        RawMessageDecoder decoder = getDecoder();
         RawMessage decoded = decoder.decode(bytes);
         assertArrayEquals(body, decoded.getBody());
         assertEquals(hdrs, decoded.getHeaders());

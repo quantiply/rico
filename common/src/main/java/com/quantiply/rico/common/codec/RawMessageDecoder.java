@@ -12,7 +12,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import com.quantiply.schema.WrappedMsg;
 
-public class Decoder {
+public class RawMessageDecoder {
 
     private final WrappedMsg wrapped = new WrappedMsg();
     private final DecoderFactory decoderFactory = DecoderFactory.get();
@@ -39,7 +39,7 @@ public class Decoder {
     private ByteBuffer getByteBuffer(byte[] payload) {
         ByteBuffer buffer = ByteBuffer.wrap(payload);
         byte version = buffer.get();
-        if (version != Encoder.MSG_FORMAT_VERSION)
+        if (version != RawMessageEncoder.MSG_FORMAT_VERSION)
           throw new IllegalArgumentException(String.format("Unknown message version: %x", version));
         return buffer;
       }

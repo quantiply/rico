@@ -16,7 +16,7 @@ public class AvroDecoder<T extends GenericRecord> {
     private final Class<T> typeClass;
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private org.apache.avro.io.BinaryDecoder avroDecoder = null;
-    private Decoder decoder = new Decoder();
+    private RawMessageDecoder decoder = new RawMessageDecoder();
     
     public AvroDecoder(Class<T> typeClass) {
         this.typeClass = typeClass;

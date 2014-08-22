@@ -101,6 +101,10 @@ public class KafkaAvroLoader {
          * 
          *  - Get topic
          *  - Get schemaId and register if necessary
+         *  
+         *  RicoHelper.newAvroMessage(id(optional), schema, DateTime occurred)
+         *  RicoHelper.getTopic(tenantId, bucket, stream)
+         *  
          */
         
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
