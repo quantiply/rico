@@ -17,6 +17,7 @@ import com.quantiply.rico.common.codec.AvroMessage;
 import com.quantiply.rico.common.codec.Headers;
 import com.quantiply.rico.common.codec.RawMessage;
 import com.quantiply.schema.test.Fubar;
+import com.quantiply.schema.test.Fubar2;
 
 public class AvroCodecTest {
 
@@ -49,6 +50,17 @@ public class AvroCodecTest {
         
         assertEquals(hdrs, decoded.getHeaders());
         assertEquals(origRec, decoded.getBody());
+        
+        //Now decode with a newer schema
+        AvroDecoder<Fubar2> v2Decoder = new AvroDecoder<Fubar2>(Fubar2.class);
+        AvroMessage<Fubar2> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, Schema>() {
+            @Override
+            public Schema call(RawMessage input) throws Exception {
+                return Fubar2.getClassSchema();
+            }
+        });
+        //Check that the new parameter is present with it's default value
+        assertEquals(42, v2Decoded.getBody().getNewParam().intValue());
     }
     
     @Test
