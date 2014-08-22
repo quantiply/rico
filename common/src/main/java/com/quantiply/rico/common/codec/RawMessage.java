@@ -1,7 +1,5 @@
 package com.quantiply.rico.common.codec;
 
-import com.quantiply.schema.Headers;
-
 /**
  * Object to hold messages
  */
@@ -18,14 +16,14 @@ public final class RawMessage {
     /**
      * The message headers
      */
-    public Headers headers() {
+    public Headers getHeaders() {
         return this.headers;
     }
 
     /**
      * The message body
      */
-    public byte[] body() {
+    public byte[] getBody() {
         return this.body;
     }
 

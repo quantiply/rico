@@ -1,8 +1,11 @@
 package com.quantiply.rico.common;
 
 import java.io.IOException;
+
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.*;
 
 import static org.junit.Assert.*;
@@ -10,7 +13,7 @@ import static org.junit.Assert.*;
 import com.quantiply.rico.common.codec.AvroDecoder;
 import com.quantiply.rico.common.codec.AvroEncoder;
 import com.quantiply.rico.common.codec.AvroMessage;
-import com.quantiply.schema.Headers;
+import com.quantiply.rico.common.codec.Headers;
 import com.quantiply.schema.test.Fubar;
 
 public class AvroCodecTest {
@@ -20,11 +23,8 @@ public class AvroCodecTest {
     }
     
     protected Headers getHeaders() {
-        return Headers.newBuilder()
-            .setId("msgId")
-            .setOccured("2014-07-23T00:06:00.000Z")
-            .setSchemaId("fakeSchemaId")
-            .build();
+        DateTime occured = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
+        return new Headers("msgId", occured, "fakeSchemaId", null);
     }
     
     @Test
@@ -40,8 +40,8 @@ public class AvroCodecTest {
         AvroDecoder<Fubar> decoder = new AvroDecoder<Fubar>(Fubar.class);
         AvroMessage<Fubar> decoded = decoder.decode(bytes, origRec.getSchema());
         
-        assertEquals(hdrs, decoded.headers());
-        assertEquals(origRec, decoded.body());
+        assertEquals(hdrs, decoded.getHeaders());
+        assertEquals(origRec, decoded.getBody());
     }
     
     @Test
@@ -59,6 +59,6 @@ public class AvroCodecTest {
         AvroDecoder<GenericRecord> decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);
         AvroMessage<GenericRecord> decoded = decoder.decode(bytes, origRec.getSchema());
         
-        assertEquals(origRec, decoded.body());
+        assertEquals(origRec, decoded.getBody());
     }
 }

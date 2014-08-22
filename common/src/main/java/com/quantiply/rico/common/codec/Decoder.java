@@ -6,6 +6,9 @@ import java.nio.ByteBuffer;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import com.quantiply.schema.WrappedMsg;
 
@@ -15,6 +18,7 @@ public class Decoder {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private org.apache.avro.io.BinaryDecoder decoder = null;
     private final DatumReader<WrappedMsg> reader = new SpecificDatumReader<WrappedMsg>(WrappedMsg.class);
+    private final DateTimeFormatter dateFormatter = ISODateTimeFormat.dateTime();
     
     public RawMessage decode(byte[] payload) throws IOException {
         //Check version byte
@@ -24,7 +28,12 @@ public class Decoder {
         decoder = decoderFactory.binaryDecoder(buffer.array(), buffer.position(), buffer.remaining(), decoder);
         reader.read(wrapped, decoder);
         
-        return new RawMessage(wrapped.getBody().array(), wrapped.getHeaders());
+        return new RawMessage(wrapped.getBody().array(), getHeaders(wrapped.getHeaders()));
+    }
+    
+    protected Headers getHeaders(com.quantiply.schema.Headers avroHeaders) {
+        DateTime occured = dateFormatter.parseDateTime(avroHeaders.getOccured());
+        return new Headers(avroHeaders.getId(), occured, avroHeaders.getSchemaId(), avroHeaders.getKv());
     }
     
     private ByteBuffer getByteBuffer(byte[] payload) {

@@ -19,27 +19,23 @@ import org.apache.avro.specific.SpecificRecord;
  */
 public class AvroEncoder {
 
-    //public static final String AVRO_CONTENT_TYPE = "application/x-avro-binary";
-    
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private org.apache.avro.io.BinaryEncoder avroEncoder = null;
     private Encoder encoder = new Encoder();
     
     public byte[] encode(final AvroMessage<? extends GenericRecord> msg) throws IOException {
-        //msg.headers().getKv().put("Content-Type", AVRO_CONTENT_TYPE);
-        
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
         DatumWriter<GenericRecord> writer;
-        if (msg.body() instanceof SpecificRecord)
-            writer = new SpecificDatumWriter<GenericRecord>(msg.schema());
+        if (msg.getBody() instanceof SpecificRecord)
+            writer = new SpecificDatumWriter<GenericRecord>(msg.getSchema());
         else
-            writer = new GenericDatumWriter<GenericRecord>(msg.schema());
+            writer = new GenericDatumWriter<GenericRecord>(msg.getSchema());
         
         avroEncoder = encoderFactory.directBinaryEncoder(out, avroEncoder); 
-        writer.write(msg.body(), avroEncoder);
+        writer.write(msg.getBody(), avroEncoder);
         
-        return encoder.encode(out.toByteArray(), msg.headers());
+        return encoder.encode(out.toByteArray(), msg.getHeaders());
     }
     
 }

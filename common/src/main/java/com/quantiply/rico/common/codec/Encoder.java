@@ -3,11 +3,14 @@ package com.quantiply.rico.common.codec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
-import com.quantiply.schema.Headers;
 import com.quantiply.schema.WrappedMsg;
 
 /**
@@ -36,6 +39,7 @@ public class Encoder {
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private org.apache.avro.io.BinaryEncoder encoder = null;
     private final DatumWriter<WrappedMsg> writer = new SpecificDatumWriter<WrappedMsg>(WrappedMsg.class);
+    private final DateTimeFormatter dateFormatter = ISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC);
     
     /**
      * Wraps message
@@ -51,9 +55,8 @@ public class Encoder {
         }
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        
         WrappedMsg wrapped = WrappedMsg.newBuilder()
-            .setHeaders(headers)
+            .setHeaders(getAvroHeaders(headers))
             .setBody(ByteBuffer.wrap(msg))
             .build();
         
@@ -62,8 +65,21 @@ public class Encoder {
         writer.write(wrapped, encoder);
         return out.toByteArray();
     }
+
+    protected com.quantiply.schema.Headers getAvroHeaders(final Headers headers) {
+        String occuredStr = dateFormatter.print(headers.getOccured());
+        com.quantiply.schema.Headers.Builder builder = com.quantiply.schema.Headers.newBuilder();
+        builder.setId(headers.getId())
+            .setOccured(occuredStr)
+            .setKv(headers.getKv());
+        if (headers.getSchemaId() != null) {
+            builder.setSchemaId(headers.getSchemaId());
+        }
+        return builder.build();
+    }
     
     public byte[] encode(final RawMessage msg) throws IOException {
-        return encode(msg.body(), msg.headers());
+        return encode(msg.getBody(), msg.getHeaders());
     }
+    
 }

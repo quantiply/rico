@@ -5,14 +5,17 @@ import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.*;
+
 import static org.junit.Assert.*;
 
 import com.google.common.collect.ImmutableMap;
 import com.quantiply.rico.common.codec.Decoder;
 import com.quantiply.rico.common.codec.Encoder;
+import com.quantiply.rico.common.codec.Headers;
 import com.quantiply.rico.common.codec.RawMessage;
-import com.quantiply.schema.Headers;
 
 public class CodecTest {
 
@@ -25,14 +28,8 @@ public class CodecTest {
     }
     
     protected Headers getHeaders(Map<String, String> kv) {
-        Headers hdrs = Headers.newBuilder()
-            .setId("msgId")
-            .setOccured("2014-07-23T00:06:00.000Z")
-            .build();
-        if (kv != null) {
-            hdrs.setKv(kv);
-        }
-        return hdrs;
+        DateTime occured = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
+        return new Headers("msgId", occured, null, kv);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -78,9 +75,9 @@ public class CodecTest {
         
         Decoder decoder = getDecoder();
         RawMessage decoded = decoder.decode(bytes);
-        assertArrayEquals(body, decoded.body());
-        assertEquals(hdrs, decoded.headers());
-        assertEquals(kv, decoded.headers().getKv());
+        assertArrayEquals(body, decoded.getBody());
+        assertEquals(hdrs, decoded.getHeaders());
+        assertEquals(kv, decoded.getHeaders().getKv());
         
         //Making sure Avro object reuse works
         final byte[] bytes2 = encoder.encode(body, getHeaders(kv));
@@ -88,8 +85,8 @@ public class CodecTest {
         assertEquals(expectedHex, byteStr2);
 
         RawMessage decoded2 = decoder.decode(bytes2);
-        assertArrayEquals(body, decoded2.body());
-        assertEquals(hdrs, decoded2.headers());
+        assertArrayEquals(body, decoded2.getBody());
+        assertEquals(hdrs, decoded2.getHeaders());
     }
 
     

@@ -24,7 +24,7 @@ public class AvroDecoder<T extends GenericRecord> {
     public AvroMessage<T> decode(byte[] payload, Schema schema) throws IOException {
         RawMessage raw = decoder.decode(payload);
         
-        avroDecoder = decoderFactory.binaryDecoder(raw.body(), avroDecoder);
+        avroDecoder = decoderFactory.binaryDecoder(raw.getBody(), avroDecoder);
         DatumReader<T> reader;
         if (SpecificRecord.class.isAssignableFrom(typeClass)) {
             reader = new SpecificDatumReader<T>(typeClass);
@@ -34,7 +34,7 @@ public class AvroDecoder<T extends GenericRecord> {
         }
         T body = reader.read(null, avroDecoder);
         
-        return new AvroMessage<T>(body, raw.headers());
+        return new AvroMessage<T>(body, raw.getHeaders());
     }
     
 }

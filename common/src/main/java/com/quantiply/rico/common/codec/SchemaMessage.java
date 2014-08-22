@@ -1,7 +1,5 @@
 package com.quantiply.rico.common.codec;
 
-import com.quantiply.schema.Headers;
-
 public class SchemaMessage<T, S> extends Message<T> {
 
     private final S schema;
@@ -14,7 +12,7 @@ public class SchemaMessage<T, S> extends Message<T> {
     /**
      * The schema for this message
      */
-    public S schema() {
+    public S getSchema() {
         return this.schema;
     }
 
