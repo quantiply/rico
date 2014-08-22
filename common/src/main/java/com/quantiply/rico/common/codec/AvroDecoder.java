@@ -21,7 +21,7 @@ public class AvroDecoder<T extends GenericRecord> {
         this.typeClass = typeClass;
     }
     
-    public AvroMessage<T> decode(byte[] payload, Schema schema, String schemaId) throws IOException {
+    public AvroMessage<T> decode(byte[] payload, Schema schema) throws IOException {
         RawMessage raw = decoder.decode(payload);
         
         avroDecoder = decoderFactory.binaryDecoder(raw.body(), avroDecoder);
@@ -34,7 +34,7 @@ public class AvroDecoder<T extends GenericRecord> {
         }
         T body = reader.read(null, avroDecoder);
         
-        return new AvroMessage<T>(schemaId, body, raw.headers());
+        return new AvroMessage<T>(body, raw.headers());
     }
     
 }

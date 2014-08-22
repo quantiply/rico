@@ -1,16 +1,14 @@
 package com.quantiply.rico.common.codec;
 
-import java.util.Map;
+import com.quantiply.schema.Headers;
 
 public class SchemaMessage<T, S> extends Message<T> {
 
     private final S schema;
-    private final String schemaId;
     
-    public SchemaMessage(S schema, String schemaId, T body, Map<String, String> headers) {
+    public SchemaMessage(S schema, T body, Headers headers) {
         super(body, headers);
         this.schema = schema;
-        this.schemaId = schemaId;
     }
     
     /**
@@ -18,13 +16,6 @@ public class SchemaMessage<T, S> extends Message<T> {
      */
     public S schema() {
         return this.schema;
-    }
-
-    /**
-     * The schema ID for the schema
-     */
-    public String schemaId() {
-        return this.schemaId;
     }
 
 }

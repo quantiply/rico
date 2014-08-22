@@ -1,16 +1,16 @@
 package com.quantiply.rico.common.codec;
 
-import java.util.Map;
+import com.quantiply.schema.Headers;
 
 /**
  * Object to hold messages
  */
 public final class RawMessage {
 
-    private final Map<String, String> headers;
+    private final Headers headers;
     private final byte[] body;
 
-    public RawMessage(byte[] body, Map<String, String> headers) {
+    public RawMessage(byte[] body, Headers headers) {
         this.body = body;
         this.headers = headers;
     }
@@ -18,7 +18,7 @@ public final class RawMessage {
     /**
      * The message headers
      */
-    public Map<String, String> headers() {
+    public Headers headers() {
         return this.headers;
     }
 

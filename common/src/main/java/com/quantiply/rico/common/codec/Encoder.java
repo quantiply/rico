@@ -3,11 +3,11 @@ package com.quantiply.rico.common.codec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Map;
-
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
+
+import com.quantiply.schema.Headers;
 import com.quantiply.schema.WrappedMsg;
 
 /**
@@ -42,23 +42,20 @@ public class Encoder {
      * 
      * @throws IOException 
      */
-    public byte[] encode(final byte[] msg, final Map<String, String> headers) throws IOException {
-        if (msg == null) {
-            throw new IllegalArgumentException("Null message");
+    public byte[] encode(final byte[] msg, final Headers headers) throws IOException {
+        if (msg == null || msg.length == 0) {
+            throw new IllegalArgumentException("No message");
         }
-        if (msg.length == 0 && headers == null) {
-            throw new IllegalArgumentException("Message has no content");
+        if (headers == null) {
+            throw new IllegalArgumentException("Null headers");
         }
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
-        com.quantiply.schema.WrappedMsg.Builder builder = WrappedMsg.newBuilder();
-        builder.setBody(ByteBuffer.wrap(msg));
-        if (headers != null) {
-            builder.setHeaders(headers);
-        }
-        
-        WrappedMsg wrapped = builder.build();
+        WrappedMsg wrapped = WrappedMsg.newBuilder()
+            .setHeaders(headers)
+            .setBody(ByteBuffer.wrap(msg))
+            .build();
         
         out.write(MSG_FORMAT_VERSION);
         encoder = encoderFactory.directBinaryEncoder(out, encoder); 
@@ -68,9 +65,5 @@ public class Encoder {
     
     public byte[] encode(final RawMessage msg) throws IOException {
         return encode(msg.body(), msg.headers());
-    }
-    
-    public byte[] encode(final byte[] msg) throws IOException {
-        return encode(msg, null);
     }
 }

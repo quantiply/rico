@@ -1,17 +1,46 @@
 {
+  "name": "WrappedMsg",
   "type": "record",
   "namespace": "com.quantiply.schema",
-  "name": "WrappedMsg",
   "doc": "Wraps messages to allow for headers",
   "fields": [
     {
       "name": "headers",
-      "type": {"type": "map", "values": "string"},
-      "default": {}
+      "type" : {
+        "type" : "record",
+        "name" : "Headers",
+        "namespace" : "com.quantiply.schema",
+        "fields" : [
+          {
+            "name": "id",
+            "type": "string",
+            "doc": "UUID for the message.  This can be used to detect and remove duplicates."
+          },
+          {
+            "name": "schemaId",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Identifies the schema used to encode this message (optional)."
+          },
+          {
+            "name": "occured",
+            "type": "string",
+            "doc": "Datetime the event occured in ISO 1806 format."
+          },
+          {
+            "name": "kv",
+            "type": {"type": "map", "values": "string"},
+            "default": {},
+            "doc": "Free-form key/value headers.  Any additional info can go here like tracing, etc."
+          }
+        ]
+      },
+      "doc": "Metadata container for messages"
     },
     {
       "name": "body",
-      "type": "bytes"
+      "type": "bytes",
+      "doc": "The message content"
     }        
   ]
 }

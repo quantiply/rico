@@ -3,8 +3,6 @@ package com.quantiply.rico.common.codec;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
@@ -26,7 +24,7 @@ public class Decoder {
         decoder = decoderFactory.binaryDecoder(buffer.array(), buffer.position(), buffer.remaining(), decoder);
         reader.read(wrapped, decoder);
         
-        return new RawMessage(wrapped.getBody().array(), ImmutableMap.copyOf(wrapped.getHeaders()));
+        return new RawMessage(wrapped.getBody().array(), wrapped.getHeaders());
     }
     
     private ByteBuffer getByteBuffer(byte[] payload) {

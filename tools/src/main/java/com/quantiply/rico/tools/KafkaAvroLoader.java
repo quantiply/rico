@@ -76,6 +76,31 @@ public class KafkaAvroLoader {
         //  - could use Bloom filter for existence check
         //  - config option to skip registration
         
+        /*
+         * AvroProducer<GenericRecord> producer = new AvroProducer<GenericRecord>();
+         * producer.send(bucket, stream, avroRecord, key);
+         * with this in parent?
+         * producer.send(RicoMessage m)
+         * 
+         * KafkaAvroEncoder.createRecord(bucket, stream, avroRecord, key, partition)
+         *    - or RicoAvroEncoder??
+         * 
+         * Need a util that gives me a ProducerRecord from (bucket, stream, avroRecord, key, partition)
+         * 
+         * RicoMessage - NO - this is a ProducerRecord
+         *  - topic
+         *  - key
+         *  - message
+         * 
+         *  SHOULD I ADD KEY TO THE AVROMESSAGE??? so I can have a util that returns a message
+         *    - hmmm...add topic too??
+         *    - DO WE EVER WANT THE KEY OR TOPIC ON THE CONSUMER???  Can we get it on the consumer?
+         *    - What about a custom partitioner???
+         * 
+         *  - Get topic
+         *  - Get schemaId and register if necessary
+         */
+        
         byte[] fingerprint = SchemaNormalization.parsingFingerprint("CRC-64-AVRO", avroRecord.getSchema());
         String schemaId = BaseEncoding.base64().encode(fingerprint);
         AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(schemaId, avroRecord);

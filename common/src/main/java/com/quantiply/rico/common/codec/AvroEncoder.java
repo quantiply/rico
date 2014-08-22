@@ -19,16 +19,14 @@ import org.apache.avro.specific.SpecificRecord;
  */
 public class AvroEncoder {
 
-    public static final String AVRO_CONTENT_TYPE = "application/x-avro-binary";
+    //public static final String AVRO_CONTENT_TYPE = "application/x-avro-binary";
     
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private org.apache.avro.io.BinaryEncoder avroEncoder = null;
     private Encoder encoder = new Encoder();
     
     public byte[] encode(final AvroMessage<? extends GenericRecord> msg) throws IOException {
-        //TODO - move this in a util?
-        msg.headers().put("Content-Type", AVRO_CONTENT_TYPE);
-        msg.headers().put("X-Rico-Schema-Id", msg.schemaId());
+        //msg.headers().getKv().put("Content-Type", AVRO_CONTENT_TYPE);
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
