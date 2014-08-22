@@ -2,6 +2,7 @@ package com.quantiply.rico.common;
 
 import java.io.IOException;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.joda.time.DateTime;
@@ -14,6 +15,7 @@ import com.quantiply.rico.common.codec.AvroDecoder;
 import com.quantiply.rico.common.codec.AvroEncoder;
 import com.quantiply.rico.common.codec.AvroMessage;
 import com.quantiply.rico.common.codec.Headers;
+import com.quantiply.rico.common.codec.RawMessage;
 import com.quantiply.schema.test.Fubar;
 
 public class AvroCodecTest {
@@ -29,7 +31,7 @@ public class AvroCodecTest {
     
     @Test
     public void codecSpecificRecord() throws IOException {
-        Fubar origRec = Fubar.newBuilder().setBar(7).setFoo("hi").build();
+        final Fubar origRec = Fubar.newBuilder().setBar(7).setFoo("hi").build();
         
         Headers hdrs = getHeaders();
         AvroMessage<Fubar> msg = new AvroMessage<Fubar>(origRec, hdrs);
@@ -38,7 +40,12 @@ public class AvroCodecTest {
         final byte[] bytes = encoder.encode(msg);
         
         AvroDecoder<Fubar> decoder = new AvroDecoder<Fubar>(Fubar.class);
-        AvroMessage<Fubar> decoded = decoder.decode(bytes, origRec.getSchema());
+        AvroMessage<Fubar> decoded = decoder.decode(bytes, new Function<RawMessage, Schema>() {
+            @Override
+            public Schema call(RawMessage input) throws Exception {
+                return origRec.getSchema();
+            }
+        });
         
         assertEquals(hdrs, decoded.getHeaders());
         assertEquals(origRec, decoded.getBody());
@@ -46,7 +53,7 @@ public class AvroCodecTest {
     
     @Test
     public void codecGenericRecord() throws IOException {
-        GenericRecord origRec = new GenericRecordBuilder(Fubar.getClassSchema())
+        final GenericRecord origRec = new GenericRecordBuilder(Fubar.getClassSchema())
             .set("bar", new Integer(6))
             .set("foo", "booyah")
             .build();
@@ -57,7 +64,12 @@ public class AvroCodecTest {
         final byte[] bytes = encoder.encode(msg);
         
         AvroDecoder<GenericRecord> decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);
-        AvroMessage<GenericRecord> decoded = decoder.decode(bytes, origRec.getSchema());
+        AvroMessage<GenericRecord> decoded = decoder.decode(bytes, new Function<RawMessage, Schema>() {
+            @Override
+            public Schema call(RawMessage input) throws Exception {
+                return origRec.getSchema();
+            }
+        });
         
         assertEquals(origRec, decoded.getBody());
     }
