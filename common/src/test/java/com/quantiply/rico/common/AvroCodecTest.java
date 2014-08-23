@@ -1,7 +1,6 @@
 package com.quantiply.rico.common;
 
 import java.io.IOException;
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
@@ -12,13 +11,14 @@ import org.junit.*;
 
 import static org.junit.Assert.*;
 
-import com.quantiply.rico.common.codec.AvroDecoder;
+import com.quantiply.rico.common.codec.AvroSpecificDecoder;
 import com.quantiply.rico.common.codec.AvroEncoder;
+import com.quantiply.rico.common.codec.AvroGenericDecoder;
+import com.quantiply.rico.common.codec.AvroGenericDecoder.SchemaPair;
 import com.quantiply.rico.common.codec.AvroMessage;
 import com.quantiply.rico.common.codec.Headers;
 import com.quantiply.rico.common.codec.RawMessage;
 import com.quantiply.schema.test.Fubar;
-import com.quantiply.schema.test.Fubar2;
 
 public class AvroCodecTest {
 
@@ -26,8 +26,24 @@ public class AvroCodecTest {
         DateTime occurred = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
         return new Headers("msgId", occurred, "fakeSchemaId", null);
     }
+
+    protected Schema getV0Schema() {
+        return SchemaBuilder
+                .record("Fubar").namespace("com.quantiply.schema.test")
+                        .fields()
+                          .name("foo").type()
+                              .stringBuilder()
+                                  .prop("avro.java.string", "String")
+                              .endString()
+                              .noDefault()
+                          .name("bar").type("int").noDefault()
+                          .name("charlie").type().stringType().noDefault()
+                        .endRecord();
+    }
     
-    protected Schema getV2SchemaWithConflictingName() {
+    //NOTE: v1 schema is in Fubar.avsc
+    
+    protected Schema getV2Schema() {
         return SchemaBuilder
                 .record("Fubar").namespace("com.quantiply.schema.test")
                         .fields()
@@ -47,7 +63,7 @@ public class AvroCodecTest {
         AvroEncoder<Fubar> encoder = new AvroEncoder<Fubar>();
         final byte[] bytes = encoder.encode(msg);
         
-        AvroDecoder<Fubar> decoder = new AvroDecoder<Fubar>(Fubar.class);
+        AvroSpecificDecoder<Fubar> decoder = new AvroSpecificDecoder<Fubar>(Fubar.class);
         AvroMessage<Fubar> decoded = decoder.decode(bytes, new Function<RawMessage, Schema>() {
             @Override
             public Schema call(RawMessage input) throws Exception {
@@ -58,16 +74,42 @@ public class AvroCodecTest {
         assertEquals(hdrs, decoded.getHeaders());
         assertEquals(origRec, decoded.getBody());
         
+    }
+    
+    @Test
+    public void decodeNewVersionSpecific() throws IOException {
+        final GenericRecord origRec = new GenericRecordBuilder(getV0Schema())
+            .set("foo", "hi")
+            .set("bar", new Integer(7))
+            .set("charlie", "i won't make it")
+            .build();
+        
+        Headers hdrs = getHeaders();
+        AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(origRec, hdrs);
+        
+        AvroEncoder<GenericRecord> encoder = new AvroEncoder<GenericRecord>();
+        final byte[] bytes = encoder.encode(msg);
+        
         //Now decode with a newer schema
-        AvroDecoder<Fubar2> v2Decoder = new AvroDecoder<Fubar2>(Fubar2.class);
-        AvroMessage<Fubar2> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, Schema>() {
+        AvroSpecificDecoder<Fubar> v2Decoder = new AvroSpecificDecoder<Fubar>(Fubar.class);
+        AvroMessage<Fubar> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, Schema>() {
             @Override
             public Schema call(RawMessage input) throws Exception {
-                return Fubar2.getClassSchema();
+                //Must return the writer's schema here
+                return getV0Schema();
             }
         });
-        //Check that the new parameter is present with it's default value
-        assertEquals(42, v2Decoded.getBody().getNewParam().intValue());
+        Fubar f = v2Decoded.getBody();
+        assertEquals("hi", f.getFoo());
+        assertEquals(7, f.getBar().intValue());
+        //Old param is gone - throws NPE
+        try {
+            f.get("charlie");
+            assertTrue(false);
+        }
+        catch (NullPointerException e) {
+            assertTrue(true);
+        }
     }
     
     @Test
@@ -82,22 +124,22 @@ public class AvroCodecTest {
         AvroEncoder<GenericRecord> encoder = new AvroEncoder<GenericRecord>();
         final byte[] bytes = encoder.encode(msg);
         
-        AvroDecoder<GenericRecord> decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);
-        AvroMessage<GenericRecord> decoded = decoder.decode(bytes, new Function<RawMessage, Schema>() {
+        final AvroGenericDecoder decoder = new AvroGenericDecoder();
+        AvroMessage<GenericRecord> decoded = decoder.decode(bytes, new Function<RawMessage, SchemaPair>() {
             @Override
-            public Schema call(RawMessage input) throws Exception {
-                return origRec.getSchema();
+            public SchemaPair call(RawMessage raw) throws Exception {
+                return decoder.new SchemaPair(origRec.getSchema(), null);
             }
         });
         
         assertEquals(origRec, decoded.getBody());
         
         //Now decode with a newer schema that also uses the same record name
-        AvroDecoder<GenericRecord> v2Decoder = new AvroDecoder<GenericRecord>(GenericRecord.class);
-        AvroMessage<GenericRecord> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, Schema>() {
+        final AvroGenericDecoder v2Decoder = new AvroGenericDecoder();
+        AvroMessage<GenericRecord> v2Decoded = v2Decoder.decode(bytes, new Function<RawMessage, SchemaPair>() {
             @Override
-            public Schema call(RawMessage input) throws Exception {
-                return getV2SchemaWithConflictingName();
+            public SchemaPair call(RawMessage raw) throws Exception {
+                return decoder.new SchemaPair(origRec.getSchema(), getV2Schema());
             }
         });
         //Check that the new parameter is present with it's default value

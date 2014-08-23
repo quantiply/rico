@@ -25,11 +25,12 @@ public class AvroEncoder<T extends GenericRecord> extends BaseEncoder<T, AvroMes
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
         DatumWriter<GenericRecord> writer;
-        if (msg.getBody() instanceof SpecificRecord)
+        if (msg.getBody() instanceof SpecificRecord) {
             writer = new SpecificDatumWriter<GenericRecord>(msg.getSchema());
-        else
+        }
+        else {
             writer = new GenericDatumWriter<GenericRecord>(msg.getSchema());
-        
+        }
         avroEncoder = encoderFactory.directBinaryEncoder(out, avroEncoder); 
         writer.write(msg.getBody(), avroEncoder);
         return out.toByteArray();
