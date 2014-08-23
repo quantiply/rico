@@ -23,8 +23,8 @@ import com.quantiply.schema.test.Fubar2;
 public class AvroCodecTest {
 
     protected Headers getHeaders() {
-        DateTime occured = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
-        return new Headers("msgId", occured, "fakeSchemaId", null);
+        DateTime occurred = ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z");
+        return new Headers("msgId", occurred, "fakeSchemaId", null);
     }
     
     protected Schema getV2SchemaWithConflictingName() {

@@ -112,7 +112,7 @@ public class KafkaAvroLoader {
         Headers hdrs = new Headers("fakeId", ISODateTimeFormat.dateTime().parseDateTime("2014-07-23T00:06:00.000Z"), schemaId, null);
         AvroMessage<GenericRecord> msg = new AvroMessage<GenericRecord>(avroRecord, hdrs);
         
-        AvroEncoder encoder = new AvroEncoder();
+        AvroEncoder<GenericRecord> encoder = new AvroEncoder<GenericRecord>();
         ProducerRecord record = new ProducerRecord(topic, encoder.encode(msg));
         return producer.send(record).get();
     }
