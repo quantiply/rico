@@ -35,11 +35,16 @@
     	<groupId>com.google.guava</groupId>
     	<artifactId>guava</artifactId>
     </dependency>
+    <dependency>
+    	<groupId>com.google.code.gson</groupId>
+    	<artifactId>gson</artifactId>
+    </dependency>
+    
   </dependencies>
 
   <build>
     <plugins>
-      <!-- Example: mvn exec:java -Dexec.args="-b sys -s perf /Users/rhoover/Work/et/opintel/kafka/test.avro"-->
+      <!-- Example: mvn exec:java -Dexec.args="-t sys -b perf -s s2 -k host /Users/rhoover/Work/et/opintel/kafka/logstash_out.json"-->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
