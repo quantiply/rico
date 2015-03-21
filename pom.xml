@@ -59,6 +59,11 @@
                 <version>3.1.1</version>
             </dependency>
             <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>2.3</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>1.7.7</version>
@@ -76,6 +81,7 @@
         <module>api</module>
         <module>core</module>
         <module>local</module>
+        <module>jython</module>
     </modules>
 
     <build>
