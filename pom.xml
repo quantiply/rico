@@ -10,30 +10,37 @@
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <maven.compiler.hadoop.source>1.7</maven.compiler.hadoop.source>
-        <maven.compiler.hadoop.target>1.7</maven.compiler.hadoop.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <avro.version>1.7.7</avro.version>
+        <samza.version>0.8.0</samza.version>
     </properties>
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    
     <packaging>pom</packaging>
+    
     <name>Quantiply Rico Parent</name>
     <description>Streaming Enrichment Platform</description>
+    
+    <distributionManagement>
+        <repository>
+            <id>aws-release</id>
+            <name>AWS Release Repository</name>
+            <url>s3://artifacts.quantezza.com/release</url>
+        </repository>
+        <snapshotRepository>
+            <id>aws-snapshot</id>
+            <name>AWS Snapshot Repository</name>
+            <url>s3://artifacts.quantezza.com/snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
     
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>com.quantiply.rico</groupId>
-                <artifactId>common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.quantiply.rico</groupId>
-                <artifactId>tools</artifactId>
+                <artifactId>api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -41,54 +48,33 @@
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
-            <!-- rhoover: Using new async producer
-            http://mail-archives.apache.org/mod_mbox/kafka-dev/201401.mbox/%3CCAOeJiJhr8DOhOVX8C7GcqtBQj-0RZmohqz_patNP=QarRjb9UA@mail.gmail.com%3E
-            -->
             <dependency>
-              <groupId>org.apache.kafka</groupId>
-              <artifactId>clients</artifactId>
-              <version>0.8.2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-            	<groupId>net.sourceforge.argparse4j</groupId>
-            	<artifactId>argparse4j</artifactId>
-            	<version>0.4.3</version>
-            </dependency>
-            <dependency>
-            	<groupId>org.slf4j</groupId>
-            	<artifactId>slf4j-log4j12</artifactId>
-            	<version>1.7.7</version>
-            </dependency>
-            <dependency>
-            	<groupId>com.google.guava</groupId>
-            	<artifactId>guava</artifactId>
-            	<version>17.0</version>
-            </dependency>
-            <dependency>
-            	<groupId>joda-time</groupId>
-            	<artifactId>joda-time</artifactId>
-            	<version>2.4</version>
-            </dependency>
-            <dependency>
-            	<groupId>com.google.code.gson</groupId>
-            	<artifactId>gson</artifactId>
-            	<version>2.3</version>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>1.7.7</version>
             </dependency>
             <dependency>
               <groupId>junit</groupId>
               <artifactId>junit</artifactId>
-              <version>4.11</version>
+              <version>4.12</version>
               <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <modules>
-        <module>common</module>
-        <module>tools</module>
+        <module>api</module>
+        <module>core</module>
     </modules>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>org.kuali.maven.wagons</groupId>
+                <artifactId>maven-s3-wagon</artifactId>
+                <version>1.2.1</version>
+            </extension>
+        </extensions>
         <plugins>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
@@ -100,74 +86,15 @@
                 <encoding>${project.build.sourceEncoding}</encoding>
               </configuration>
             </plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-eclipse-plugin</artifactId>
-              <version>2.9</version>
-              <configuration>
-                <buildOutputDirectory>eclipse-classes</buildOutputDirectory>
-                <downloadSources>true</downloadSources>
-                <downloadJavadocs>false</downloadJavadocs>
-              </configuration>
-            </plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-shade-plugin</artifactId>
-              <version>1.7.1</version>
-            </plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-dependency-plugin</artifactId>
-              <version>2.8</version>
-            </plugin>
-            <plugin>
-            	<groupId>org.apache.maven.plugins</groupId>
-            	<artifactId>maven-jar-plugin</artifactId>
-            	<version>2.5</version>
-            </plugin>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>exec-maven-plugin</artifactId>
-              <version>1.2.1</version>
-            </plugin>
             <!--
               rhoover: we need a recent version of this
               to make sure "mvn test" uses JUnit 4.x
             -->
-            <plugin>
+            <!-- <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-surefire-plugin</artifactId>
               <version>2.17</version>
-            </plugin>
-            <plugin>
-              <artifactId>maven-install-plugin</artifactId>
-              <version>2.3.1</version>
-              <inherited>false</inherited>
-              <executions>
-                <execution>
-                  <id>install-new-kafka-client</id>
-                  <phase>validate</phase>
-                  <goals>
-                    <goal>install-file</goal>
-                  </goals>
-                  <configuration>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>clients</artifactId>
-                    <version>0.8.2-SNAPSHOT</version>
-                    <packaging>jar</packaging>
-                    <!-- rhoover:
-                    These were made on 08/15/14 by doing
-                      git clone git://git.apache.org/kafka.git
-                      cd kafka
-                      ./gradlew clients:install
-                      Then copy from ~/.m2/repository/org/apache/kafka/kafka-clients/0.8.2-SNAPSHOT/
-                    -->
-                    <file>${basedir}/lib/kafka-clients-0.8.2-SNAPSHOT.jar</file>
-                    <pomFile>${basedir}/lib/kafka-clients-0.8.2-SNAPSHOT.pom</pomFile>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
+            </plugin> -->
         </plugins>
     </build>
 

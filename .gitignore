@@ -3,9 +3,11 @@
 target
 .settings
 .project
+.idea
 eclipse-classes
 dependency-reduced-pom.xml
 .DS_Store
+*.iml
 
 #Python
 *.pyc
