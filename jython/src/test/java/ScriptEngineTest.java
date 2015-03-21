@@ -228,25 +228,25 @@ public class ScriptEngineTest extends TestCase {
 //        }
 //    }
 
-    public void testScope_repr() throws ScriptException {
-        ScriptEngineManager manager = new ScriptEngineManager();
-        ScriptEngine pythonEngine = manager.getEngineByName("python");
-        pythonEngine.eval("a = 4");
-        pythonEngine.eval("b = 'hi'");
-        pythonEngine.eval("localrepr = `locals()`");
-        assertEquals("{'b': u'hi', 'a': 4}", pythonEngine.get("localrepr"));
-    }
+//    public void testScope_repr() throws ScriptException {
+//        ScriptEngineManager manager = new ScriptEngineManager();
+//        ScriptEngine pythonEngine = manager.getEngineByName("python");
+//        pythonEngine.eval("a = 4");
+//        pythonEngine.eval("b = 'hi'");
+//        pythonEngine.eval("localrepr = `locals()`");
+//        assertEquals("{'b': u'hi', 'a': 4}", pythonEngine.get("localrepr"));
+//    }
 
-    public void testScope_iter() throws ScriptException {
-        ScriptEngineManager manager = new ScriptEngineManager();
-        ScriptEngine pythonEngine = manager.getEngineByName("python");
-        pythonEngine.eval("a = 4");
-        pythonEngine.eval("b = 'hi'");
-        pythonEngine.eval("list = []");
-        pythonEngine.eval("for loc in locals(): list.append(loc)");
-        pythonEngine.eval("listrepr = `list`");
-        assertEquals("[u'a', u'b', u'list']", pythonEngine.get("listrepr"));
-    }
+//    public void testScope_iter() throws ScriptException {
+//        ScriptEngineManager manager = new ScriptEngineManager();
+//        ScriptEngine pythonEngine = manager.getEngineByName("python");
+//        pythonEngine.eval("a = 4");
+//        pythonEngine.eval("b = 'hi'");
+//        pythonEngine.eval("list = []");
+//        pythonEngine.eval("for loc in locals(): list.append(loc)");
+//        pythonEngine.eval("listrepr = `list`");
+//        assertEquals("[u'a', u'b', u'list']", pythonEngine.get("listrepr"));
+//    }
 
     public void testScope_lookup() throws ScriptException {
         ScriptEngineManager manager = new ScriptEngineManager();
