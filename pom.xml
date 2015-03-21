@@ -82,6 +82,7 @@
         <module>core</module>
         <module>local</module>
         <module>jython</module>
+        <module>nashorn</module>
     </modules>
 
     <build>

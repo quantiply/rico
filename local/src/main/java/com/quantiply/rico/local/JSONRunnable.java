@@ -1,4 +1,4 @@
-package com.quantiply.local;
+package com.quantiply.rico.local;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.type.TypeReference;

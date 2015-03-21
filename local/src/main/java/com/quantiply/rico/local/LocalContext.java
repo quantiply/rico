@@ -1,4 +1,4 @@
-package com.quantiply.local;
+package com.quantiply.rico.local;
 
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
