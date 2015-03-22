@@ -1,4 +1,8 @@
-package com.quantiply.rico.api;
+package com.quantiply.rico;
+
+import com.quantiply.rico.Configuration;
+import com.quantiply.rico.Context;
+import com.quantiply.rico.Envelope;
 
 import java.util.List;
 

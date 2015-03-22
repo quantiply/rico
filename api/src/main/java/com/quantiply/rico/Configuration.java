@@ -1,4 +1,4 @@
-package com.quantiply.rico.api;
+package com.quantiply.rico;
 
 import java.util.Map;
 

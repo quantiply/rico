@@ -1,6 +1,4 @@
-package com.quantiply.rico.api;
-
-import com.quantiply.rico.api.KeyValueStore;
+package com.quantiply.rico;
 
 /**
  * Created by arrawatia on 1/27/15.

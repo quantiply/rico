@@ -3,7 +3,7 @@ package com.quantiply.rico.local;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quantiply.rico.api.KeyValueStore;
+import com.quantiply.rico.KeyValueStore;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

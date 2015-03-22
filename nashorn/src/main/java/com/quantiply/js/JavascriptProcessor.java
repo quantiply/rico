@@ -1,9 +1,9 @@
 package com.quantiply.js;
 
-import com.quantiply.rico.api.Configuration;
-import com.quantiply.rico.api.Envelope;
-import com.quantiply.rico.api.Processor;
-import com.quantiply.rico.api.Context;
+import com.quantiply.rico.Configuration;
+import com.quantiply.rico.Envelope;
+import com.quantiply.rico.Processor;
+import com.quantiply.rico.Context;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.*;

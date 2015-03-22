@@ -2,9 +2,9 @@ package com.quantiply.rico.local;
 
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
-import com.quantiply.rico.api.Configuration;
-import com.quantiply.rico.api.Context;
-import com.quantiply.rico.api.KeyValueStore;
+import com.quantiply.rico.Configuration;
+import com.quantiply.rico.Context;
+import com.quantiply.rico.KeyValueStore;
 
 import java.util.HashMap;
 import java.util.Map;

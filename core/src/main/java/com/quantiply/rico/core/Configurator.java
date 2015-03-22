@@ -3,7 +3,7 @@ package com.quantiply.rico.core;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.quantiply.rico.api.Configuration;
+import com.quantiply.rico.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

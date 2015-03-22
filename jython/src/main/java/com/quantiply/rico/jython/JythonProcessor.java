@@ -1,9 +1,9 @@
 package com.quantiply.rico.jython;
 
-import com.quantiply.rico.api.Configuration;
-import com.quantiply.rico.api.Envelope;
-import com.quantiply.rico.api.Processor;
-import com.quantiply.rico.api.Context;
+import com.quantiply.rico.Configuration;
+import com.quantiply.rico.Envelope;
+import com.quantiply.rico.Processor;
+import com.quantiply.rico.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
