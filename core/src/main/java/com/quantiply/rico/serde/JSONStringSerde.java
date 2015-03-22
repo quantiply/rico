@@ -5,8 +5,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quantiply.rico.Configuration;
 import com.quantiply.rico.Envelope;
-import com.quantiply.rico.serde.StringSerde;
+import com.quantiply.rico.errors.SerializationException;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,11 +27,17 @@ public class JSONStringSerde implements StringSerde<Object> {
     public void init(Configuration cfg) {}
 
     @Override
-    public Envelope fromString(String msg) throws Exception {
+    public Envelope fromString(String msg) throws SerializationException {
         TypeReference<HashMap<String,Object>> typeRef
                 = new TypeReference<HashMap<String,Object>>() {};
 
-        Map<String,Object> json = _mapper.readValue(msg, typeRef);
+        Map<String,Object> json = null;
+        try {
+            json = _mapper.readValue(msg, typeRef);
+        }
+        catch (IOException e) {
+            throw new SerializationException(e);
+        }
         Envelope<Object> envelope = new Envelope<>();
 
         if(json.containsKey(FIELD_NAME_HEADER)) {
@@ -39,17 +46,22 @@ public class JSONStringSerde implements StringSerde<Object> {
 
         if(json.containsKey(FIELD_NAME_BODY)){
             envelope.setPayload(json.get(FIELD_NAME_BODY));
-        } else {
+        }
+        else {
             envelope.setPayload(json);
         }
         return envelope;
     }
 
     @Override
-    public void writeTo(Envelope<Object> envelope, java.io.StringWriter writer) throws Exception {
+    public void writeTo(Envelope<Object> envelope, java.io.StringWriter writer) throws SerializationException {
         Map<String, Object> msg = new HashMap<>();
         msg.put(FIELD_NAME_HEADER, envelope.getHeaders());
         msg.put(FIELD_NAME_BODY, envelope.getPayload());
-        _mapper.writeValue(writer, msg);
+        try {
+            _mapper.writeValue(writer, msg);
+        } catch (IOException e) {
+            throw new SerializationException(e);
+        }
     }
 }

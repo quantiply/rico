@@ -38,7 +38,7 @@ public class LocalRunner {
         _isWindowTriggered = false; //TODO - get this from config?
 
         // Initialize Serde
-        String serdeClass = localCfg.getString("processor.serde");
+        String serdeClass = localCfg.getString("string-serde");
         clazz = Class.forName(serdeClass);
         _serde = (StringSerde<Object>) clazz.newInstance();
         _serde.init(localCfg);
@@ -47,7 +47,7 @@ public class LocalRunner {
         String processorClass = localCfg.getString("processor.class");
         String processorName = localCfg.getString("processor.name");
 
-        BATCH_SIZE = localCfg.getInt("processor.batch.size");
+        BATCH_SIZE = localCfg.getInt("batch.size");
 
         System.out.println(processorName + " config :" + cfg.get(processorName));
 
