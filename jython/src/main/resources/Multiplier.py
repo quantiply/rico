@@ -28,9 +28,9 @@ from com.quantiply.api import Envelope
 def process(oranges):
   #print(",".join([str(orange) for orange in oranges]))
 
-  map = oranges[3].payload
+  map = oranges[3].body
   #print([type(a[1]) for a in map.iteritems()])
   e = Envelope()
   e.headers = {"hi" : "dsfsdf", 1:2}
-  e.payload={"boom": len(oranges)}
+  e.body={"boom": len(oranges)}
   return [e, oranges[0], oranges[1]]

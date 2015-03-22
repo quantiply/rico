@@ -45,10 +45,10 @@ public class JSONStringSerde implements StringSerde<Object> {
         }
 
         if(json.containsKey(FIELD_NAME_BODY)){
-            envelope.setPayload(json.get(FIELD_NAME_BODY));
+            envelope.setBody(json.get(FIELD_NAME_BODY));
         }
         else {
-            envelope.setPayload(json);
+            envelope.setBody(json);
         }
         return envelope;
     }
@@ -57,7 +57,7 @@ public class JSONStringSerde implements StringSerde<Object> {
     public void writeTo(Envelope<Object> envelope, java.io.StringWriter writer) throws SerializationException {
         Map<String, Object> msg = new HashMap<>();
         msg.put(FIELD_NAME_HEADER, envelope.getHeaders());
-        msg.put(FIELD_NAME_BODY, envelope.getPayload());
+        msg.put(FIELD_NAME_BODY, envelope.getBody());
         try {
             _mapper.writeValue(writer, msg);
         } catch (IOException e) {

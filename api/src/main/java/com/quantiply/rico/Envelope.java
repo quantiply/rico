@@ -6,7 +6,7 @@ import java.util.Map;
 public class Envelope<T>{
 
     private Map<String, String> headers;
-    private T payload;
+    private T body;
     private boolean isError;
     private String errorMessage;
 
@@ -26,12 +26,12 @@ public class Envelope<T>{
         return headers.get(key);
     }
 
-    public T getPayload() {
-        return payload;
+    public T getBody() {
+        return body;
     }
 
-    public void setPayload(T payload) {
-        this.payload = payload;
+    public void setBody(T body) {
+        this.body = body;
     }
 
     public Map<String, String> getHeaders() {
@@ -62,7 +62,7 @@ public class Envelope<T>{
     public String toString() {
         return "Envelope{" +
                 "headers=" + headers +
-                ", payload=" + payload +
+                ", body=" + body +
                 '}';
     }
 

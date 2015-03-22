@@ -45,7 +45,7 @@ public class AvroStringSerde implements StringSerde<Object> {
         try {
             _decoder.configure(jsonMsg);
             Object object = _reader.read(null, _decoder);
-            envelope.setPayload(object);
+            envelope.setBody(object);
         }
         catch (IOException e) {
             throw new SerializationException(e);
