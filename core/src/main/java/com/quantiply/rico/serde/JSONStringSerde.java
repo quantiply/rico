@@ -1,4 +1,4 @@
-package com.quantiply.rico.core.serde;
+package com.quantiply.rico.serde;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.type.TypeReference;

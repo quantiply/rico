@@ -3,8 +3,8 @@ package com.quantiply.rico.local;
 import com.quantiply.rico.Configuration;
 import com.quantiply.rico.Envelope;
 import com.quantiply.rico.Processor;
-import com.quantiply.rico.core.Configurator;
-import com.quantiply.rico.core.serde.JSONStringSerde;
+import com.quantiply.rico.Configurator;
+import com.quantiply.rico.serde.JSONStringSerde;
 import com.quantiply.rico.serde.StringSerde;
 
 import javax.script.ScriptException;
@@ -17,7 +17,7 @@ import java.util.List;
 public class LocalRunner {
     private final String _configPath;
     private final List<Envelope<?>> _localCache = new ArrayList<>();
-    private StringSerde _serde;
+    private StringSerde<Object> _serde;
     private int BATCH_SIZE ;
     private Processor _task;
     private boolean _isWindowTriggered;
@@ -27,6 +27,7 @@ public class LocalRunner {
     }
 
     public void init() throws Exception {
+        Class clazz;
         // Read the config.
         Configurator cfg = new Configurator(_configPath);
 
@@ -37,7 +38,9 @@ public class LocalRunner {
         _isWindowTriggered = false; //TODO - get this from config?
 
         // Initialize Serde
-        _serde = new JSONStringSerde(); //TODO - get this from config
+        String serdeClass = localCfg.getString("processor.serde");
+        clazz = Class.forName(serdeClass);
+        _serde = (StringSerde<Object>) clazz.newInstance();
         _serde.init(localCfg);
 
         // Instantiate the processor
@@ -49,7 +52,7 @@ public class LocalRunner {
         System.out.println(processorName + " config :" + cfg.get(processorName));
 
         LocalContext context = new LocalContext(cfg.get(processorName));
-        Class clazz = Class.forName(processorClass);
+        clazz = Class.forName(processorClass);
         _task = (Processor) clazz.newInstance();
         _task.init(cfg.get(processorName), context);
 
