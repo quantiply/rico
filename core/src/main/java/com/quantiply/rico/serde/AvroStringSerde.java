@@ -5,12 +5,15 @@ import com.quantiply.rico.Envelope;
 import com.quantiply.rico.errors.ConfigException;
 import com.quantiply.rico.errors.SerializationException;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.io.JsonDecoder;
+import org.apache.avro.io.JsonEncoder;
+import org.apache.avro.specific.SpecificDatumReader;
+import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -18,20 +21,26 @@ import java.io.StringWriter;
  * Created by rhoover on 3/21/15.
  */
 public class AvroStringSerde implements StringSerde<Object> {
-    private Schema _schema;
-    private DatumReader<Object> _reader;
+    public final static String CONFIG_INPUT_TYPE = "string-serde.avro.input.type";
+    private Schema _inSchema;
+    private SpecificDatumReader<Object> _reader;
+    private SpecificDatumWriter<Object> _writer;
     private JsonDecoder _decoder;
 
     @Override
     public void init(Configuration cfg) throws ConfigException {
         //get a reference to the Avro Specific Record class here
-        String recordClassName = cfg.getString("string-serde.avro.type");
+        String recordClassName = cfg.getString(CONFIG_INPUT_TYPE);
+        if (recordClassName == null) {
+            throw new ConfigException("Avro input type not configured. Missing property: " + CONFIG_INPUT_TYPE);
+        }
         try {
             Class clazz = Class.forName(recordClassName);
             SpecificRecord record = (SpecificRecord) clazz.newInstance();
-            _schema = record.getSchema();
-            _reader = new GenericDatumReader<Object>(_schema);
-            _decoder = DecoderFactory.get().jsonDecoder(_schema, "");
+            _inSchema = record.getSchema();
+            _reader = new SpecificDatumReader<>(_inSchema);
+            _writer = new SpecificDatumWriter<>(_inSchema);
+            _decoder = DecoderFactory.get().jsonDecoder(_inSchema, "");
         }
         catch (Exception e) {
             throw new ConfigException(e);
@@ -55,6 +64,18 @@ public class AvroStringSerde implements StringSerde<Object> {
 
     @Override
     public void writeTo(Envelope<Object> envelope, StringWriter writer) throws SerializationException {
-
+        SpecificRecord msg = (SpecificRecord) envelope.getBody();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        _writer.setSchema(msg.getSchema());
+        try {
+            JsonEncoder encoder = EncoderFactory.get().jsonEncoder(msg.getSchema(), out);
+            _writer.write(msg, encoder);
+            encoder.flush();
+            writer.write(out.toString("UTF-8"));
+        }
+        catch (IOException e) {
+            throw new SerializationException(e);
+        }
     }
+
 }
