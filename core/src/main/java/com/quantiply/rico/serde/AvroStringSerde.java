@@ -8,6 +8,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.JsonDecoder;
 import org.apache.avro.specific.SpecificRecord;
 
 import java.io.IOException;
@@ -17,9 +18,9 @@ import java.io.StringWriter;
  * Created by rhoover on 3/21/15.
  */
 public class AvroStringSerde implements StringSerde<Object> {
-    private final DecoderFactory decoderFactory = DecoderFactory.get();
     private Schema _schema;
     private DatumReader<Object> _reader;
+    private JsonDecoder _decoder;
 
     @Override
     public void init(Configuration cfg) throws ConfigException {
@@ -29,11 +30,12 @@ public class AvroStringSerde implements StringSerde<Object> {
             Class clazz = Class.forName(recordClassName);
             SpecificRecord record = (SpecificRecord) clazz.newInstance();
             _schema = record.getSchema();
+            _reader = new GenericDatumReader<Object>(_schema);
+            _decoder = DecoderFactory.get().jsonDecoder(_schema, "");
         }
         catch (Exception e) {
             throw new ConfigException(e);
         }
-        _reader = new GenericDatumReader<Object>(_schema);
     }
 
     @Override
@@ -41,7 +43,8 @@ public class AvroStringSerde implements StringSerde<Object> {
         Envelope<Object> envelope = new Envelope<>();
 
         try {
-            Object object = _reader.read(null, decoderFactory.jsonDecoder(_schema, jsonMsg));
+            _decoder.configure(jsonMsg);
+            Object object = _reader.read(null, _decoder);
             envelope.setPayload(object);
         }
         catch (IOException e) {
