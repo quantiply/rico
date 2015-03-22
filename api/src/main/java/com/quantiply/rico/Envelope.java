@@ -14,6 +14,11 @@ public class Envelope<T>{
         this.headers = new HashMap<>();
     }
 
+    public Envelope(T body) {
+        super();
+        setBody(body);
+    }
+
     public void setHeader(String k, String v){
         headers.put(k, v);
     }
