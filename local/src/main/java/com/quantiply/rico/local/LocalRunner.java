@@ -1,11 +1,12 @@
 package com.quantiply.rico.local;
 
 import com.quantiply.rico.Configuration;
+import com.quantiply.rico.Configurator;
 import com.quantiply.rico.Envelope;
 import com.quantiply.rico.Processor;
-import com.quantiply.rico.Configurator;
-import com.quantiply.rico.serde.JSONStringSerde;
 import com.quantiply.rico.serde.StringSerde;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.script.ScriptException;
 import java.io.BufferedReader;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LocalRunner {
+    private final static Logger LOG = LoggerFactory.getLogger(LocalRunner.class);
     private final String _configPath;
     private final List<Envelope<?>> _localCache = new ArrayList<>();
     private StringSerde<Object> _serde;
@@ -33,7 +35,7 @@ public class LocalRunner {
 
         Configuration localCfg = cfg.get("local");
 
-        System.out.println("Local Config :" + localCfg);
+        LOG.info("Local Config :" + localCfg);
 
         _isWindowTriggered = false; //TODO - get this from config?
 
@@ -49,7 +51,7 @@ public class LocalRunner {
 
         BATCH_SIZE = localCfg.getInt("batch.size");
 
-        System.out.println(processorName + " config :" + cfg.get(processorName));
+        LOG.info("Processor [%s] Config : %s".format(processorName, localCfg));
 
         LocalContext context = new LocalContext(cfg.get(processorName));
         clazz = Class.forName(processorClass);
@@ -105,12 +107,13 @@ public class LocalRunner {
             LocalRunner runner = new LocalRunner(configPath);
             runner.init();
             runner.run();
-        } catch (Exception e) {
-            if(! (e instanceof ScriptException)){
-                e.printStackTrace();
-            } else {
-                System.out.println(e.getMessage());
-            }
+        }
+        catch (ScriptException e) {
+            e.printStackTrace();
+        }
+        catch (Exception e) {
+            System.err.println("Unexpected exception in LocalRunner" + e.getMessage());
+            e.printStackTrace();
         }
 
         // TODO: Handle Ctrl + C
