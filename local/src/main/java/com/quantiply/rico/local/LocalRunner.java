@@ -1,9 +1,6 @@
 package com.quantiply.rico.local;
 
-import com.quantiply.rico.Configuration;
-import com.quantiply.rico.Configurator;
-import com.quantiply.rico.Envelope;
-import com.quantiply.rico.Processor;
+import com.quantiply.rico.*;
 import com.quantiply.rico.serde.StringSerde;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +50,7 @@ public class LocalRunner {
 
         LOG.info("Processor [%s] Config : %s".format(processorName, localCfg));
 
-        LocalContext context = new LocalContext(cfg.get(processorName));
+        Context context = new LocalContext(cfg.get(processorName));
         clazz = Class.forName(processorClass);
         _task = (Processor) clazz.newInstance();
         _task.init(cfg.get(processorName), context);

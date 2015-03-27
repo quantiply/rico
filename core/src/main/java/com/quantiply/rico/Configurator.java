@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Map;
 
 /**
@@ -32,12 +33,23 @@ public class Configurator {
 //        MapUtils.debugPrint(System.out, null, _cfg);
     }
 
-    private static Map<String, Object> readConfig(String fileName) {
-        ObjectMapper ymapper = new ObjectMapper(new YAMLFactory());
-
+    private Map<String, Object> readConfig(String fileName) {
         Map<String, Object> result = null;
         try {
-            result = ymapper.readValue(new File(fileName), new TypeReference<Map<String, Object>>() {});
+            ObjectMapper ymapper = new ObjectMapper(new YAMLFactory());
+
+            // Get file from the location specified. If it doesnot exist, try using the classloader. Blow up if both fail.
+            File tmp = new File(fileName);
+            if (tmp.exists()) {
+                result = ymapper.readValue(new File(fileName), new TypeReference<Map<String, Object>>() {
+                });
+            } else {
+                if (this.getClass().getClassLoader().getResource(fileName) == null) {
+                    throw new FileNotFoundException(fileName);
+                }
+                result = ymapper.readValue(this.getClass().getClassLoader().getResourceAsStream(fileName), new TypeReference<Map<String, Object>>() {
+                });
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

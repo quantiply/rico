@@ -1,0 +1,19 @@
+samza:
+  job.name: demo-m1-users.elasticsearch-z
+  task.inputs: kafka.demo-m1-user-b
+  task.output: kafka.errors
+  systems.kafka.consumer.zookeeper.connect: qf-coord-0.demo-us-east-1b.quantezza.com:2181
+  systems.kafka.consumer.auto.offset.reset: smallest
+  systems.kafka.producer.metadata.broker.list: fb-log-0.demo-us-east-1b.quantezza.com:9092
+  processor.name: elasticsearch
+  processor.class: com.quantiply.elasticsearch.ElasticsearchProcessor
+  systems.kafka.producer.batch.num.messages: "10"
+  processor.batch.size: "10"
+  #systems.kafka.samza.offset.default: oldest
+
+elasticsearch:
+    cluster: elasticsearch
+    index: demo-m1-user
+    type: user
+    host: fb-search-0.demo-us-east-1b.quantezza.com
+    port: 9300

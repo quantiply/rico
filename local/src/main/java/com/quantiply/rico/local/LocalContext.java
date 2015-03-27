@@ -1,7 +1,6 @@
 package com.quantiply.rico.local;
 
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.*;
 import com.quantiply.rico.Configuration;
 import com.quantiply.rico.Context;
 import com.quantiply.rico.KeyValueStore;
@@ -43,7 +42,32 @@ public class LocalContext implements Context {
         return _stores.get(name);
     }
 
-    public MetricRegistry getMetricsRegistry() {
-        return _registry;
+    @Override
+    public Histogram histogram(String name) {
+        return _registry.histogram(name);
     }
+
+    @Override
+    public Counter counter(String name) {
+        return _registry.counter(name);
+    }
+
+    @Override
+    public Timer timer(String name) {
+        return _registry.timer(name);
+    }
+
+    @Override
+    public Meter meter(String name) {
+        return _registry.meter(name);
+    }
+
+    @Override
+    public void gauge(String name, Gauge g) {
+        _registry.register(name, g);
+    }
+
+//    public MetricRegistry getMetricsRegistry() {
+//        return _registry;
+//    }
 }

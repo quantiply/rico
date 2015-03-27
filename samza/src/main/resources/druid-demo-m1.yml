@@ -1,0 +1,62 @@
+tranquility:
+  dataSource: "demo-m1-b"
+  aggregations:
+    - name: "count"
+      type: "count"
+    - name: "duration_hist"
+      type: "approxHistogram"
+      fieldName: "loadtime"
+      lowerLimit: 0.0
+    - name: "duration_sum"
+      type: "doubleSum"
+      fieldName: "loadtime"
+    - name: "user_hll"
+      type: "cardinality"
+      byRow: false
+      fieldNames:
+        - "user"
+    - name: "session_hll"
+      type: "cardinality"
+      byRow: false
+      fieldNames:
+        - "cookieId"
+  timestampColumn: "timestamp"
+  timeFormat: "auto"
+  dimensions:
+    - "user"
+    - "page_title"
+    - "page_category"
+    - "page_referrer"
+    - "geo_country"
+    - "geo_state"
+    - "ip_isp"
+    - "ip_domain"
+    - "ip_netspeed"
+    - "browser"
+    - "os"
+    - "device"
+    - "segment"
+  queryGranularity : "minute"
+  windowPeriod: "PT10m"
+  segmentGranularity: "minute"
+  partitions: 3
+  replicas: 1
+  indexingService: "overlord"
+  firehosePattern: "com.quantiply.druid:firehose:demo-m1-b:%s"
+  discoveryPath: "/com.quantiply.druid/discovery"
+  zkConnectString: "fb-agg-overlord-0.demo-us-east-1b.quantezza.com"
+  #zkConnectString: "192.168.59.103"
+
+samza:
+  job.name: demo-m1-e.tranquility
+  task.inputs: kafka.demo-m1
+  task.output: kafka.errors
+  systems.kafka.consumer.zookeeper.connect: fb-agg-overlord-0.demo-us-east-1b.quantezza.com:2181
+  systems.kafka.consumer.auto.offset.reset: smallest
+  systems.kafka.producer.metadata.broker.list: fb-log-0.demo-us-east-1b.quantezza.com:9092
+  processor.name: tranquility
+  processor.class: TranquilityProcessor
+  # Ignore bad JSON records for now.
+  task.drop.deserialization.errors: "true"
+  task.ignored.exceptions: org.codehaus.jackson.JsonParseException
+  #systems.kafka.samza.offset.default=oldest

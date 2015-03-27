@@ -83,6 +83,9 @@
         <module>local</module>
         <module>jython</module>
         <module>nashorn</module>
+        <module>samza</module>
+        <module>elasticsearch</module>
+        <module>druid</module>
     </modules>
 
     <build>

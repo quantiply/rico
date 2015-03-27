@@ -1,0 +1,44 @@
+# Job
+job:
+    factory.class: com.quantiply.StaticLocalJobFactory
+    name: demo-parsedata-1
+
+
+task:
+    class: com.quantiply.NashornSamzaTask
+    inputs: kafka.clickstream,kafka.test
+    output: com.quantiply.druid
+    checkpoint:
+        factory: org.apache.samza.checkpoint.kafka.KafkaCheckpointManagerFactory
+        system: kafka
+        replication:
+            factor: 1
+
+# Metrics
+metrics:
+    reporters: jmx
+    reporter:
+        snapshot:
+            class: org.apache.samza.metrics.reporter.MetricsSnapshotReporterFactory
+            stream: kafka.metrics
+        jmx:
+            class: org.apache.samza.metrics.reporter.JmxReporterFactory
+
+# Serializers
+serializers:
+    registry:
+        json:
+            class: org.apache.samza.serializers.JsonSerdeFactory
+        metrics:
+            class: org.apache.samza.serializers.MetricsSnapshotSerdeFactory
+
+# Systems
+systems:
+    kafka:
+        samza:
+            factory: org.apache.samza.system.kafka.KafkaSystemFactory
+        msg:
+            serde: json
+        samza:
+            key:
+                serde: str
