@@ -11,7 +11,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JavascriptProcessor implements Processor<Object> {
+public class JavascriptProcessor implements Processor {
 
     private static String JS_ENGINE = "nashorn";
     private Invocable _js;
@@ -48,7 +48,7 @@ public class JavascriptProcessor implements Processor<Object> {
     }
 
     @Override
-    public List<Envelope<Object>> process(List<Envelope<Object>> events) throws Exception {
+    public List<Envelope> process(List<Envelope> events) throws Exception {
         // TODO: Find out if the JS script can get / emit lists instead of maps
         Object res = null;
         try {

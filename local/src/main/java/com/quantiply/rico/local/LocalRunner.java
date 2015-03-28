@@ -15,8 +15,8 @@ import java.util.List;
 public class LocalRunner {
     private final static Logger LOG = LoggerFactory.getLogger(LocalRunner.class);
     private final String _configPath;
-    private final List<Envelope<?>> _localCache = new ArrayList<>();
-    private StringSerde<Object> _serde;
+    private final List<Envelope> _localCache = new ArrayList<>();
+    private StringSerde _serde;
     private int BATCH_SIZE ;
     private Processor _task;
     private boolean _isWindowTriggered;
@@ -39,7 +39,7 @@ public class LocalRunner {
         // Initialize Serde
         String serdeClass = localCfg.getString("string-serde");
         clazz = Class.forName(serdeClass);
-        _serde = (StringSerde<Object>) clazz.newInstance();
+        _serde = (StringSerde) clazz.newInstance();
         _serde.init(localCfg);
 
         // Instantiate the processor
@@ -70,7 +70,7 @@ public class LocalRunner {
         String input;
 
         while((input=br.readLine()) != null) {
-            Envelope<Object> event = _serde.fromString(input);
+            Envelope event = _serde.fromString(input);
             _localCache.add(event);
 
             if (_isWindowTriggered) {
@@ -84,7 +84,7 @@ public class LocalRunner {
         }
     }
 
-    private void output(List<Envelope<Object>> results) {
+    private void output(List<Envelope> results) {
         if (results != null) {
             results.stream().forEach((result) -> {
                 StringWriter stringWriter = new StringWriter();

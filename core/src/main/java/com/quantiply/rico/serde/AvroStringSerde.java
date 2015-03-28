@@ -20,7 +20,7 @@ import java.io.StringWriter;
 /**
  * Created by rhoover on 3/21/15.
  */
-public class AvroStringSerde implements StringSerde<Object> {
+public class AvroStringSerde implements StringSerde {
     public final static String CONFIG_INPUT_TYPE = "string-serde.avro.input.type";
     private Schema _inSchema;
     private SpecificDatumReader<Object> _reader;
@@ -48,8 +48,8 @@ public class AvroStringSerde implements StringSerde<Object> {
     }
 
     @Override
-    public Envelope<Object> fromString(String jsonMsg) throws SerializationException {
-        Envelope<Object> envelope = new Envelope<>();
+    public Envelope fromString(String jsonMsg) throws SerializationException {
+        Envelope envelope = new Envelope();
 
         try {
             _decoder.configure(jsonMsg);
@@ -63,7 +63,7 @@ public class AvroStringSerde implements StringSerde<Object> {
     }
 
     @Override
-    public void writeTo(Envelope<Object> envelope, StringWriter writer) throws SerializationException {
+    public void writeTo(Envelope envelope, StringWriter writer) throws SerializationException {
         SpecificRecord msg = (SpecificRecord) envelope.getBody();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         _writer.setSchema(msg.getSchema());

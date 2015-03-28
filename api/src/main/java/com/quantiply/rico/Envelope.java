@@ -3,10 +3,10 @@ package com.quantiply.rico;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Envelope<T>{
+public class Envelope {
 
     private Map<String, String> headers;
-    private T body;
+    private Object body;
     private boolean isError;
     private String errorMessage;
 
@@ -14,7 +14,7 @@ public class Envelope<T>{
         this.headers = new HashMap<>();
     }
 
-    public Envelope(T body) {
+    public Envelope(Object body) {
         super();
         setBody(body);
     }
@@ -31,11 +31,11 @@ public class Envelope<T>{
         return headers.get(key);
     }
 
-    public T getBody() {
+    public Object getBody() {
         return body;
     }
 
-    public void setBody(T body) {
+    public void setBody(Object body) {
         this.body = body;
     }
 

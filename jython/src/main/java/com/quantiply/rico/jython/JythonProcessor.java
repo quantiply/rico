@@ -11,7 +11,7 @@ import javax.script.*;
 import java.io.*;
 import java.util.List;
 
-public class JythonProcessor implements Processor<Object> {
+public class JythonProcessor implements Processor {
 
     private final static Logger LOG = LoggerFactory.getLogger(JythonProcessor.class);
     private static String ENGINE = "python";
@@ -50,9 +50,9 @@ public class JythonProcessor implements Processor<Object> {
     }
 
     @Override
-    public List<Envelope<Object>> process(List<Envelope<Object>> events) throws Exception {
+    public List<Envelope> process(List<Envelope> events) throws Exception {
         Object res = _py.invokeFunction("process", events);
-        return (List<Envelope<Object>>) res;
+        return (List<Envelope>) res;
     }
 
     @Override

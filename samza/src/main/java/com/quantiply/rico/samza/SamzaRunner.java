@@ -21,7 +21,7 @@ public class SamzaRunner implements StreamTask, InitableTask, WindowableTask, Cl
     private final static Logger LOG = Logger.getLogger(SamzaRunner.class);
 
     private int BATCH_SIZE ;
-    private List<Envelope<?>> _localCache;
+    private List<Envelope> _localCache;
     private SystemStream _output;
     private SystemStream _error;
     private Processor _task;
@@ -52,7 +52,7 @@ public class SamzaRunner implements StreamTask, InitableTask, WindowableTask, Cl
     public void process(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         Object message =  envelope.getMessage();
 
-        Envelope<Object> event = new Envelope<>();
+        Envelope event = new Envelope();
         event.setBody(message);
         event.setHeader("offset", envelope.getOffset());
         event.setHeader("key", (String) envelope.getKey());
@@ -63,16 +63,16 @@ public class SamzaRunner implements StreamTask, InitableTask, WindowableTask, Cl
         // Add to Buffer
         _localCache.add(event);
         if (_localCache.size() >= BATCH_SIZE) {
-            List<Envelope<Object>> results = _task.process(_localCache);
+            List<Envelope> results = _task.process(_localCache);
             send(results, collector);
             _localCache.clear();
         }
     }
 
 
-    private void send(List<Envelope<Object>> results, MessageCollector collector){
+    private void send(List<Envelope> results, MessageCollector collector){
         if(results != null) {
-            for(Envelope<Object> result: results){
+            for(Envelope result: results){
                 // TODO : Add output routing here. Add topic and partition details
                 // Maybe do a send(data, to, groupby_function, primarykey_function) -> send(data) method which encapsulates this.
                 if(result.isError()){
@@ -86,7 +86,7 @@ public class SamzaRunner implements StreamTask, InitableTask, WindowableTask, Cl
     }
     @Override
     public void window(MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        List<Envelope<Object>> results = _task.window();
+        List<Envelope> results = _task.window();
         if(results != null) {
             send(results, collector);
         }

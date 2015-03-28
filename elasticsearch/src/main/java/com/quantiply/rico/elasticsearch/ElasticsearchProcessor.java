@@ -18,7 +18,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import java.util.List;
 import java.util.Map;
 
-public class ElasticsearchProcessor implements Processor<Object> {
+public class ElasticsearchProcessor implements Processor {
 
     private final static Logger LOG = Logger.getLogger(ElasticsearchProcessor.class);
     private TransportClient _client;
@@ -50,10 +50,10 @@ public class ElasticsearchProcessor implements Processor<Object> {
     }
 
     @Override
-    public List<Envelope<Object>> process(List<Envelope<Object>> events) throws Exception {
+    public List<Envelope> process(List<Envelope> events) throws Exception {
         BulkRequestBuilder bulkRequest = _client.prepareBulk();
 
-        for(Envelope<Object> event: events) {
+        for(Envelope event: events) {
             Map<String, Object> data = (Map<String, Object>) event.getBody();
             bulkRequest.add(_client.prepareIndex(_index, _type).setSource(data));
         }

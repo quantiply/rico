@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * Created by rhoover on 3/21/15.
  */
-public class JSONStringSerde implements StringSerde<Object> {
+public class JSONStringSerde implements StringSerde {
     private final static String FIELD_NAME_HEADER = "headers";
     private final static String FIELD_NAME_BODY = "body";
     private final ObjectMapper _mapper;
@@ -38,7 +38,7 @@ public class JSONStringSerde implements StringSerde<Object> {
         catch (IOException e) {
             throw new SerializationException(e);
         }
-        Envelope<Object> envelope = new Envelope<>();
+        Envelope envelope = new Envelope();
 
         if(json.containsKey(FIELD_NAME_HEADER)) {
             envelope.setHeaders((Map<String, String>) json.get(FIELD_NAME_HEADER));
@@ -54,7 +54,7 @@ public class JSONStringSerde implements StringSerde<Object> {
     }
 
     @Override
-    public void writeTo(Envelope<Object> envelope, java.io.StringWriter writer) throws SerializationException {
+    public void writeTo(Envelope envelope, java.io.StringWriter writer) throws SerializationException {
         Map<String, Object> msg = new HashMap<>();
         msg.put(FIELD_NAME_HEADER, envelope.getHeaders());
         msg.put(FIELD_NAME_BODY, envelope.getBody());
