@@ -23,6 +23,22 @@
     <name>Quantiply Rico Parent</name>
     <description>Streaming Enrichment Platform</description>
     
+    <repositories>
+       <repository>
+           <id>aws-release</id>
+           <name>AWS S3 Release Repository</name>
+           <url>https://s3.amazonaws.com/artifacts.quantezza.com/release</url>
+       </repository>
+       <repository>
+           <id>aws-snapshot</id>
+           <name>AWS S3 Snapshot Repository</name>
+           <url>https://s3.amazonaws.com/artifacts.quantezza.com/snapshot</url>
+           <snapshots>
+               <enabled>true</enabled>
+           </snapshots>
+       </repository>
+   </repositories>
+    
     <distributionManagement>
         <repository>
             <id>aws-release</id>
@@ -54,9 +70,14 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>3.1.1</version>
+                <groupId>com.quantiply.samza</groupId>
+                <artifactId>coda-metrics</artifactId>
+                <version>1.1</version>
+            </dependency>
+            <dependency>
+              <groupId>io.dropwizard.metrics</groupId>
+              <artifactId>metrics-core</artifactId>
+              <version>3.1.1</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
