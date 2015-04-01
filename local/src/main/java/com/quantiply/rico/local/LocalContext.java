@@ -4,6 +4,7 @@ import com.codahale.metrics.*;
 import com.quantiply.rico.Configuration;
 import com.quantiply.rico.Context;
 import com.quantiply.rico.KeyValueStore;
+import com.quantiply.rico.Metrics;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,10 +15,10 @@ import java.util.Map;
 public class LocalContext implements Context {
     static final MetricRegistry _registry = new MetricRegistry();
 
-    Map<String, KeyValueStore> _stores;
+    private final Map<String, KeyValueStore> _stores = new HashMap<>();
+    private final Map<String, Metrics> _metrics = new HashMap<>();
 
     public LocalContext(Configuration cfg) {
-        _stores = new HashMap<>();
         Map<String, Object> storeCfg = (Map<String, Object>) cfg.get("store");
 
         // Oh ! How I hate working with collections in Java.
@@ -43,31 +44,11 @@ public class LocalContext implements Context {
     }
 
     @Override
-    public Histogram histogram(String name) {
-        return _registry.histogram(name);
+    public Metrics metrics(String group) {
+        if(!_metrics.containsKey(group)) {
+            _metrics.put(group, new LocalMetrics(_registry, group));
+        }
+        return _metrics.get(group);
     }
 
-    @Override
-    public Counter counter(String name) {
-        return _registry.counter(name);
-    }
-
-    @Override
-    public Timer timer(String name) {
-        return _registry.timer(name);
-    }
-
-    @Override
-    public Meter meter(String name) {
-        return _registry.meter(name);
-    }
-
-    @Override
-    public void gauge(String name, Gauge g) {
-        _registry.register(name, g);
-    }
-
-//    public MetricRegistry getMetricsRegistry() {
-//        return _registry;
-//    }
 }
