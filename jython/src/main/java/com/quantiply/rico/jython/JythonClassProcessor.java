@@ -4,6 +4,7 @@ import com.quantiply.rico.Configuration;
 import com.quantiply.rico.Context;
 import com.quantiply.rico.Envelope;
 import com.quantiply.rico.Processor;
+import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.List;
+import java.util.Properties;
 
 public class JythonClassProcessor implements Processor {
 
@@ -29,24 +31,29 @@ public class JythonClassProcessor implements Processor {
         if (engine == null) {
             throw new RuntimeException("Jython engine not found. Make sure that Jython jar in on the classpath.");
         }
-        String scriptPath = cfg.getString("file");
 
+        LOG.debug("ENV : " + System.getenv());
+        LOG.debug("System properties : "+ System.getProperties());
+        LOG.debug("JAR dir : " + getJarDir());
+        LOG.info("APP HOME (calculated in Java): " + getAppHome());
+        LOG.debug("Config : " + _cfg);
+
+        // Setup python path
+
+        // The following ensures that we get filename correctly in error messages.
+        String scriptPath = getAppHome() + "/lib/rico/bootstrap.py";
         SimpleScriptContext scriptContext = new SimpleScriptContext();
         scriptContext.setAttribute(ScriptEngine.FILENAME, scriptPath, ScriptContext.ENGINE_SCOPE);
         engine.setContext(scriptContext);
-
-        File scriptFile = new File(scriptPath);
-        if (!scriptFile.exists()) {
-            throw new FileNotFoundException("Script File [" + scriptPath + "] not found!");
-        }
-
-        engine.eval(new FileReader(scriptFile));
         _py = (Invocable) engine;
 
+        engine.eval(new FileReader(getAppHome() + "/lib/rico/bootstrap.py"));
+        _py.invokeFunction("bootstrap", getAppHome());
+
+        // Instantiate the Python class and cast it to the Processor interface. Duck typing FTW !!
         String pyClass = cfg.getString("pyClass");
-        System.out.println("PyClass = " + pyClass);
-        engine.eval("c = " + pyClass + "()");
-        _processor = _py.getInterface(engine.get("c"), Processor.class);
+        _py.invokeFunction("create_entrypoint", pyClass);
+        _processor = _py.getInterface(engine.get("com_quantiply_rico_entrypoint"), Processor.class);
         _processor.init(cfg, context);
     }
 
@@ -64,5 +71,16 @@ public class JythonClassProcessor implements Processor {
     @Override
     public void shutdown() throws Exception {
         _processor.shutdown();
+    }
+
+
+    private String getAppHome(){
+        return getJarDir().substring(0, getJarDir().lastIndexOf("/"));
+    }
+    private String getJarDir(){
+        String absolutePath = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+        absolutePath = absolutePath.substring(0, absolutePath.lastIndexOf("/"));
+        absolutePath = absolutePath.replaceAll("%20"," "); // Surely need to do this here
+        return absolutePath;
     }
 }

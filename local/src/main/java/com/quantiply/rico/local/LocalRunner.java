@@ -32,7 +32,7 @@ public class LocalRunner {
 
         Configuration localCfg = cfg.get("local");
 
-        LOG.info("Local Config :" + localCfg);
+        LOG.debug("Local Config :" + localCfg);
 
         _isWindowTriggered = false; //TODO - get this from config?
 
@@ -48,7 +48,7 @@ public class LocalRunner {
 
         BATCH_SIZE = localCfg.getInt("batch.size");
 
-        LOG.info("Processor [%s] Config : %s".format(processorName, localCfg));
+        LOG.debug("Processor [%s] Config : %s".format(processorName, localCfg));
 
         Context context = new LocalContext(cfg.get(processorName));
         clazz = Class.forName(processorClass);
@@ -106,7 +106,9 @@ public class LocalRunner {
             runner.run();
         }
         catch (ScriptException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
+            System.out.println(e.getCause());
+//            e.printStackTrace();
         }
         catch (Exception e) {
             System.err.println("Unexpected exception in LocalRunner" + e.getMessage());
