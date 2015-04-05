@@ -26,11 +26,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
-            <artifactId>samza-api</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
             <artifactId>samza-core_2.10</artifactId>
             <version>${samza.version}</version>
         </dependency>
@@ -46,11 +41,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
-            <artifactId>samza-serializers_2.10</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
             <artifactId>samza-kv-rocksdb_2.10</artifactId>
             <version>${samza.version}</version>
         </dependency>
@@ -58,11 +48,6 @@
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-kafka_2.10</artifactId>
             <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.10</artifactId>
-            <version>0.8.1.1</version>
         </dependency>
     </dependencies>
 
