@@ -17,9 +17,13 @@
             <artifactId>core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.quantiply.rico</groupId>
+            <artifactId>avro-serde</artifactId>
+        </dependency>
+        <!-- <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-        </dependency>
+        </dependency> -->
     </dependencies>
 
     <build>
