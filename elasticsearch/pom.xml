@@ -9,16 +9,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>elasticsearch</artifactId>
+    <artifactId>rico-elasticsearch</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
-            <artifactId>api</artifactId>
+            <artifactId>rico-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>rico-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.elasticsearch</groupId>

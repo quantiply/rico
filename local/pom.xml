@@ -9,16 +9,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>local</artifactId>
+    <artifactId>rico-local</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>rico-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
-            <artifactId>avro-serde</artifactId>
+            <artifactId>rico-avro-serde</artifactId>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>

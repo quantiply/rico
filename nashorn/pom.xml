@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
-            <artifactId>api</artifactId>
+            <artifactId>rico-api</artifactId>
         </dependency>
     </dependencies>
     
