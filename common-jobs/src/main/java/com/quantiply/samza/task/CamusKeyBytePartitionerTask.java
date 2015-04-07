@@ -1,5 +1,6 @@
 package com.quantiply.samza.task;
 
+import com.quantiply.camus.CamusFrame;
 import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.LogContext;
 import com.quantiply.samza.util.Partitioner;
@@ -11,6 +12,8 @@ import org.apache.samza.task.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+
 /*
   This task expects
   - the input topic to have a key present
@@ -20,8 +23,8 @@ import org.slf4j.LoggerFactory;
   It calculates a partition id using a hash of the key bytes and number of output partitions
 
  */
-public class KeyBytePartitionerTask implements StreamTask, InitableTask {
-    private static Logger logger = LoggerFactory.getLogger(KeyBytePartitionerTask.class);
+public class CamusKeyBytePartitionerTask implements StreamTask, InitableTask {
+    private static Logger logger = LoggerFactory.getLogger(CamusKeyBytePartitionerTask.class);
     private SystemStream outStream;
     private int numOutPartitions;
     private LogContext logContext;
@@ -42,16 +45,7 @@ public class KeyBytePartitionerTask implements StreamTask, InitableTask {
         logContext.setMDC(envelope);
 
         byte[] keyBytes = (byte[])envelope.getKey();
-        int partition = Partitioner.getPartitionId(keyBytes, numOutPartitions);
-
-        if (logger.isTraceEnabled()) {
-                logger.trace(String.format("Bytes %s, num partitions %d, id %d",
-                        javax.xml.bind.DatatypeConverter.printBase64Binary(keyBytes),
-                        numOutPartitions,
-                        Partitioner.getPartitionId(keyBytes, numOutPartitions)
-                ));
-        }
-
+        int partition = Partitioner.getPartitionId(new CamusFrame(keyBytes).getBody(), numOutPartitions);
         collector.send(new OutgoingMessageEnvelope(outStream, partition, keyBytes, envelope.getMessage()));
 
         logContext.clearMDC();

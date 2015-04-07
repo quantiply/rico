@@ -7,11 +7,20 @@ import java.nio.ByteBuffer;
 public class Partitioner {
 
     public static int getPartitionId(byte[] key, int numPartitions) {
-        return Utils.abs(murmur2(key)) % numPartitions;
+        return getPartitionId(key, 0, key.length, numPartitions);
     }
 
-    public static int getPartitionId(ByteBuffer buffer, int start, int length, int numPartitions) {
+    public static int getPartitionId(byte[] buffer, int start, int length, int numPartitions) {
         return Utils.abs(murmur2(buffer, start, length)) % numPartitions;
+    }
+
+    public static int getPartitionId(ByteBuffer buffer, int numPartitions) {
+        if (!buffer.hasArray()) {
+            throw new IllegalArgumentException("Buffer is not backed by an array");
+        }
+        int start = buffer.arrayOffset() + buffer.position();
+        int length = buffer.remaining();
+        return getPartitionId(buffer.array(), start, length, numPartitions);
     }
 
     /**
@@ -20,7 +29,7 @@ public class Partitioner {
      * @return 32 bit hash of the given array
      */
     public static int murmur2(final byte[] data) {
-        return murmur2Impl(data, 0, data.length);
+        return murmur2(data, 0, data.length);
     }
 
     /**
@@ -29,24 +38,10 @@ public class Partitioner {
      * @param start start offset
      * @param length number of bytes to use
      * @return 32 bit hash of the given array
+     *
+     * Adapted from Apache Kafka client utils to support ByteBuffer
      */
-    public static int murmur2(final ByteBuffer buffer, int start, int length) {
-        if (!buffer.hasArray()) {
-            throw new IllegalArgumentException("Buffer is not backed by an array");
-        }
-        if (start < 0 || start >= buffer.array().length) {
-            throw new IllegalArgumentException("Invalid start offset: " + start);
-        }
-        if (length > buffer.array().length - start) {
-            throw new IllegalArgumentException("Invalid length: " + length);
-        }
-        return murmur2Impl(buffer.array(), start, length);
-    }
-
-    /*
-     *  Adapted from Apache Kafka client utils to support ByteBuffer
-     */
-    private static int murmur2Impl(final byte[] data, int start, int length) {
+    public static int murmur2(final byte[] data, int start, int length) {
         int seed = 0x9747b28c;
         // 'm' and 'r' are mixing constants generated offline.
         // They're not really 'magic', they just happen to work well.
