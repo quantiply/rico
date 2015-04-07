@@ -1,6 +1,5 @@
 package com.quantiply.samza.task;
 
-import com.quantiply.samza.util.CamusFrame;
 import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.LogContext;
 import com.quantiply.samza.util.Partitioner;
