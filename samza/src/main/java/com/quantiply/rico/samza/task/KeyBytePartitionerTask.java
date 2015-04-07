@@ -1,15 +1,13 @@
 package com.quantiply.rico.samza.task;
 
 import com.quantiply.rico.errors.ConfigException;
+import com.quantiply.rico.samza.util.KafkaAdmin;
 import com.quantiply.rico.samza.util.Partitioner;
 import org.apache.samza.config.Config;
-import org.apache.samza.system.*;
-import org.apache.samza.system.kafka.KafkaSystemFactory;
+import org.apache.samza.system.IncomingMessageEnvelope;
+import org.apache.samza.system.OutgoingMessageEnvelope;
+import org.apache.samza.system.SystemStream;
 import org.apache.samza.task.*;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /*
   This task expects
@@ -31,7 +29,7 @@ public class KeyBytePartitionerTask implements StreamTask, InitableTask {
             throw new ConfigException("Missing property for output topic: topics.out");
         }
         outStream = new SystemStream("kafka", outTopic);
-        numOutPartitions = getNumPartitionsForOutStream(config, outTopic);
+        numOutPartitions = KafkaAdmin.getNumPartitionsForStream(config, outTopic);
     }
 
     @Override
@@ -39,16 +37,5 @@ public class KeyBytePartitionerTask implements StreamTask, InitableTask {
         byte[] key = (byte[])envelope.getKey();
         int partition = Partitioner.getPartitionId(key, numOutPartitions);
         collector.send(new OutgoingMessageEnvelope(outStream, partition, key, envelope.getMessage()));
-    }
-
-    private int getNumPartitionsForOutStream(Config cfg, String outTopic) {
-        Set<String> streamNames = new HashSet<String>();
-        streamNames.add(outTopic);
-        SystemAdmin kafkaSystemAdmin = new KafkaSystemFactory().getAdmin("kafka",
-                cfg);
-        Map<String, SystemStreamMetadata> metadata =
-                kafkaSystemAdmin.getSystemStreamMetadata(streamNames);
-        SystemStreamMetadata topicMetadata = metadata.get(outTopic);
-        return topicMetadata.getSystemStreamPartitionMetadata().size();
     }
 }
