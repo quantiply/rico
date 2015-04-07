@@ -12,11 +12,10 @@ import org.apache.samza.task.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-
 /*
   This task expects
   - the input topic to have a key present
+  - the input topic key to be serialized according the Camus/Confluent Platform spec
   - the input and output topics are configured to use ByteSerde
   - the output topic is specified with the "topics.out" property
 
