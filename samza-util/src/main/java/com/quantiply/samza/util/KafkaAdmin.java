@@ -1,4 +1,4 @@
-package com.quantiply.rico.samza.util;
+package com.quantiply.samza.util;
 
 import org.apache.samza.config.Config;
 import org.apache.samza.system.SystemAdmin;

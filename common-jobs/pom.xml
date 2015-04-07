@@ -9,16 +9,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rico-samza</artifactId>
+    <artifactId>rico-common-jobs</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>com.quantiply.rico</groupId>
-            <artifactId>rico-api</artifactId>
+          <groupId>com.quantiply.rico</groupId>
+          <artifactId>rico-samza-util</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.quantiply.rico</groupId>
-            <artifactId>rico-core</artifactId>
+          <groupId>com.quantiply.rico</groupId>
+          <artifactId>rico-avro-serde</artifactId>
         </dependency>
         <dependency>
             <groupId>com.quantiply.samza</groupId>
@@ -27,27 +27,14 @@
         <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-core_2.10</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-kv_2.10</artifactId>
-            <version>${samza.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-log4j</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-kv-rocksdb_2.10</artifactId>
-            <version>${samza.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-kafka_2.10</artifactId>
-            <version>${samza.version}</version>
         </dependency>
     </dependencies>
 
