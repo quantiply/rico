@@ -1,10 +1,13 @@
 package com.quantiply.samza.util;
 
 import org.apache.kafka.common.utils.Utils;
-
 import java.nio.ByteBuffer;
 
 public class Partitioner {
+
+    public static int getPartitionIdForCamus(byte[] camusMsg, int numPartitions) {
+        return Partitioner.getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
+    }
 
     public static int getPartitionId(byte[] key, int numPartitions) {
         return getPartitionId(key, 0, key.length, numPartitions);

@@ -1,6 +1,6 @@
 package com.quantiply.samza.task;
 
-import com.quantiply.camus.CamusFrame;
+import com.quantiply.samza.util.CamusFrame;
 import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.LogContext;
 import com.quantiply.samza.util.Partitioner;
@@ -44,7 +44,7 @@ public class CamusKeyBytePartitionerTask implements StreamTask, InitableTask {
         logContext.setMDC(envelope);
 
         byte[] keyBytes = (byte[])envelope.getKey();
-        int partition = Partitioner.getPartitionId(new CamusFrame(keyBytes).getBody(), numOutPartitions);
+        int partition = Partitioner.getPartitionIdForCamus(keyBytes, numOutPartitions);
         collector.send(new OutgoingMessageEnvelope(outStream, partition, keyBytes, envelope.getMessage()));
 
         logContext.clearMDC();

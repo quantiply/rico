@@ -1,4 +1,4 @@
-package com.quantiply.camus;
+package com.quantiply.samza.util;
 
 import org.junit.Test;
 
