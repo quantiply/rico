@@ -4,7 +4,6 @@ import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.LogContext;
 import com.quantiply.samza.util.Partitioner;
 import org.apache.samza.config.Config;
-import org.apache.samza.config.MapConfig;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
@@ -46,12 +45,11 @@ public class KeyBytePartitionerTask implements StreamTask, InitableTask {
         int partition = Partitioner.getPartitionId(keyBytes, numOutPartitions);
 
         if (logger.isTraceEnabled()) {
-            if (javax.xml.bind.DatatypeConverter.printBase64Binary(keyBytes).equals("AAAAAAEUdHAyMjF3MjJtMxxwcmQ6ZXRzOnMyOm9yZBx4UHJkT3B0TWluaUdldA==")) {
-                logger.trace(String.format("FOUND IT, num partitions %d, id %d",
+                logger.trace(String.format("Bytes %s, num partitions %d, id %d",
+                        javax.xml.bind.DatatypeConverter.printBase64Binary(keyBytes),
                         numOutPartitions,
                         Partitioner.getPartitionId(keyBytes, numOutPartitions)
                 ));
-            }
         }
 
         collector.send(new OutgoingMessageEnvelope(outStream, partition, keyBytes, envelope.getMessage()));
