@@ -1,9 +1,14 @@
 package com.quantiply.samza.util;
 
 import org.apache.kafka.common.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 
 public class Partitioner {
+
+    private static Logger logger = LoggerFactory.getLogger(Partitioner.class);
 
     public static int getPartitionIdForCamus(byte[] camusMsg, int numPartitions) {
         return Partitioner.getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
@@ -23,6 +28,16 @@ public class Partitioner {
         }
         int start = buffer.arrayOffset() + buffer.position();
         int length = buffer.remaining();
+        if (logger.isTraceEnabled()) {
+            logger.trace(String.format("Buffer arrayOffset %d, position %d, remaining %d, array length %d, start %d, length %d",
+                    buffer.arrayOffset(),
+                    buffer.position(),
+                    buffer.remaining(),
+                    buffer.array().length,
+                    start,
+                    length
+            ));
+        }
         return getPartitionId(buffer.array(), start, length, numPartitions);
     }
 
@@ -37,7 +52,7 @@ public class Partitioner {
 
     /**
      * Generates 32 bit murmur2 hash from byte array
-     * @param buffer ByteBuffer source
+     * @param data ByteBuffer source
      * @param start start offset
      * @param length number of bytes to use
      * @return 32 bit hash of the given array
@@ -72,7 +87,7 @@ public class Partitioner {
             case 2:
                 h ^= (data[start + (length & ~3) + 1] & 0xff) << 8;
             case 1:
-                h ^= (data[start + length & ~3] & 0xff);
+                h ^= (data[start + (length & ~3)] & 0xff);
                 h *= m;
         }
 
