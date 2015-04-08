@@ -28,16 +28,6 @@ public class Partitioner {
         }
         int start = buffer.arrayOffset() + buffer.position();
         int length = buffer.remaining();
-        if (logger.isTraceEnabled()) {
-            logger.trace(String.format("Buffer arrayOffset %d, position %d, remaining %d, array length %d, start %d, length %d",
-                    buffer.arrayOffset(),
-                    buffer.position(),
-                    buffer.remaining(),
-                    buffer.array().length,
-                    start,
-                    length
-            ));
-        }
         return getPartitionId(buffer.array(), start, length, numPartitions);
     }
 
