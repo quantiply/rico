@@ -11,7 +11,20 @@ public class Partitioner {
     private static Logger logger = LoggerFactory.getLogger(Partitioner.class);
 
     public static int getPartitionIdForCamus(byte[] camusMsg, int numPartitions) {
-        return Partitioner.getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
+        int partitionId = Partitioner.getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
+        if (logger.isTraceEnabled()) {
+            ByteBuffer bodyBuffer = new CamusFrame(camusMsg).getBody();
+            int length = bodyBuffer.remaining();
+            byte[] bodyBytes = new byte[length];
+            bodyBuffer.get(bodyBytes, 0, length);
+            logger.trace(String.format("Camus key msg size %d, body size %s, body bytes %s, partitionId %d",
+                    camusMsg.length,
+                    bodyBytes.length,
+                    javax.xml.bind.DatatypeConverter.printBase64Binary(bodyBytes),
+                    partitionId
+            ));
+        }
+        return partitionId;
     }
 
     public static int getPartitionId(byte[] key, int numPartitions) {
