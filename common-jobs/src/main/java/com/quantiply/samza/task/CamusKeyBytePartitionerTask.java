@@ -1,6 +1,5 @@
 package com.quantiply.samza.task;
 
-import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.Partitioner;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -29,12 +28,12 @@ public class CamusKeyBytePartitionerTask extends BaseTask {
 
     @Override
     public void _init(Config config, TaskContext context) throws Exception {
+        registerDefaultHandler(this::processMsg);
         outStream = getSystemStream("out");
         numOutPartitions = getNumPartitionsForSystemStream(outStream);
     }
 
-    @Override
-    public void processDefault(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
+    public void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         byte[] keyBytes = (byte[])envelope.getKey();
         int partitionId = Partitioner.getPartitionIdForCamus(keyBytes, numOutPartitions);
         collector.send(new OutgoingMessageEnvelope(outStream, partitionId, keyBytes, envelope.getMessage()));
