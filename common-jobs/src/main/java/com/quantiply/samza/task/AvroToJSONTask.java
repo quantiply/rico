@@ -5,22 +5,32 @@ import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.util.LogContext;
 import org.apache.avro.Schema;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
-import org.apache.samza.task.*;
+import org.apache.samza.task.MessageCollector;
+import org.apache.samza.task.TaskContext;
+import org.apache.samza.task.TaskCoordinator;
 
-import javax.naming.ConfigurationException;
+/**
 
-public class AvroToJSONTask implements InitableTask, StreamTask {
+  Converts Avro to JSON
+
+  This task expects:
+  - the input topic key to be serialized according the Camus/Confluent Platform spec
+  - the input and output topics are configured to use ByteSerde
+  - the output topic is specified with the "streams.out" property
+
+  Caveats:
+   - It currently assumes lowercase with underscore for naming JSON fields.  This could be configurable later
+
+ */
+public class AvroToJSONTask extends BaseTask {
     private AvroSerde avroSerde;
-    private LogContext logContext;
     private SystemStream outStream;
     private final ObjectMapper objMapper;
 
@@ -40,23 +50,24 @@ public class AvroToJSONTask implements InitableTask, StreamTask {
 
     @Override
     public void init(Config config, TaskContext context) throws Exception {
-        logContext = new LogContext(context);
+        super.init(config, context);
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
-        String outTopic = config.get("topics.out");
-        if (outTopic == null) {
-            throw new ConfigurationException("Missing property for output topic: topics.out");
-        }
-        outStream = new SystemStream("kafka", outTopic);
+        outStream = new SystemStream("kafka", getStreamName("out"));
     }
 
     @Override
-    public void process(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        logContext.setMDC(envelope);
-
+    public void processDefault(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         Object inMsg = avroSerde.fromBytes((byte[]) envelope.getMessage());
         byte[] outMsg = objMapper.writeValueAsBytes(inMsg);
-        collector.send(new OutgoingMessageEnvelope(outStream, outMsg));
-
-        logContext.clearMDC();
+        OutgoingMessageEnvelope outEnv = null;
+        if (envelope.getKey() == null) {
+            outEnv = new OutgoingMessageEnvelope(outStream, outMsg);
+        }
+        else {
+            outEnv = new OutgoingMessageEnvelope(outStream, outMsg,
+                    envelope.getSystemStreamPartition().getPartition().getPartitionId(),
+                    envelope.getKey());
+        }
+        collector.send(outEnv);
     }
 }
