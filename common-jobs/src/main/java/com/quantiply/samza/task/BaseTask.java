@@ -1,6 +1,9 @@
 package com.quantiply.samza.task;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.quantiply.rico.errors.ConfigException;
+import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.LogContext;
 import org.apache.samza.config.Config;
@@ -18,32 +21,47 @@ import java.util.Map;
 import java.util.Optional;
 
 public abstract class BaseTask implements InitableTask, StreamTask {
-    @FunctionalInterface
-    public interface SamzaMsgHandler {
-        void apply(IncomingMessageEnvelope t, MessageCollector u, TaskCoordinator s) throws Exception;
-    }
-
-    private class HandlerEntry {
-        public SamzaMsgHandler handler;
-        public Optional<SystemStream> errorSystemStream;
-
-        public HandlerEntry(SamzaMsgHandler handler, Optional<SystemStream> errorSystemStream) {
-            this.handler = handler;
-            this.errorSystemStream = errorSystemStream;
-        }
-    }
-
     protected LogContext logContext;
     protected Config config;
     protected static Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
     private final Map<String, HandlerEntry> handlerMap = new HashMap<>();
     private Optional<HandlerEntry> defaultHandler = Optional.empty();
+    private MetricAdaptor metricAdaptor;
+
+
+    @FunctionalInterface
+    public interface SamzaMsgHandler {
+        void apply(IncomingMessageEnvelope t, MessageCollector u, TaskCoordinator s) throws Exception;
+    }
+
+    private class StreamMetrics {
+        public Meter processed;
+        public Meter errors;
+
+        public StreamMetrics(String streamName, MetricAdaptor adaptor) {
+            processed = adaptor.meter("processed-" + streamName);
+            errors = adaptor.meter("errors-" + streamName);
+        }
+    }
+
+    private class HandlerEntry {
+        public SamzaMsgHandler handler;
+        public Optional<SystemStream> errorSystemStream;
+        public StreamMetrics metrics;
+
+        public HandlerEntry(SamzaMsgHandler handler, Optional<SystemStream> errorSystemStream, StreamMetrics metrics) {
+            this.handler = handler;
+            this.errorSystemStream = errorSystemStream;
+            this.metrics = metrics;
+        }
+    }
 
     @Override
     public void init(Config config, TaskContext context) throws Exception {
         this.config = config;
         logContext = new LogContext(context);
+        metricAdaptor = new MetricAdaptor(new MetricRegistry(), context.getMetricsRegistry(), "com.quantiply.rico");
         _init(config, context);
     }
 
@@ -66,8 +84,10 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
         try {
             handlerEntry.handler.apply(envelope, collector, coordinator);
+            handlerEntry.metrics.processed.mark();
         }
         catch (Exception e) {
+            handlerEntry.metrics.errors.mark();
             if (handlerEntry.errorSystemStream.isPresent()) {
                 if (logger.isInfoEnabled()) {
                     logger.info("Error handling message. Sending to error stream.", e);
@@ -96,7 +116,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     private void registerDefaultHandler(SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
-        defaultHandler = Optional.of(new HandlerEntry(handler, errorSystemStream));
+        defaultHandler = Optional.of(new HandlerEntry(handler, errorSystemStream, new StreamMetrics("default", metricAdaptor)));
     }
 
     protected void registerHandler(String logicalStreamName, SamzaMsgHandler handler) {
@@ -110,7 +130,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     private void registerHandler(String logicalStreamName, SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         String streamName = getStreamName(logicalStreamName);
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
-        handlerMap.put(streamName, new HandlerEntry(handler, errorSystemStream));
+        handlerMap.put(streamName, new HandlerEntry(handler, errorSystemStream, new StreamMetrics(streamName, metricAdaptor)));
     }
 
     protected int getNumPartitionsForSystemStream(SystemStream systemStream) {
