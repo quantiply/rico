@@ -1,5 +1,6 @@
 package com.quantiply.samza.task;
 
+import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.util.Partitioner;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -27,7 +28,7 @@ public class CamusKeyBytePartitionerTask extends BaseTask {
     private int numOutPartitions;
 
     @Override
-    protected void _init(Config config, TaskContext context) throws Exception {
+    protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
         registerDefaultHandler(this::processMsg);
         outStream = getSystemStream("out");
         numOutPartitions = getNumPartitionsForSystemStream(outStream);

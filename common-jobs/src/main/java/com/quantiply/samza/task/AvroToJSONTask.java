@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import org.apache.avro.Schema;
@@ -49,7 +50,7 @@ public class AvroToJSONTask extends BaseTask {
     }
 
     @Override
-    protected void _init(Config config, TaskContext context) throws Exception {
+    protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
         registerDefaultHandler(this::processMsg);
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         outStream = getSystemStream("out");

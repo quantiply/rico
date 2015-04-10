@@ -35,13 +35,14 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         void apply(IncomingMessageEnvelope t, MessageCollector u, TaskCoordinator s) throws Exception;
     }
 
-    private class StreamMetrics {
+    public class StreamMetrics {
         public Meter processed;
         public Meter errors;
 
-        public StreamMetrics(String streamName, MetricAdaptor adaptor) {
-            processed = adaptor.meter("processed-" + streamName);
-            errors = adaptor.meter("errors-" + streamName);
+        public StreamMetrics(Optional<String> streamName, MetricAdaptor adaptor) {
+            String prefix = streamName.map(s -> s + ".").orElse("");
+            processed = adaptor.meter(prefix + "processed");
+            errors = adaptor.meter(prefix + "errors");
         }
     }
 
@@ -62,7 +63,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         this.config = config;
         logContext = new LogContext(context);
         metricAdaptor = new MetricAdaptor(new MetricRegistry(), context.getMetricsRegistry(), "com.quantiply.rico");
-        _init(config, context);
+        _init(config, context, metricAdaptor);
     }
 
     @Override
@@ -104,7 +105,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         logContext.clearMDC();
     }
 
-    protected abstract void _init(Config config, TaskContext context) throws Exception;
+    protected abstract void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception;
 
     protected void registerDefaultHandler(SamzaMsgHandler handler) {
         registerDefaultHandler(handler, Optional.empty());
@@ -116,7 +117,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     private void registerDefaultHandler(SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
-        defaultHandler = Optional.of(new HandlerEntry(handler, errorSystemStream, new StreamMetrics("default", metricAdaptor)));
+        defaultHandler = Optional.of(new HandlerEntry(handler, errorSystemStream, new StreamMetrics(Optional.empty(), metricAdaptor)));
     }
 
     protected void registerHandler(String logicalStreamName, SamzaMsgHandler handler) {
@@ -130,7 +131,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     private void registerHandler(String logicalStreamName, SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         String streamName = getStreamName(logicalStreamName);
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
-        handlerMap.put(streamName, new HandlerEntry(handler, errorSystemStream, new StreamMetrics(streamName, metricAdaptor)));
+        handlerMap.put(streamName, new HandlerEntry(handler, errorSystemStream, new StreamMetrics(Optional.of(streamName), metricAdaptor)));
     }
 
     protected int getNumPartitionsForSystemStream(SystemStream systemStream) {
