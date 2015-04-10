@@ -27,13 +27,13 @@ public class CamusKeyBytePartitionerTask extends BaseTask {
     private int numOutPartitions;
 
     @Override
-    public void _init(Config config, TaskContext context) throws Exception {
+    protected void _init(Config config, TaskContext context) throws Exception {
         registerDefaultHandler(this::processMsg);
         outStream = getSystemStream("out");
         numOutPartitions = getNumPartitionsForSystemStream(outStream);
     }
 
-    public void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
+    protected void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         byte[] keyBytes = (byte[])envelope.getKey();
         int partitionId = Partitioner.getPartitionIdForCamus(keyBytes, numOutPartitions);
         collector.send(new OutgoingMessageEnvelope(outStream, partitionId, keyBytes, envelope.getMessage()));

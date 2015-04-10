@@ -9,6 +9,8 @@ import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
 import org.apache.samza.task.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -33,6 +35,8 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     protected LogContext logContext;
     protected Config config;
+    protected static Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
+
     private final Map<String, HandlerEntry> handlerMap = new HashMap<>();
     private Optional<HandlerEntry> defaultHandler = Optional.empty();
 
@@ -65,6 +69,9 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         }
         catch (Exception e) {
             if (handlerEntry.errorSystemStream.isPresent()) {
+                if (logger.isInfoEnabled()) {
+                    logger.info("Error handling message. Sending to error stream.", e);
+                }
                 collector.send(new OutgoingMessageEnvelope(
                         handlerEntry.errorSystemStream.get(),
                         envelope.getMessage(),
@@ -83,16 +90,24 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         registerDefaultHandler(handler, Optional.empty());
     }
 
-    protected void registerDefaultHandler(SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
+    protected void registerDefaultHandler(SamzaMsgHandler handler, String logicalErrorStreamName) {
+        registerDefaultHandler(handler, Optional.of(logicalErrorStreamName));
+    }
+
+    private void registerDefaultHandler(SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
         defaultHandler = Optional.of(new HandlerEntry(handler, errorSystemStream));
     }
 
-    protected void registerHandler(String logicalStreamName, SamzaMsgHandler handler) throws Exception {
+    protected void registerHandler(String logicalStreamName, SamzaMsgHandler handler) {
         registerHandler(logicalStreamName, handler, Optional.empty());
     }
 
-    protected void registerHandler(String logicalStreamName, SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) throws Exception {
+    private void registerHandler(String logicalStreamName, SamzaMsgHandler handler, String logicalErrorStreamName) {
+        registerHandler(logicalStreamName, handler, Optional.of(logicalErrorStreamName));
+    }
+
+    private void registerHandler(String logicalStreamName, SamzaMsgHandler handler, Optional<String> logicalErrorStreamName) {
         String streamName = getStreamName(logicalStreamName);
         Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
         handlerMap.put(streamName, new HandlerEntry(handler, errorSystemStream));

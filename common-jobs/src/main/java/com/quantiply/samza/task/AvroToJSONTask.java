@@ -49,13 +49,13 @@ public class AvroToJSONTask extends BaseTask {
     }
 
     @Override
-    public void _init(Config config, TaskContext context) throws Exception {
+    protected void _init(Config config, TaskContext context) throws Exception {
         registerDefaultHandler(this::processMsg);
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         outStream = getSystemStream("out");
     }
 
-    public void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
+    protected void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         Object inMsg = avroSerde.fromBytes((byte[]) envelope.getMessage());
         byte[] outMsg = objMapper.writeValueAsBytes(inMsg);
         OutgoingMessageEnvelope outEnv;
