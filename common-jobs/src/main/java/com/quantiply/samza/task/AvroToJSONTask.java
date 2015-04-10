@@ -49,17 +49,16 @@ public class AvroToJSONTask extends BaseTask {
     }
 
     @Override
-    public void init(Config config, TaskContext context) throws Exception {
-        super.init(config, context);
+    public void _init(Config config, TaskContext context) throws Exception {
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
-        outStream = new SystemStream("kafka", getStreamName("out"));
+        outStream = getSystemStream("out");
     }
 
     @Override
     public void processDefault(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         Object inMsg = avroSerde.fromBytes((byte[]) envelope.getMessage());
         byte[] outMsg = objMapper.writeValueAsBytes(inMsg);
-        OutgoingMessageEnvelope outEnv = null;
+        OutgoingMessageEnvelope outEnv;
         if (envelope.getKey() == null) {
             outEnv = new OutgoingMessageEnvelope(outStream, outMsg);
         }

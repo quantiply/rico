@@ -28,11 +28,9 @@ public class CamusKeyBytePartitionerTask extends BaseTask {
     private int numOutPartitions;
 
     @Override
-    public void init(Config config, TaskContext context) throws Exception {
-        super.init(config, context);
-        String outStreamName = getStreamName("out");
-        outStream = new SystemStream("kafka", outStreamName);
-        numOutPartitions = KafkaAdmin.getNumPartitionsForStream(config, outStreamName);
+    public void _init(Config config, TaskContext context) throws Exception {
+        outStream = getSystemStream("out");
+        numOutPartitions = getNumPartitionsForSystemStream(outStream);
     }
 
     @Override
