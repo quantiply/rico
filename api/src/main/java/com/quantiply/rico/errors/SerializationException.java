@@ -1,6 +1,6 @@
 package com.quantiply.rico.errors;
 
-public class SerializationException extends Exception {
+public class SerializationException extends RuntimeException {
 
     public SerializationException(String message, Throwable cause) {
         super(message, cause);
