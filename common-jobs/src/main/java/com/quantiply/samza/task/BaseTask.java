@@ -40,35 +40,43 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     }
 
     @FunctionalInterface
-    public interface ProcessFunction<M> {
-        void apply(IncomingMessageEnvelope t, MessageCollector u, TaskCoordinator s, M m) throws Exception;
+    public interface Process {
+        void apply(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception;
     }
 
-    private class StreamMetrics<M> {
+    @FunctionalInterface
+    public interface ProcessWithMetrics<M> {
+        void apply(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, M customMetrics) throws Exception;
+    }
+
+    private class StreamMetrics {
         public final Meter processed;
         public final Meter errors;
-        public final M custom;
+        private final String prefix;
 
-        public StreamMetrics(Optional<String> streamName, MetricAdaptor adaptor, StreamMetricFactory<M> metricFactory) {
-            String prefix = streamName.map(s -> s + ".").orElse("");
+        public StreamMetrics(Optional<String> streamName, MetricAdaptor adaptor) {
+            prefix = streamName.map(s -> s + ".").orElse("");
             processed = adaptor.meter(prefix + "processed");
             errors = adaptor.meter(prefix + "errors");
-            custom = metricFactory.apply(new StreamMetricRegistry(prefix, adaptor));
+        }
+
+        public String getPrefix() {
+            return prefix;
         }
     }
 
     /*
       M is the custom stream metric class
     */
-    private class StreamMsgHandler<M> {
+    private class StreamMsgHandler {
         private Optional<String> name;
-        private ProcessFunction<M> processFunc;
         private Optional<SystemStream> errorSystemStream;
-        private StreamMetrics<M> metrics;
+        private Process processFunc;
+        private StreamMetrics metrics;
 
-        public StreamMsgHandler(Optional<String> name, ProcessFunction<M> handler, Optional<SystemStream> errorSystemStream, StreamMetrics<M> metrics) {
+        public StreamMsgHandler(Optional<String> name, Process processFunc, Optional<SystemStream> errorSystemStream, StreamMetrics metrics) {
             this.name = name;
-            this.processFunc = handler;
+            this.processFunc = processFunc;
             this.errorSystemStream = errorSystemStream;
             this.metrics = metrics;
         }
@@ -79,7 +87,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
         public void process(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
             try {
-                processFunc.apply(envelope, collector, coordinator, metrics.custom);
+                processFunc.apply(envelope, collector, coordinator);
                 metrics.processed.mark();
             }
             catch (Exception e) {
@@ -131,36 +139,40 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     protected abstract void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception;
 
-    protected <M> void registerDefaultHandler(ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory) {
+    protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
         registerDefaultHandler(processFunc, metricFactory, Optional.empty());
     }
 
-    protected <M> void registerDefaultHandler(ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory, String logicalErrorStreamName) {
+    protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, String logicalErrorStreamName) {
         registerDefaultHandler(processFunc, metricFactory, Optional.of(logicalErrorStreamName));
     }
 
-    protected <M> void registerHandler(String logicalStreamName, ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory) {
+    protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
         registerHandler(logicalStreamName, processFunc, metricFactory, Optional.empty());
     }
 
-    protected <M> void registerHandler(String logicalStreamName, ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory, String logicalErrorStreamName) {
+    protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, String logicalErrorStreamName) {
         registerHandler(logicalStreamName, processFunc, metricFactory, Optional.of(logicalErrorStreamName));
     }
 
-    protected <M> void registerHandler(String logicalStreamName, ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
-        StreamMsgHandler<M> handler = getStreamMsgHandler(Optional.of(logicalStreamName), processFunc, metricFactory, logicalErrorStreamName);
+    protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
+        StreamMsgHandler handler = getStreamMsgHandler(Optional.of(logicalStreamName), processFunc, metricFactory, logicalErrorStreamName);
         handlerMap.put(handler.getName().get(), handler);
     }
 
-    protected <M> void registerDefaultHandler(ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
+    protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
         defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc, metricFactory, logicalErrorStreamName));
     }
 
-    private <M> StreamMsgHandler<M> getStreamMsgHandler(Optional<String> logicalStreamName, ProcessFunction<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
-        Optional<String> streamName = logicalStreamName.map(s -> getStreamName(s));
-        Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(s -> getSystemStream(s));
-        StreamMetrics<M> metrics = new StreamMetrics<>(streamName, metricAdaptor, metricFactory);
-        return new StreamMsgHandler<>(streamName, processFunc, errorSystemStream, metrics);
+    private <M> StreamMsgHandler getStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
+        Optional<String> streamName = logicalStreamName.map(this::getStreamName);
+        Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(this::getSystemStream);
+        StreamMetrics metrics = new StreamMetrics(streamName, metricAdaptor);
+
+        M custom = metricFactory.apply(new StreamMetricRegistry(metrics.getPrefix(), metricAdaptor));
+        Process process = (envelope, collector, coordinator) -> processWithMetrics.apply(envelope, collector, coordinator, custom);
+
+        return new StreamMsgHandler(streamName, process, errorSystemStream, metrics);
     }
 
     protected void recordEventLagFromCamusRecord(IndexedRecord msg, long tsNowMs, Histogram histogram) {
@@ -169,7 +181,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
             Schema.Field tsField = headerField.schema().getField("timestamp");
             if (tsField != null && tsField.schema().getType() == Schema.Type.LONG) {
                 SpecificRecord header = (SpecificRecord) msg.get(headerField.pos());
-                long tsEvent = ((Long)header.get(tsField.pos())).longValue();
+                long tsEvent = (Long) header.get(tsField.pos());
                 histogram.update(tsNowMs - tsEvent);
             }
         }
