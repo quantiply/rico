@@ -133,12 +133,42 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     protected abstract void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception;
 
+    protected void registerDefaultHandler(Process processFunc) {
+        registerDefaultHandler(processFunc, Optional.empty());
+    }
+
+    protected void registerDefaultHandler(Process processFunc, String logicalErrorStreamName) {
+        registerDefaultHandler(processFunc, Optional.of(logicalErrorStreamName));
+    }
+
+    protected void registerDefaultHandler(Process processFunc, Optional<String> logicalErrorStreamName) {
+        defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc, logicalErrorStreamName));
+    }
+
     protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
         registerDefaultHandler(processFunc, metricFactory, Optional.empty());
     }
 
     protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, String logicalErrorStreamName) {
         registerDefaultHandler(processFunc, metricFactory, Optional.of(logicalErrorStreamName));
+    }
+
+    protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
+        defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc, metricFactory, logicalErrorStreamName));
+    }
+
+    protected void registerHandler(String logicalStreamName, Process processFunc) {
+        registerHandler(logicalStreamName, processFunc, Optional.empty());
+    }
+
+    protected void registerHandler(String logicalStreamName, Process processFunc, String logicalErrorStreamName) {
+        registerHandler(logicalStreamName, processFunc, Optional.of(logicalErrorStreamName));
+    }
+
+    protected void registerHandler(String logicalStreamName, Process processFunc, Optional<String> logicalErrorStreamName) {
+        String streamName = getStreamName(logicalStreamName);
+        StreamMsgHandler handler = getStreamMsgHandler(Optional.of(streamName), processFunc, logicalErrorStreamName);
+        handlerMap.put(handler.getName().get(), handler);
     }
 
     protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
@@ -152,10 +182,6 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
         StreamMsgHandler handler = getStreamMsgHandler(Optional.of(logicalStreamName), processFunc, metricFactory, logicalErrorStreamName);
         handlerMap.put(handler.getName().get(), handler);
-    }
-
-    protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
-        defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc, metricFactory, logicalErrorStreamName));
     }
 
     private <M> StreamMsgHandler getStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
