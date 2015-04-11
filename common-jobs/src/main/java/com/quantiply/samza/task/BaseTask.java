@@ -52,16 +52,10 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     private class StreamMetrics {
         public final Meter processed;
         public final Meter errors;
-        private final String prefix;
 
-        public StreamMetrics(Optional<String> streamName, MetricAdaptor adaptor) {
-            prefix = streamName.map(s -> s + ".").orElse("");
+        public StreamMetrics(String prefix, MetricAdaptor adaptor) {
             processed = adaptor.meter(prefix + "processed");
             errors = adaptor.meter(prefix + "errors");
-        }
-
-        public String getPrefix() {
-            return prefix;
         }
     }
 
@@ -166,13 +160,19 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     private <M> StreamMsgHandler getStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory, Optional<String> logicalErrorStreamName) {
         Optional<String> streamName = logicalStreamName.map(this::getStreamName);
-        Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(this::getSystemStream);
-        StreamMetrics metrics = new StreamMetrics(streamName, metricAdaptor);
-
-        M custom = metricFactory.apply(new StreamMetricRegistry(metrics.getPrefix(), metricAdaptor));
+        M custom = metricFactory.apply(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
         Process process = (envelope, collector, coordinator) -> processWithMetrics.apply(envelope, collector, coordinator, custom);
+        return getStreamMsgHandler(streamName, process, logicalErrorStreamName);
+    }
 
+    private StreamMsgHandler getStreamMsgHandler(Optional<String> streamName, Process process, Optional<String> logicalErrorStreamName) {
+        Optional<SystemStream> errorSystemStream = logicalErrorStreamName.map(this::getSystemStream);
+        StreamMetrics metrics = new StreamMetrics(getStreamMetricPrefix(streamName), metricAdaptor);
         return new StreamMsgHandler(streamName, process, errorSystemStream, metrics);
+    }
+
+    private String getStreamMetricPrefix(Optional<String> streamName) {
+        return streamName.map(s -> s + ".").orElse("");
     }
 
     protected void recordEventLagFromCamusRecord(IndexedRecord msg, long tsNowMs, Histogram histogram) {
