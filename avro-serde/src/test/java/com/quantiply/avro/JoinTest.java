@@ -2,21 +2,15 @@ package com.quantiply.avro;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
-import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-public class UtilTest {
+public class JoinTest {
 
     protected Schema getJoinedSchema() {
         return SchemaBuilder
@@ -33,6 +27,7 @@ public class UtilTest {
                 .record("In1").namespace("com.quantiply.test")
                 .fields()
                 .name("foo").type().stringType().noDefault()
+                .name("left_out").type().stringType().noDefault()
                 .endRecord();
     }
 
@@ -45,29 +40,16 @@ public class UtilTest {
     }
 
     @Test
-    public void testMerge() throws IOException {
+    public void testJoin() throws IOException {
         GenericRecord in1 = getIn1();
         GenericRecord in2 = getIn2();
 
-        GenericData.Record joined = new GenericData.Record(getJoinedSchema());
-        Util.merge(joined, in1);
-        Util.merge(joined, in2);
-
-        assertEquals("yo yo", joined.get("foo"));
-        assertEquals(5, joined.get("bar"));
-        assertNull(joined.get("charlie"));
-    }
-
-    @Test
-    public void testMergeWithBuilder() throws IOException {
-        GenericRecord in1 = getIn1();
-        GenericRecord in2 = getIn2();
-
-        GenericRecordBuilder builder = new GenericRecordBuilder(getJoinedSchema());
-        Util.merge(builder, getJoinedSchema(), in1);
-        Util.merge(builder, getJoinedSchema(), in2);
-        GenericRecord joined = builder
-                .set("charlie", "blah blah").build();
+        GenericRecord joined = new Join(getJoinedSchema())
+                .merge(in1)
+                .merge(in2)
+                .getBuilder()
+                .set("charlie", "blah blah")
+                .build();
 
         assertEquals("yo yo", joined.get("foo"));
         assertEquals(5, joined.get("bar"));
@@ -76,14 +58,15 @@ public class UtilTest {
 
     private GenericRecord getIn2() {
         return new GenericRecordBuilder(getInput2Schema())
-                    .set("bar", 5)
-                    .build();
+                .set("bar", 5)
+                .build();
     }
 
     private GenericRecord getIn1() {
         return new GenericRecordBuilder(getInput1Schema())
-                    .set("foo", "yo yo")
-                    .build();
+                .set("foo", "yo yo")
+                .set("left_out", "forget me")
+                .build();
     }
 
 }
