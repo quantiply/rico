@@ -9,8 +9,6 @@ import org.apache.samza.system.SystemStream;
 import org.apache.samza.task.MessageCollector;
 import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /*
   This task expects
@@ -23,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
  */
 public class CamusKeyBytePartitionerTask extends BaseTask {
-    private static Logger logger = LoggerFactory.getLogger(CamusKeyBytePartitionerTask.class);
     private SystemStream outStream;
     private int numOutPartitions;
 

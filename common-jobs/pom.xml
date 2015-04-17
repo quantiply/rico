@@ -48,6 +48,29 @@
             <target>1.8</target>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.avro</groupId>
+          <artifactId>avro-maven-plugin</artifactId>
+          <version>${avro.version}</version>
+          <configuration>
+            <!--
+              rhoover: this makes the Avro compiler use String
+              instead of CharSequence for string types.  It's important
+              when using hash maps as .equals() and .hashCode() methods
+              are not defined for CharSequence.
+              https://issues.apache.org/jira/browse/AVRO-803
+            -->
+            <stringType>String</stringType>
+          </configuration>
+          <executions>
+            <execution>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>schema</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </build>
 
