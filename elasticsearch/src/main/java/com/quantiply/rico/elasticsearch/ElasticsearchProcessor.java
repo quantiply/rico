@@ -15,6 +15,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,8 @@ public class ElasticsearchProcessor implements Processor {
     private TransportClient _client;
     private String _type;
     private String _index;
+    private List<Envelope> _localCache = new ArrayList<>();
+    private int BULK_BATCH_SIZE ;
 
     @Override
     public void init(Configuration cfg, Context context) throws Exception {
@@ -33,6 +36,7 @@ public class ElasticsearchProcessor implements Processor {
         int port = cfg.getInt("port");
         _type = cfg.getString("type");
         _index = cfg.getString("index");
+        BULK_BATCH_SIZE = cfg.getInt("bulk.batch.size");
 
         Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", clusterName).build();
         _client = new TransportClient(settings);
@@ -50,25 +54,35 @@ public class ElasticsearchProcessor implements Processor {
     }
 
     @Override
-    public List<Envelope> process(List<Envelope> events) throws Exception {
+    public Envelope process(Envelope event) throws Exception {
+        _localCache.add(event);
+
+        if(_localCache.size() == BULK_BATCH_SIZE){
+            sendEventsFromCache();
+        }
+
+        return null;
+    }
+
+    private void sendEventsFromCache(){
         BulkRequestBuilder bulkRequest = _client.prepareBulk();
 
-        for(Envelope event: events) {
+        for(Envelope event: _localCache) {
             Map<String, Object> data = (Map<String, Object>) event.getBody();
             bulkRequest.add(_client.prepareIndex(_index, _type).setSource(data));
         }
 
 
         BulkResponse result = bulkRequest.execute().actionGet();
-        LOG.debug("Processed " + events.size() + "events.");
+        LOG.debug("Processed " + _localCache.size() + "events.");
         if (result.hasFailures()) {
             throw new ElasticsearchException(result.buildFailureMessage());
         }
-        return null;
     }
 
     @Override
     public List window() throws Exception {
+        sendEventsFromCache();
         return null;
     }
 

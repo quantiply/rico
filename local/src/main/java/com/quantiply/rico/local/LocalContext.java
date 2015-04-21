@@ -6,6 +6,7 @@ import com.quantiply.rico.Context;
 import com.quantiply.rico.KeyValueStore;
 import com.quantiply.rico.Metrics;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,15 +20,11 @@ public class LocalContext implements Context {
     private final Map<String, Metrics> _metrics = new HashMap<>();
 
     public LocalContext(Configuration cfg) {
-        Map<String, Object> storeCfg = (Map<String, Object>) cfg.get("store");
-
-        // Oh ! How I hate working with collections in Java.
-        if(storeCfg != null) {
-            for (Map.Entry<String, Object> entry : storeCfg.entrySet()) {
-                String name = entry.getKey();
-                Map<String, String> val = (Map<String, String>) entry.getValue();
-//                System.out.println("Data store - name: "+ name);
-                addKeyValueStore(name, val.getOrDefault("data", null));
+        String stores = cfg.getString("stores.kv");
+        if(stores != null) {
+            for(String store: stores.split(",") ) {
+                String initFile = cfg.getString("path.stores") + store;
+                addKeyValueStore(store, new File(initFile).exists() ? initFile : null);
             }
         }
         final JmxReporter reporter = JmxReporter.forRegistry(_registry).build();

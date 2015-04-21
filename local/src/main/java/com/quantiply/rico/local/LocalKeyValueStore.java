@@ -27,7 +27,6 @@ public class LocalKeyValueStore implements KeyValueStore<String, Object> {
     public LocalKeyValueStore(String file) {
         this._internalStore = new HashMap<>();
         if (file != null) {
-//            System.out.println("Data store - data file name: " + file);
             loadDataFromFile(file);
         }
     }
@@ -42,7 +41,6 @@ public class LocalKeyValueStore implements KeyValueStore<String, Object> {
                 JsonFactory factory = new JsonFactory();
                 ObjectMapper mapper = new ObjectMapper(factory);
                 Map<String, Object> json = mapper.readValue(str, typeRef);
-//                System.out.println(json);
                 put((String) json.get("key"), json.get("value"));
             }
             in.close();

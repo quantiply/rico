@@ -39,7 +39,12 @@
                <enabled>true</enabled>
            </snapshots>
        </repository>
-   </repositories>
+       <repository>
+	 <id>confluent</id>
+	 <name>Confluent</name>
+	 <url>http://packages.confluent.io/maven/</url>
+       </repository>
+    </repositories>
     
     <distributionManagement>
         <repository>

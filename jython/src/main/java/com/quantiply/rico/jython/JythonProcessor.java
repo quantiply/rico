@@ -50,9 +50,9 @@ public class JythonProcessor implements Processor {
     }
 
     @Override
-    public List<Envelope> process(List<Envelope> events) throws Exception {
-        Object res = _py.invokeFunction("process", events);
-        return (List<Envelope>) res;
+    public Envelope process(Envelope event) throws Exception {
+        Object res = _py.invokeFunction("process", event);
+        return (Envelope) res;
     }
 
     @Override

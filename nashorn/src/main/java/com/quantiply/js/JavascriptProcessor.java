@@ -48,28 +48,9 @@ public class JavascriptProcessor implements Processor {
     }
 
     @Override
-    public List<Envelope> process(List<Envelope> events) throws Exception {
-        // TODO: Find out if the JS script can get / emit lists instead of maps
-        Object res = null;
-        try {
-            res = _js.invokeFunction("process", events);
-        } catch (ScriptException ex) {
-//            System.out.printf("Error in %s at line %s : %s \n\n",scriptFullPath, ex.getLineNumber(), ex.getCause());
-
-            throw ex;
-        }
-        List results = new ArrayList<>();
-
-        // Arrays are handled in a inconsistent fashion.
-        if (res instanceof ArrayList) {
-            List tmp = (List) res;
-            tmp.forEach(t -> results.add(t));
-        } else {
-            ScriptObjectMirror tmp = (ScriptObjectMirror) res;
-            tmp.forEach((idx, value) -> results.add(value));
-        }
-
-        return results;
+    public Envelope process(Envelope events) throws Exception {
+        Envelope res = (Envelope) _js.invokeFunction("process", events);
+        return res;
     }
 
     @Override

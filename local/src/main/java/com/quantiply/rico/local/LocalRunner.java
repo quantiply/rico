@@ -15,9 +15,7 @@ import java.util.List;
 public class LocalRunner {
     private final static Logger LOG = LoggerFactory.getLogger(LocalRunner.class);
     private final String _configPath;
-    private final List<Envelope> _localCache = new ArrayList<>();
     private StringSerde _serde;
-    private int BATCH_SIZE ;
     private Processor _task;
     private boolean _isWindowTriggered;
 
@@ -28,16 +26,12 @@ public class LocalRunner {
     public void init() throws Exception {
         Class clazz;
         // Read the config.
-        Configurator cfg = new Configurator(_configPath);
-
-        Configuration localCfg = cfg.get("local");
+        Configuration localCfg = new Configuration(LocalUtils.getAll(_configPath));
 
         LOG.debug("Local Config :" + localCfg);
 
-        _isWindowTriggered = false; //TODO - get this from config?
-
         // Initialize Serde
-        String serdeClass = localCfg.getString("string-serde");
+        String serdeClass = localCfg.getString("string-serde.class");
         clazz = Class.forName(serdeClass);
         _serde = (StringSerde) clazz.newInstance();
         _serde.init(localCfg);
@@ -46,55 +40,43 @@ public class LocalRunner {
         String processorClass = localCfg.getString("processor.class");
         String processorName = localCfg.getString("processor.name");
 
-        BATCH_SIZE = localCfg.getInt("batch.size");
-
         LOG.debug("Processor [%s] Config : %s".format(processorName, localCfg));
 
-        Context context = new LocalContext(cfg.get(processorName));
+        Context context = new LocalContext(localCfg);
         clazz = Class.forName(processorClass);
         _task = (Processor) clazz.newInstance();
-        _task.init(cfg.get(processorName), context);
+        _task.init(localCfg, context);
 
-        // TODO: Add a timer for window.
+        // TODO: Add a timer for window and handle it below.
+        _isWindowTriggered = false;
     }
 
     public void close() throws Exception {
         _task.shutdown();
     }
 
-    public void run() throws Exception{
+    public void run() throws Exception {
         // Read from STDIN
         BufferedReader br =
                 new BufferedReader(new InputStreamReader(System.in));
 
         String input;
 
-        while((input=br.readLine()) != null) {
+        while ((input = br.readLine()) != null) {
             Envelope event = _serde.fromString(input);
-            _localCache.add(event);
-
-            if (_isWindowTriggered) {
-                output(_task.window());
-            }
-
-            if (_localCache.size() >= BATCH_SIZE) {
-                output(_task.process(_localCache));
-                _localCache.clear();
-            }
+            output(_task.process(event));
         }
     }
 
-    private void output(List<Envelope> results) {
-        if (results != null) {
-            results.stream().forEach((result) -> {
-                StringWriter stringWriter = new StringWriter();
-                try {
-                    _serde.writeTo(result, stringWriter);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                System.out.println(stringWriter.toString());
-            });
+    private void output(Envelope result) {
+        if (result != null) {
+            StringWriter stringWriter = new StringWriter();
+            try {
+                _serde.writeTo(result, stringWriter);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(stringWriter.toString());
         }
     }
 
@@ -104,13 +86,11 @@ public class LocalRunner {
             LocalRunner runner = new LocalRunner(configPath);
             runner.init();
             runner.run();
-        }
-        catch (ScriptException e) {
+        } catch (ScriptException e) {
             System.out.println(e.getMessage());
             System.out.println(e.getCause());
 //            e.printStackTrace();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("Unexpected exception in LocalRunner" + e.getMessage());
             e.printStackTrace();
         }

@@ -51,14 +51,14 @@ public class JythonClassProcessor implements Processor {
         _py.invokeFunction("bootstrap", getAppHome());
 
         // Instantiate the Python class and cast it to the Processor interface. Duck typing FTW !!
-        String pyClass = cfg.getString("pyClass");
+        String pyClass = cfg.getString("processor.entrypoint");
         _py.invokeFunction("create_entrypoint", pyClass);
         _processor = _py.getInterface(engine.get("com_quantiply_rico_entrypoint"), Processor.class);
         _processor.init(cfg, context);
     }
 
     @Override
-    public List<Envelope> process(List<Envelope> events) throws Exception {
+    public Envelope process(Envelope events) throws Exception {
         return _processor.process(events);
     }
 
