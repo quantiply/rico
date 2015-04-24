@@ -19,7 +19,7 @@
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>pom</packaging>
     
     <name>Quantiply Rico Parent</name>
@@ -119,7 +119,7 @@
             <dependency>
                 <groupId>com.quantiply.samza</groupId>
                 <artifactId>coda-metrics</artifactId>
-                <version>1.2</version>
+                <version>1.3</version>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
