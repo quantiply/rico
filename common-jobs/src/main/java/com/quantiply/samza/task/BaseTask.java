@@ -8,6 +8,7 @@ import com.quantiply.rico.samza.DroppedMessage;
 import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
+import com.quantiply.samza.util.EventStreamMetrics;
 import com.quantiply.samza.util.KafkaAdmin;
 import com.quantiply.samza.util.TaskInfo;
 import com.quantiply.samza.util.StreamMetricRegistry;
@@ -106,12 +107,8 @@ public abstract class BaseTask implements InitableTask, StreamTask {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Sending message to dropped message stream: " + droppedMsgStream.get().getStream());
                     }
-                    /*
-                    HACK WARNING - getting job + container metadata from MDC is a bit of a hack
-                    TODO - Is there a better way to get that info or to log dropped messages?
-                     */
                     DroppedMessage droppedMessage = DroppedMessage.newBuilder()
-                            .setError(e.getMessage())
+                            .setError(Optional.ofNullable(e.getMessage()).orElse(""))
                             .setKey(Optional.ofNullable((byte[]) envelope.getKey()).map(ByteBuffer::wrap).orElse(null))
                             .setMessage(ByteBuffer.wrap((byte[]) envelope.getMessage()))
                             .setSystem(envelope.getSystemStreamPartition().getSystem())
@@ -219,14 +216,20 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         return streamName.map(s -> s + ".").orElse("");
     }
 
-    protected void recordEventLagFromCamusRecord(IndexedRecord msg, long tsNowMs, Histogram histogram) {
+    protected void updateLagMetricsForCamusRecord(IndexedRecord msg, long tsNowMs, EventStreamMetrics metrics) {
         Schema.Field headerField = msg.getSchema().getField("header");
         if (headerField != null) {
+            SpecificRecord header = (SpecificRecord) msg.get(headerField.pos());
             Schema.Field tsField = headerField.schema().getField("timestamp");
+            Schema.Field createdField = headerField.schema().getField("created");
+
             if (tsField != null && tsField.schema().getType() == Schema.Type.LONG) {
-                SpecificRecord header = (SpecificRecord) msg.get(headerField.pos());
                 long tsEvent = (Long) header.get(tsField.pos());
-                histogram.update(tsNowMs - tsEvent);
+                metrics.lagFromOriginMs.update(tsNowMs - tsEvent);
+            }
+            if (createdField != null && createdField.schema().getType() == Schema.Type.LONG) {
+                long tsCreated = (Long) header.get(createdField.pos());
+                metrics.lagFromPreviousMs.update(tsNowMs - tsCreated);
             }
         }
     }

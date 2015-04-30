@@ -60,7 +60,7 @@ public class AvroToJSONTask extends BaseTask {
 
     protected void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, EventStreamMetrics metrics) throws Exception {
         SpecificRecord inMsg = (SpecificRecord) avroSerde.fromBytes((byte[]) envelope.getMessage());
-        recordEventLagFromCamusRecord(inMsg, System.currentTimeMillis(), metrics.lagFromEventMs);
+        updateLagMetricsForCamusRecord(inMsg, System.currentTimeMillis(), metrics);
         byte[] outMsg = objMapper.writeValueAsBytes(inMsg);
         OutgoingMessageEnvelope outEnv;
         if (envelope.getKey() == null) {
