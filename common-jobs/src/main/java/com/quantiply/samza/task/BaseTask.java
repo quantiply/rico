@@ -212,12 +212,8 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     }
 
     private String getStreamMetricPrefix(Optional<String> streamName) {
-        String metricName = streamName.map(this::sanitizeStreamNameForMetrics).orElse("default");
+        String metricName = streamName.map(StreamMetricRegistry::sanitizeStreamNameForMetrics).orElse("default");
         return String.format("streams.%s.", metricName);
-    }
-
-    private String sanitizeStreamNameForMetrics(String streamName) {
-        return streamName.replaceAll("\\.", "_");
     }
 
     protected void updateLagMetricsForCamusRecord(IndexedRecord msg, long tsNowMs, EventStreamMetrics metrics) {

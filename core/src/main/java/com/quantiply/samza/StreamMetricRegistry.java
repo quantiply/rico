@@ -3,6 +3,11 @@ package com.quantiply.samza;
 import com.codahale.metrics.*;
 
 public class StreamMetricRegistry {
+
+    public static String sanitizeStreamNameForMetrics(String streamName) {
+        return streamName.replaceAll("\\.", "_");
+    }
+
     private final String namePrefix;
     private final MetricAdaptor metricAdaptor;
 
