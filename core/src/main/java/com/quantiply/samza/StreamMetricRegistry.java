@@ -1,4 +1,4 @@
-package com.quantiply.samza.util;
+package com.quantiply.samza;
 
 import com.codahale.metrics.*;
 import com.quantiply.rico.Metrics;

@@ -1,4 +1,4 @@
-package com.quantiply.samza.util;
+package com.quantiply.samza;
 
 import org.apache.kafka.common.utils.Utils;
 import org.slf4j.Logger;
@@ -11,7 +11,7 @@ public class Partitioner {
     private static Logger logger = LoggerFactory.getLogger(Partitioner.class);
 
     public static int getPartitionIdForCamus(byte[] camusMsg, int numPartitions) {
-        int partitionId = Partitioner.getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
+        int partitionId = getPartitionId(new CamusFrame(camusMsg).getBody(), numPartitions);
         if (logger.isTraceEnabled()) {
             ByteBuffer bodyBuffer = new CamusFrame(camusMsg).getBody();
             int length = bodyBuffer.remaining();

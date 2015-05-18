@@ -1,6 +1,5 @@
 package com.quantiply.samza.task;
 
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.quantiply.rico.errors.ConfigException;

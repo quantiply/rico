@@ -153,14 +153,7 @@
     <modules>
         <module>api</module>
         <module>core</module>
-        <module>samza-util</module>
         <module>avro-serde</module>
-        <module>local</module>
-        <module>jython</module>
-        <module>nashorn</module>
-        <module>samza-runner</module>
-        <module>elasticsearch</module>
-        <module>druid</module>
         <module>common-jobs</module>
     </modules>
 
