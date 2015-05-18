@@ -6,7 +6,7 @@ public class EventStreamMetrics {
     public final Histogram lagFromOriginMs;
     public final Histogram lagFromPreviousMs;
 
-    public EventStreamMetrics(MetricAdaptor registry) {
+    public EventStreamMetrics(StreamMetricRegistry registry) {
         lagFromOriginMs = registry.histogram("lag-from-origin-ms");
         lagFromPreviousMs = registry.histogram("lag-from-previous-step-ms");
     }

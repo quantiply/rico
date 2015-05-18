@@ -19,7 +19,7 @@
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     
     <name>Quantiply Rico Parent</name>
@@ -69,11 +69,6 @@
             <dependency>
                 <groupId>com.quantiply.rico</groupId>
                 <artifactId>rico-avro-serde</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.quantiply.rico</groupId>
-                <artifactId>rico-samza-util</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

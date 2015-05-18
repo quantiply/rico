@@ -1,7 +1,7 @@
 package com.quantiply.samza.task;
 
 import com.quantiply.samza.MetricAdaptor;
-import com.quantiply.samza.util.Partitioner;
+import com.quantiply.samza.Partitioner;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;

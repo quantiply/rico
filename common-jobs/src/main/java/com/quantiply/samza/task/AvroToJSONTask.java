@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.util.EventStreamMetrics;
+import com.quantiply.samza.EventStreamMetrics;
 import org.apache.avro.Schema;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;

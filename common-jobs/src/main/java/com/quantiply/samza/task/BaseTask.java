@@ -7,10 +7,10 @@ import com.quantiply.rico.samza.DroppedMessage;
 import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.util.EventStreamMetrics;
-import com.quantiply.samza.util.KafkaAdmin;
-import com.quantiply.samza.util.TaskInfo;
-import com.quantiply.samza.util.StreamMetricRegistry;
+import com.quantiply.samza.EventStreamMetrics;
+import com.quantiply.samza.KafkaAdmin;
+import com.quantiply.samza.TaskInfo;
+import com.quantiply.samza.StreamMetricRegistry;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
@@ -31,9 +31,9 @@ import java.util.Optional;
 
 public abstract class BaseTask implements InitableTask, StreamTask {
     protected final static String METRICS_GROUP_NAME = "com.quantiply.rico";
-    protected final static String CFG_STREAM_NAME_PREFIX = "streams.";
+    protected final static String CFG_STREAM_NAME_PREFIX = "rico.streams.";
     protected final static String CFG_DROP_ON_ERROR = "rico.drop.on.error";
-    protected final static String CFG_DROPPED_MESSAGE_STREAM_NAME = "streams.dropped-messages";
+    protected final static String CFG_DROPPED_MESSAGE_STREAM_NAME = "rico.streams.dropped-messages";
     protected final static String CFG_DEFAULT_SYSTEM_NAME = "kafka";
 
     protected TaskInfo taskInfo;
@@ -66,9 +66,9 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         public final Meter processed;
         public final Meter dropped;
 
-        public StreamMetrics(String prefix, MetricAdaptor adaptor) {
-            processed = adaptor.meter(prefix + "processed");
-            dropped = adaptor.meter(prefix + "dropped");
+        public StreamMetrics(StreamMetricRegistry registry) {
+            processed = registry.meter("processed");
+            dropped = registry.meter("dropped");
         }
     }
 
@@ -207,12 +207,17 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     }
 
     private StreamMsgHandler getStreamMsgHandler(Optional<String> streamName, Process process) {
-        StreamMetrics metrics = new StreamMetrics(getStreamMetricPrefix(streamName), metricAdaptor);
+        StreamMetrics metrics = new StreamMetrics(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
         return new StreamMsgHandler(streamName, process, metrics);
     }
 
     private String getStreamMetricPrefix(Optional<String> streamName) {
-        return streamName.map(s -> s + ".").orElse("");
+        String metricName = streamName.map(this::sanitizeStreamNameForMetrics).orElse("default");
+        return String.format("streams.%s.", metricName);
+    }
+
+    private String sanitizeStreamNameForMetrics(String streamName) {
+        return streamName.replaceAll("\\.", "_");
     }
 
     protected void updateLagMetricsForCamusRecord(IndexedRecord msg, long tsNowMs, EventStreamMetrics metrics) {
