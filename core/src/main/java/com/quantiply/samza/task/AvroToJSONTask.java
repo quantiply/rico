@@ -21,9 +21,10 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.quantiply.samza.MetricAdaptor;
+import com.quantiply.samza.metrics.EventStreamMetricsFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.EventStreamMetrics;
+import com.quantiply.samza.metrics.EventStreamMetrics;
 import org.apache.avro.Schema;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
@@ -68,7 +69,7 @@ public class AvroToJSONTask extends BaseTask {
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
-        registerDefaultHandler(this::processMsg, EventStreamMetrics::new);
+        registerDefaultHandler(this::processMsg, new EventStreamMetricsFactory());
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         outStream = getSystemStream("out");
     }

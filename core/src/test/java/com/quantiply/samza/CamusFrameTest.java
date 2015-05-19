@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza;
 
+import com.quantiply.samza.partition.CamusFrame;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;

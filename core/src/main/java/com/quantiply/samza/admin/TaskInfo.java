@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.quantiply.samza;
+package com.quantiply.samza.admin;
 
 import org.apache.samza.config.Config;
 import org.apache.samza.config.JobConfig;

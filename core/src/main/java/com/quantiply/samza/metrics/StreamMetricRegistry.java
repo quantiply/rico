@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.quantiply.samza;
+package com.quantiply.samza.metrics;
 
 import com.codahale.metrics.*;
+import com.quantiply.samza.MetricAdaptor;
 
 /**
  Utility for creating a set of metrics that share a common prefix

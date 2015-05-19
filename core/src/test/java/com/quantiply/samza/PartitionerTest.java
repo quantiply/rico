@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza;
 
+import com.quantiply.samza.partition.Partitioner;
 import org.apache.kafka.common.utils.Utils;
 import org.junit.Rule;
 import org.junit.Test;

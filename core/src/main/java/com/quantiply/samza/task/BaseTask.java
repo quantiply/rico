@@ -19,12 +19,13 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.quantiply.rico.samza.DroppedMessage;
 import com.quantiply.samza.MetricAdaptor;
+import com.quantiply.samza.metrics.StreamMetricFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.EventStreamMetrics;
-import com.quantiply.samza.KafkaAdmin;
-import com.quantiply.samza.TaskInfo;
-import com.quantiply.samza.StreamMetricRegistry;
+import com.quantiply.samza.metrics.EventStreamMetrics;
+import com.quantiply.samza.admin.KafkaAdmin;
+import com.quantiply.samza.admin.TaskInfo;
+import com.quantiply.samza.metrics.StreamMetricRegistry;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
@@ -61,11 +62,6 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     private boolean dropOnError;
     private Optional<SystemStream> droppedMsgStream;
     private AvroSerde avroSerde;
-
-    @FunctionalInterface
-    public interface StreamMetricFactory<M> {
-        public M apply(StreamMetricRegistry registry);
-    }
 
     @FunctionalInterface
     public interface Process {
@@ -216,7 +212,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
     private <M> StreamMsgHandler getStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory) {
         Optional<String> streamName = logicalStreamName.map(this::getStreamName);
-        M custom = metricFactory.apply(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
+        M custom = metricFactory.create(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
         Process process = (envelope, collector, coordinator) -> processWithMetrics.apply(envelope, collector, coordinator, custom);
         return getStreamMsgHandler(streamName, process);
     }
