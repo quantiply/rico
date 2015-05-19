@@ -162,9 +162,8 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <modules>
         <module>api</module>
-        <module>core</module>
         <module>avro-serde</module>
-        <module>common-jobs</module>
+        <module>core</module>
     </modules>
 
     <build>
