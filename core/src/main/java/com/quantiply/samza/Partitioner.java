@@ -21,6 +21,21 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 
+/**
+ * A reliable way of partitioning messages
+ *
+ * The general approach is to partition based on as hash of the message content (bytes).  This is preferable
+ * to using a Java object hashcode because it's properly defined for any message.
+ * 1) It's not tied to quirky (non-standardized) implementations of Java hashcode()
+ * 2) We don't need a Java representation of the message to partition it.
+ *
+ * For keys that are encoded using the Camus/Confluent Platform message frame convention, there's a twist.
+ * The first part of the key contains a schema id, which is non-deterministic.
+ * If you use Confluent schema registry, you can end up with the same schema assigned to different
+ * ids because it may get registered with different "subjects".  In short, the partitioning scheme should not depend
+ * on the schema id of the key.  This partitioner only uses the "body" portion of the Camus key.
+ *
+ */
 public class Partitioner {
 
     private static Logger logger = LoggerFactory.getLogger(Partitioner.class);

@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Helper for fetching Kafka metadata
+ */
 public class KafkaAdmin {
 
     public static int getNumPartitionsForStream(Config cfg, SystemStream systemStream) {

@@ -17,6 +17,9 @@ package com.quantiply.samza;
 
 import com.codahale.metrics.Histogram;
 
+/**
+ * Common metrics for event streams
+ */
 public class EventStreamMetrics {
     public final Histogram lagFromOriginMs;
     public final Histogram lagFromPreviousMs;

@@ -17,6 +17,9 @@ package com.quantiply.samza;
 
 import com.codahale.metrics.*;
 
+/**
+ Utility for creating a set of metrics that share a common prefix
+ */
 public class StreamMetricRegistry {
 
     public static String sanitizeStreamNameForMetrics(String streamName) {

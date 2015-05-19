@@ -22,6 +22,9 @@ import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.task.TaskContext;
 import org.slf4j.MDC;
 
+/**
+ * Utility for gathering information about a Samza task
+ */
 public class TaskInfo {
     private final static String JAVA_OPTS_CONTAINER_NAME = "samza.container.name";
     private TaskContext context;

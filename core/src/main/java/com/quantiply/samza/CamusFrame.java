@@ -17,6 +17,9 @@ package com.quantiply.samza;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Allows access to the parts of Camus/Confluent Platform messages
+ */
 public class CamusFrame {
     protected static final byte MAGIC_BYTE = 0x0;
     protected static final int HEAD_SIZE = 5;
