@@ -28,10 +28,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <dependencies>
         <dependency>
-            <groupId>com.quantiply.rico</groupId>
-            <artifactId>rico-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
         </dependency>
