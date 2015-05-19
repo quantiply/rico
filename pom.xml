@@ -73,11 +73,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <dependencies>
             <dependency>
                 <groupId>com.quantiply.rico</groupId>
-                <artifactId>rico-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.quantiply.rico</groupId>
                 <artifactId>rico-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -161,7 +156,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     </dependencyManagement>
 
     <modules>
-        <module>api</module>
         <module>avro-serde</module>
         <module>core</module>
     </modules>

@@ -15,9 +15,9 @@
  */
 package com.quantiply.samza.serde;
 
-import com.quantiply.rico.errors.ConfigException;
 import kafka.utils.VerifiableProperties;
 import org.apache.samza.config.Config;
+import org.apache.samza.config.ConfigException;
 import org.apache.samza.serializers.SerdeFactory;
 
 import java.util.Properties;
