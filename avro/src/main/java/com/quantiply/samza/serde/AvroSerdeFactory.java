@@ -23,7 +23,7 @@ import org.apache.samza.serializers.SerdeFactory;
 import java.util.Properties;
 
 public class AvroSerdeFactory implements SerdeFactory<Object> {
-    public static String CFG_SCHEMA_REGISTRY_URL = "confluent.schema.registry.url";
+    public static String CFG_SCHEMA_REGISTRY_URL = "rico.schema.registry.url";
 
     @Override
     public AvroSerde getSerde(String s, Config config) {

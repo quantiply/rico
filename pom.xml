@@ -156,7 +156,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     </dependencyManagement>
 
     <modules>
-        <module>avro-serde</module>
+        <module>avro</module>
         <module>core</module>
     </modules>
 
