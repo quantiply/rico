@@ -35,6 +35,7 @@ import org.apache.samza.job.JobRunner;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
+import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.task.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public abstract class BaseTask implements InitableTask, StreamTask {
     protected final static String METRICS_GROUP_NAME = "com.quantiply.rico";
@@ -145,9 +147,22 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         droppedMsgStream = Optional.ofNullable(config.get(CFG_DROPPED_MESSAGE_STREAM_NAME))
                 .map(streamName -> new SystemStream(CFG_DEFAULT_SYSTEM_NAME, streamName));
         avroSerde = new AvroSerdeFactory().getSerde(null, config);
+
         _init(config, context, metricAdaptor);
 
+        validateHandlers(context);
         logDroppedMsgConfig();
+    }
+
+    private void validateHandlers(TaskContext context) {
+        if (defaultHandler.isPresent()) {
+            return;
+        }
+        for (SystemStreamPartition ssp: context.getSystemStreamPartitions()) {
+            if (!handlerMap.containsKey(ssp.getStream())) {
+                throw new ConfigException("No handler for stream: " + ssp.getStream());
+            }
+        }
     }
 
     private void logDroppedMsgConfig() {
