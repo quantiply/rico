@@ -160,7 +160,9 @@ public abstract class BaseTask implements InitableTask, StreamTask {
         }
         for (SystemStreamPartition ssp: context.getSystemStreamPartitions()) {
             if (!handlerMap.containsKey(ssp.getStream())) {
-                throw new ConfigException("No handler for stream: " + ssp.getStream());
+                throw new ConfigException(
+                        String.format("Missing handler for stream: %s. Call registerDefaultHandler() or registerHandler() in _init().", ssp.getStream())
+                );
             }
         }
     }
@@ -183,7 +185,7 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     }
 
     @Override
-    public void process(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
+    public final void process(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         taskInfo.setMDC(envelope);
 
         //Dispatch
