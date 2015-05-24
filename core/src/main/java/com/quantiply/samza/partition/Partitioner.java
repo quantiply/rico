@@ -33,7 +33,7 @@ import java.nio.ByteBuffer;
  * The first part of the key contains a schema id, which is non-deterministic.
  * If you use Confluent schema registry, you can end up with the same schema assigned to different
  * ids because it may get registered with different "subjects".  In short, the partitioning scheme should not depend
- * on the schema id of the key.  This partitioner only uses the "body" portion of the Camus key.
+ * on the schema id of the key.  This partitioner only uses the "body" portion of the Camus key message.
  *
  */
 public class Partitioner {
