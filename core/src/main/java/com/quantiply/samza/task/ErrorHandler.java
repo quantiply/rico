@@ -1,7 +1,8 @@
-package com.quantiply.samza.dropped;
+package com.quantiply.samza.task;
 
 import com.quantiply.samza.ConfigConst;
 import org.apache.samza.config.Config;
+import org.apache.samza.config.ConfigException;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
@@ -26,8 +27,16 @@ public class ErrorHandler {
 
     public void start() {
         dropOnError = config.getBoolean(ConfigConst.DROP_ON_ERROR, false);
+        boolean logDroppedMsgs = config.getBoolean(ConfigConst.ENABLE_DROPPED_MESSAGE_LOG, false);
         droppedMsgStream = Optional.ofNullable(config.get(ConfigConst.DROPPED_MESSAGE_STREAM_NAME))
                 .map(streamName -> new SystemStream(ConfigConst.DEFAULT_SYSTEM_NAME, streamName));
+        if (logDroppedMsgs && !droppedMsgStream.isPresent()) {
+            throw new ConfigException(
+                    String.format("No stream configured for dropped messages. Either set %s=false or %s",
+                            ConfigConst.ENABLE_DROPPED_MESSAGE_LOG,
+                            ConfigConst.DROPPED_MESSAGE_STREAM_NAME)
+            );
+        }
         systemProducer = droppedMsgStream.map(stream -> getSystemProducer(config));
         logDroppedMsgConfig();
     }
@@ -40,7 +49,7 @@ public class ErrorHandler {
                 builder.append(" Sending to stream: " + droppedMsgStream.get().getStream());
             }
             else {
-                builder.append(" No drop stream configured with property: " + ConfigConst.DROPPED_MESSAGE_STREAM_NAME);
+                builder.append(" No drop stream configured");
             }
         }
         else {
@@ -65,6 +74,7 @@ public class ErrorHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Sending message to dropped message stream: " + stream.getStream());
             }
+            //TODO - serialize the important stuff here to JSON
             byte[] msg = "Testing 1 2 3".getBytes();
             systemProducer.get().send(SYSTEM_PRODUCER_SOURCE, new OutgoingMessageEnvelope(stream, msg));
         });

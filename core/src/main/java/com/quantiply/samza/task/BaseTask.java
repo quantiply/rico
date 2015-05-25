@@ -17,13 +17,9 @@ package com.quantiply.samza.task;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.quantiply.rico.samza.DroppedMessage;
 import com.quantiply.samza.ConfigConst;
 import com.quantiply.samza.MetricAdaptor;
-import com.quantiply.samza.dropped.ErrorHandler;
 import com.quantiply.samza.metrics.StreamMetricFactory;
-import com.quantiply.samza.serde.AvroSerde;
-import com.quantiply.samza.serde.AvroSerdeFactory;
 import com.quantiply.samza.metrics.EventStreamMetrics;
 import com.quantiply.samza.admin.KafkaAdmin;
 import com.quantiply.samza.admin.TaskInfo;
@@ -33,22 +29,16 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
-import org.apache.samza.config.SystemConfig;
 import org.apache.samza.job.JobRunner;
-import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.*;
-import org.apache.samza.system.kafka.KafkaSystemFactory;
 import org.apache.samza.task.*;
-import org.apache.samza.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask {
     protected TaskInfo taskInfo;
