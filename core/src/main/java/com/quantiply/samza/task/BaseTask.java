@@ -18,7 +18,9 @@ package com.quantiply.samza.task;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.quantiply.rico.samza.DroppedMessage;
+import com.quantiply.samza.ConfigConst;
 import com.quantiply.samza.MetricAdaptor;
+import com.quantiply.samza.dropped.ErrorHandler;
 import com.quantiply.samza.metrics.StreamMetricFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
@@ -31,12 +33,13 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
+import org.apache.samza.config.SystemConfig;
 import org.apache.samza.job.JobRunner;
-import org.apache.samza.system.IncomingMessageEnvelope;
-import org.apache.samza.system.OutgoingMessageEnvelope;
-import org.apache.samza.system.SystemStream;
-import org.apache.samza.system.SystemStreamPartition;
+import org.apache.samza.metrics.MetricsRegistryMap;
+import org.apache.samza.system.*;
+import org.apache.samza.system.kafka.KafkaSystemFactory;
 import org.apache.samza.task.*;
+import org.apache.samza.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public abstract class BaseTask implements InitableTask, StreamTask {
-    protected final static String METRICS_GROUP_NAME = "com.quantiply.rico";
-    protected final static String CFG_STREAM_NAME_PREFIX = "rico.streams.";
-    protected final static String CFG_DROP_ON_ERROR = "rico.drop.on.error";
-    protected final static String CFG_DROPPED_MESSAGE_STREAM_NAME = "rico.streams.dropped-messages";
-    protected final static String CFG_DEFAULT_SYSTEM_NAME = "kafka";
-
+public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask {
     protected TaskInfo taskInfo;
     protected Config config;
     protected static Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
@@ -61,9 +58,8 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     private final Map<String, StreamMsgHandler> handlerMap = new HashMap<>();
     private Optional<StreamMsgHandler> defaultHandler = Optional.empty();
     private MetricAdaptor metricAdaptor;
-    private boolean dropOnError;
-    private Optional<SystemStream> droppedMsgStream;
-    private AvroSerde avroSerde;
+    private ErrorHandler errorHandler;
+    //private boolean dropOnError;
 
     @FunctionalInterface
     public interface Process {
@@ -106,34 +102,13 @@ public abstract class BaseTask implements InitableTask, StreamTask {
                 metrics.processed.mark();
             }
             catch (Exception e) {
-                if (!dropOnError) {
-                    throw e;
-                }
                 if (logger.isInfoEnabled()) {
                     //NOTE - logging at info level because these can be too numerous in PRD
                     logger.info("Error handling message", e);
                 }
+                errorHandler.handleError(envelope, e);
+                //If control reaches here, the message was dropped
                 metrics.dropped.mark();
-
-                if (droppedMsgStream.isPresent()) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Sending message to dropped message stream: " + droppedMsgStream.get().getStream());
-                    }
-                    DroppedMessage droppedMessage = DroppedMessage.newBuilder()
-                            .setError(Optional.ofNullable(e.getMessage()).orElse(""))
-                            .setKey(Optional.ofNullable((byte[]) envelope.getKey()).map(ByteBuffer::wrap).orElse(null))
-                            .setMessage(ByteBuffer.wrap((byte[]) envelope.getMessage()))
-                            .setSystem(envelope.getSystemStreamPartition().getSystem())
-                            .setStream(envelope.getSystemStreamPartition().getStream())
-                            .setPartition(envelope.getSystemStreamPartition().getPartition().getPartitionId())
-                            .setOffset(envelope.getOffset())
-                            .setTask(taskInfo.getTaskName())
-                            .setContainer(taskInfo.getContainerName())
-                            .setJob(taskInfo.getJobName())
-                            .setJobId(taskInfo.getJobId())
-                            .build();
-                    collector.send(new OutgoingMessageEnvelope(droppedMsgStream.get(), avroSerde.toBytes(droppedMessage)));
-                }
             }
         }
     }
@@ -142,16 +117,13 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     public void init(Config config, TaskContext context) throws Exception {
         this.config = config;
         taskInfo = new TaskInfo(config, context);
-        metricAdaptor = new MetricAdaptor(new MetricRegistry(), context.getMetricsRegistry(), METRICS_GROUP_NAME);
-        dropOnError = config.getBoolean(CFG_DROP_ON_ERROR, false);
-        droppedMsgStream = Optional.ofNullable(config.get(CFG_DROPPED_MESSAGE_STREAM_NAME))
-                .map(streamName -> new SystemStream(CFG_DEFAULT_SYSTEM_NAME, streamName));
-        avroSerde = new AvroSerdeFactory().getSerde(null, config);
+        metricAdaptor = new MetricAdaptor(new MetricRegistry(), context.getMetricsRegistry(), ConfigConst.METRICS_GROUP_NAME);
+        errorHandler = new ErrorHandler(config);
+        errorHandler.start();
 
         _init(config, context, metricAdaptor);
 
         validateHandlers(context);
-        logDroppedMsgConfig();
     }
 
     private void validateHandlers(TaskContext context) {
@@ -165,23 +137,6 @@ public abstract class BaseTask implements InitableTask, StreamTask {
                 );
             }
         }
-    }
-
-    private void logDroppedMsgConfig() {
-        StringBuilder builder = new StringBuilder();
-        if (dropOnError) {
-            builder.append("Dropping messages on error.");
-            if (droppedMsgStream.isPresent()) {
-                builder.append(" Sending to stream: " + droppedMsgStream.get().getStream());
-            }
-            else {
-                builder.append(" No drop stream configured with property: " + CFG_DROPPED_MESSAGE_STREAM_NAME);
-            }
-        }
-        else {
-            builder.append("Not dropping messages on error");
-        }
-        logger.info(builder.toString());
     }
 
     @Override
@@ -205,6 +160,20 @@ public abstract class BaseTask implements InitableTask, StreamTask {
 
         taskInfo.clearMDC();
     }
+
+    @Override
+    public final void close() throws Exception {
+        errorHandler.stop();
+        try {
+            _close();
+        }
+        catch (Exception e) {
+            logger.error("Error on close", e);
+            throw e;
+        }
+    }
+
+    protected void _close() throws Exception {}
 
     protected abstract void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception;
 
@@ -267,11 +236,11 @@ public abstract class BaseTask implements InitableTask, StreamTask {
     }
 
     protected SystemStream getSystemStream(String logicalStreamName) {
-        return new SystemStream(CFG_DEFAULT_SYSTEM_NAME, getStreamName(logicalStreamName));
+        return new SystemStream(ConfigConst.DEFAULT_SYSTEM_NAME, getStreamName(logicalStreamName));
     }
 
     protected String getStreamName(String logicalStreamName) {
-        String prop = CFG_STREAM_NAME_PREFIX + logicalStreamName;
+        String prop = ConfigConst.STREAM_NAME_PREFIX + logicalStreamName;
         String streamName = config.get(prop);
         if (streamName == null) {
             throw new ConfigException("Missing config property for stream: " + prop);
