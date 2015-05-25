@@ -48,10 +48,10 @@ public class CmdLineTaskRunner {
     private Object task;
     private boolean isWindowTriggered;
     private StringSerde serde;
-    private int verbosity;
+    private boolean isVerbose;
 
-    public CmdLineTaskRunner(String configPath, int verbosity) {
-        this.verbosity = verbosity;
+    public CmdLineTaskRunner(String configPath, boolean isVerbose) {
+        this.isVerbose = isVerbose;
         this.configPath = configPath;
     }
 
@@ -96,7 +96,7 @@ public class CmdLineTaskRunner {
         String input;
         while ((input = br.readLine()) != null) {
             Object data = serde.fromString(input);
-            ((StreamTask) task).process(new IncomingMessageEnvelope(STDIN_SSP, Integer.toString(lineOffset), null, data), new CmdLineCollector(verbosity), null);
+            ((StreamTask) task).process(new IncomingMessageEnvelope(STDIN_SSP, Integer.toString(lineOffset), null, data), new CmdLineCollector(isVerbose), null);
             lineOffset++;
         }
     }
@@ -129,15 +129,15 @@ public class CmdLineTaskRunner {
     }
 
     class CmdLineCollector implements MessageCollector {
-        private int type;
+        private boolean isVerbose;
 
-        public CmdLineCollector(int verbosity) {
-            this.type = verbosity;
+        public CmdLineCollector(boolean isVerbose) {
+            this.isVerbose = isVerbose;
         }
 
         @Override
         public void send(OutgoingMessageEnvelope outgoingMessageEnvelope) {
-            if (type == 0) {
+            if (isVerbose) {
                 System.out.println(outgoingMessageEnvelope);
             }
             else {
@@ -154,17 +154,27 @@ public class CmdLineTaskRunner {
 
     public static void main(String[] args) {
         try {
+            if (args.length < 1) {
+                System.err.println(String.format("Usage: %s <path to config> [--verbose]", CmdLineTaskRunner.class.toString()));
+                System.exit(1);
+            }
             String configPath = args[0];
-            int isVerbose = Integer.parseInt(args[1]);
+
+            boolean isVerbose = false;
+            if (args.length > 1 && args[1].equals("--verbose")) {
+                isVerbose = true;
+            }
             CmdLineTaskRunner runner = new CmdLineTaskRunner(configPath, isVerbose);
             runner.init();
             runner.run();
         } catch (ScriptException e) {
-            System.out.println(e.getMessage());
-            System.out.println(e.getCause());
+            System.err.println(e.getMessage());
+            System.err.println(e.getCause());
+            System.exit(1);
         } catch (Exception e) {
-            System.err.println("Unexpected exception in CmdLineTaskRunner" + e.getMessage());
+            System.err.println("Unexpected exception:" + e.getMessage());
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }

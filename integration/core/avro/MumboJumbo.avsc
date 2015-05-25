@@ -1,0 +1,6 @@
+{
+  "type" : "record",
+  "name" : "MumboJumbo",
+  "namespace" : "com.quantiply.rico",
+  "fields" : [ {"name": "mumbo", "type": "string"} ]
+}
