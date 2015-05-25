@@ -60,7 +60,7 @@ public class CmdLineTaskRunner {
         PropertiesConfigFactory pcf = new PropertiesConfigFactory();
         Config cfg = pcf.getConfig(new URI("file://" + configPath));
 
-        logger.debug("Local Config :" + cfg);
+        logger.debug("Config :" + cfg);
 
         // Initialize Serde
         String serdeClassName = cfg.get(CONFIG_SERDE_CLASS);
@@ -78,7 +78,7 @@ public class CmdLineTaskRunner {
         }
         Class clazz = Class.forName(taskClass);
         task = clazz.newInstance();
-        ((InitableTask) task).init(cfg, new LocalTaskContext() );
+        ((InitableTask) task).init(cfg, new CmdLineTaskContext() );
 
         // TODO: Add a timer for window and handle it below.
         isWindowTriggered = false;
@@ -96,12 +96,12 @@ public class CmdLineTaskRunner {
         String input;
         while ((input = br.readLine()) != null) {
             Object data = serde.fromString(input);
-            ((StreamTask) task).process(new IncomingMessageEnvelope(STDIN_SSP, Integer.toString(lineOffset), null, data), new LocalCollector(verbosity), null);
+            ((StreamTask) task).process(new IncomingMessageEnvelope(STDIN_SSP, Integer.toString(lineOffset), null, data), new CmdLineCollector(verbosity), null);
             lineOffset++;
         }
     }
 
-    class LocalTaskContext implements TaskContext {
+    class CmdLineTaskContext implements TaskContext {
         @Override
         public MetricsRegistry getMetricsRegistry() {
             return new NoOpMetricsRegistry();
@@ -121,17 +121,17 @@ public class CmdLineTaskRunner {
 
         @Override
         public TaskName getTaskName() {
-            return new TaskName("local");
+            return new TaskName("CmdLineTask");
         }
 
         @Override
         public void setStartingOffset(SystemStreamPartition systemStreamPartition, String s) {}
     }
 
-    class LocalCollector implements MessageCollector {
+    class CmdLineCollector implements MessageCollector {
         private int type;
 
-        public LocalCollector(int verbosity) {
+        public CmdLineCollector(int verbosity) {
             this.type = verbosity;
         }
 
