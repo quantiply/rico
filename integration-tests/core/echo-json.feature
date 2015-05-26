@@ -1,5 +1,5 @@
 Feature: Cmd Line Echo Task
-  Test Echo task using command line runner and JSON serde
+  Test Echo task using command line runner
 
   Scenario: JSON serde
     Given the task config file
