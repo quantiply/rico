@@ -78,9 +78,8 @@ public class JythonTask implements StreamTask, InitableTask, WindowableTask, Clo
 
     private String getJarDir() throws Exception {
         String absolutePath = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
-//        absolutePath = URLDecoder.decode(absolutePath, "UTF-8");
+        absolutePath = URLDecoder.decode(absolutePath, "UTF-8");
         absolutePath = absolutePath.substring(0, absolutePath.lastIndexOf("/"));
-        absolutePath = absolutePath.replaceAll("%20", " "); // Surely need to do this here
         return absolutePath;
     }
 

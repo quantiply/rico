@@ -49,7 +49,6 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
     private Optional<StreamMsgHandler> defaultHandler = Optional.empty();
     private MetricAdaptor metricAdaptor;
     private ErrorHandler errorHandler;
-    //private boolean dropOnError;
 
     @FunctionalInterface
     public interface Process {
