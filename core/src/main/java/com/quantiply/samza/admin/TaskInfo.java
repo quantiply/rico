@@ -54,6 +54,7 @@ public class TaskInfo {
     }
 
     public String getJobId() {
+        //This assumption is baked into Samza in multiple places
         return config.get(JobConfig.JOB_ID(), "1");
     }
 
