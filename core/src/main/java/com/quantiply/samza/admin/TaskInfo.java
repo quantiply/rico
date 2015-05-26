@@ -54,7 +54,7 @@ public class TaskInfo {
     }
 
     public String getJobId() {
-        return config.get(JobConfig.JOB_ID(), null);
+        return config.get(JobConfig.JOB_ID(), "1");
     }
 
     public void setMDC(IncomingMessageEnvelope envelope) {

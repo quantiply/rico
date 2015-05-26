@@ -107,7 +107,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         this.config = config;
         taskInfo = new TaskInfo(config, context);
         metricAdaptor = new MetricAdaptor(new MetricRegistry(), context.getMetricsRegistry(), ConfigConst.METRICS_GROUP_NAME);
-        errorHandler = new ErrorHandler(config);
+        errorHandler = new ErrorHandler(config, taskInfo);
         errorHandler.start();
 
         _init(config, context, metricAdaptor);

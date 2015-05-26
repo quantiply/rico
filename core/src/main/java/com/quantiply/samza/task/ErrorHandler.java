@@ -16,9 +16,12 @@
 package com.quantiply.samza.task;
 
 import com.quantiply.samza.ConfigConst;
+import com.quantiply.samza.admin.TaskInfo;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
 import org.apache.samza.metrics.MetricsRegistryMap;
+import org.apache.samza.serializers.JsonSerdeFactory;
+import org.apache.samza.serializers.Serde;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
@@ -26,21 +29,27 @@ import org.apache.samza.system.SystemStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class ErrorHandler {
     private final static String SYSTEM_PRODUCER_SOURCE = "rico-error-handler";
     private static Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
     private final Config config;
+    private final TaskInfo taskInfo;
     private Optional<SystemStream> droppedMsgStream;
     private Optional<SystemProducer> systemProducer;
     private boolean dropOnError;
+    private Serde serde;
 
-    public ErrorHandler(Config config) {
+    public ErrorHandler(Config config, TaskInfo taskInfo) {
         this.config = config;
+        this.taskInfo = taskInfo;
     }
 
     public void start() {
+        serde = new JsonSerdeFactory().getSerde(SYSTEM_PRODUCER_SOURCE, config);
         dropOnError = config.getBoolean(ConfigConst.DROP_ON_ERROR, false);
         boolean logDroppedMsgs = config.getBoolean(ConfigConst.ENABLE_DROPPED_MESSAGE_LOG, false);
         droppedMsgStream = Optional.ofNullable(config.get(ConfigConst.DROPPED_MESSAGE_STREAM_NAME))
@@ -87,12 +96,27 @@ public class ErrorHandler {
         }
         droppedMsgStream.ifPresent(stream -> {
             if (logger.isDebugEnabled()) {
-                logger.debug("Sending message to dropped message stream: " + stream.getStream());
+                logger.debug("Sending error info to dropped message stream: " + stream.getStream());
             }
-            //TODO - serialize the important stuff here to JSON
-            byte[] msg = "Testing 1 2 3".getBytes();
+            byte[] msg = serializeDroppedMessage(envelope, e);
             systemProducer.get().send(SYSTEM_PRODUCER_SOURCE, new OutgoingMessageEnvelope(stream, msg));
         });
+    }
+
+    private byte[] serializeDroppedMessage(IncomingMessageEnvelope envelope, Exception e) {
+        Map<String, Object> droppedMsg = new HashMap<>();
+        droppedMsg.put("error_type", e.getClass().getName());
+        droppedMsg.put("error_message", Optional.ofNullable(e.getMessage()).orElse(""));
+        droppedMsg.put("system", envelope.getSystemStreamPartition().getSystem());
+        droppedMsg.put("stream", envelope.getSystemStreamPartition().getStream());
+        droppedMsg.put("partition", envelope.getSystemStreamPartition().getPartition().getPartitionId());
+        droppedMsg.put("offset", envelope.getOffset());
+        droppedMsg.put("task", taskInfo.getTaskName());
+        droppedMsg.put("container", taskInfo.getContainerName());
+        droppedMsg.put("job_name", taskInfo.getJobName());
+        droppedMsg.put("job_id", taskInfo.getJobId());
+
+        return serde.toBytes(droppedMsg);
     }
 
     public void stop() {
