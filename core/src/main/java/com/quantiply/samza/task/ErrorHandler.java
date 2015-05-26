@@ -70,7 +70,7 @@ public class ErrorHandler {
         if (dropOnError) {
             builder.append("Dropping messages on error.");
             if (droppedMsgStream.isPresent()) {
-                builder.append(" Sending to stream: " + droppedMsgStream.get().getStream());
+                builder.append(" Sending metadata to stream: " + droppedMsgStream.get().getStream());
             }
             else {
                 builder.append(" No drop stream configured");
