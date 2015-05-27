@@ -105,7 +105,7 @@ public class ErrorHandler {
 
     private byte[] serializeDroppedMessage(IncomingMessageEnvelope envelope, Exception e) {
         Map<String, Object> droppedMsg = new HashMap<>();
-        droppedMsg.put("error_type", e.getClass().getName());
+        droppedMsg.put("error_type", Optional.ofNullable(e.getCause()).orElse(e).getClass().getName());
         droppedMsg.put("error_message", Optional.ofNullable(e.getMessage()).orElse(""));
         droppedMsg.put("system", envelope.getSystemStreamPartition().getSystem());
         droppedMsg.put("stream", envelope.getSystemStreamPartition().getStream());
