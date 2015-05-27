@@ -43,7 +43,7 @@ import java.util.Optional;
 public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask {
     protected TaskInfo taskInfo;
     protected Config config;
-    protected static Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
+    protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
     private final Map<String, StreamMsgHandler> handlerMap = new HashMap<>();
     private Optional<StreamMsgHandler> defaultHandler = Optional.empty();
@@ -235,6 +235,11 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
             throw new ConfigException("Missing config property for stream: " + prop);
         }
         return streamName;
+    }
+
+    //This is for Jython access
+    protected Logger getLogger() {
+        return this.logger;
     }
 
     /*
