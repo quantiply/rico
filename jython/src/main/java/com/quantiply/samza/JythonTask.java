@@ -44,10 +44,10 @@ public class JythonTask implements StreamTask, InitableTask, WindowableTask, Clo
             throw new RuntimeException("Jython engine not found. Make sure that Jython jar in on the classpath.");
         }
 
-        logger.debug("ENV : " + System.getenv());
-        logger.debug("System properties : " + System.getProperties());
+        logger.trace("ENV : " + System.getenv());
+        logger.trace("System properties : " + System.getProperties());
         logger.debug("JAR dir : " + getJarDir());
-        logger.info("APP HOME (calculated in Java): " + getAppHome());
+        logger.debug("APP HOME (calculated in Java): " + getAppHome());
         logger.debug("Config : " + config);
 
         // Setup python path
