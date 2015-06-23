@@ -31,6 +31,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <confluent.version>1.0-q1</confluent.version>
         <kafka.version>0.8.2.1</kafka.version>
         <jackson.version>2.2.2</jackson.version>
+        <elasticsearch.version>1.5.1</elasticsearch.version>
     </properties>
 
     <groupId>com.quantiply.rico</groupId>
@@ -143,6 +144,11 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 <version>2.3</version>
             </dependency>
             <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>1.7.7</version>
@@ -166,6 +172,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <module>core</module>
         <module>cmd-line-runner</module>
         <module>jython</module>
+        <module>samza-elasticsearch</module>
     </modules>
 
     <build>
