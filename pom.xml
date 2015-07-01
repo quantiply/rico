@@ -126,7 +126,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <dependency>
                 <groupId>com.quantiply.samza</groupId>
                 <artifactId>coda-metrics</artifactId>
-                <version>1.3</version>
+                <version>1.4</version>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
