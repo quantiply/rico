@@ -16,16 +16,17 @@
 package com.quantiply.samza.metrics;
 
 import org.apache.samza.metrics.Gauge;
+import org.apache.samza.util.Clock;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 /**
  *
- * A class for tracking values for a set of keys.  It keeps
+ * A metric for tracking values for a set of keys.  It keeps
  * an active window the current time bucket and reports
  * the previous time bucket values to metric visitors.
  *
@@ -36,44 +37,114 @@ import java.util.function.BiFunction;
  * Buckets are based on wall-clock time. Ideally the window duration should
  * match the metric reporter frequency.
  *
- * At any point, we need to know what the active and last buckets should be,
- * whether I have either one, and get into the right state
+ * The update method is called from the main event loop thread while
+ * getValue() is called from reporter threads.  We're going to do all state
+ * changes in the main event loop thread for simplicity and to avoid locking
  *
  */
 public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
     private final long windowDurationMs;
-    private ConcurrentHashMap<String,V> curWindowMap;
-    private ConcurrentHashMap<String,V> prevWindowMap;
-    private long windowStartMs;
+    private Map<String,V> curWindowMap;
+    private Map<String,V> prevWindowMap;
+    private Windows windows;
     private final BiFunction<V,V,V> mergeFunc;
 
+    /**
+     *
+     * @param name metric name
+     * @param windowDurationMs Window size in millisecons
+     * @param mergeFunc Function for merging multiple values for the same key
+     */
     public WindowedMapGauge(String name, long windowDurationMs, BiFunction<V,V,V> mergeFunc) {
-        super(name, new ConcurrentHashMap<>());
-        this.windowDurationMs = windowDurationMs;
-        this.mergeFunc = mergeFunc;
-        curWindowMap = new ConcurrentHashMap<>();
-        prevWindowMap = new ConcurrentHashMap<>();
-        windowStartMs = System.currentTimeMillis();
+        this(name, windowDurationMs, mergeFunc, System::currentTimeMillis);
     }
 
+    public WindowedMapGauge(String name, long windowDurationMs, BiFunction<V,V,V> mergeFunc, Clock clock) {
+        super(name, new HashMap<>());
+        assert windowDurationMs > 0L;
+        this.windowDurationMs = windowDurationMs;
+        this.mergeFunc = mergeFunc;
+        windows = getWindowStartTimes(clock.currentTimeMillis());
+        curWindowMap = new HashMap<>();
+        prevWindowMap = new HashMap<>();
+    }
+
+    /**
+     *
+     * Called from the main event loop thread. All state changes are done in this thread.
+     */
     public void update(String src, V val){
+        Windows newWindows = getWindowStartTimes(System.currentTimeMillis());
+        if (newWindows.activeStartMs != windows.activeStartMs) {
+            updateWindowState(newWindows);
+        }
         curWindowMap.merge(src, val, mergeFunc);
     }
 
+    /**
+     *
+     * This method is called by metric reporter threads. It's not strictly thread-safe
+     * but will be indistinguishable from stricly correct behavior.
+     */
     @Override
     public Map<String,Object> getValue() {
+        /*
+        Note that windows can only update every windowDurationMs and they only update
+        in one direction (increasing time)
+
+        The worst case for this race condition is that we are off by one update.
+         */
+        Windows newWindows = getWindowStartTimes(System.currentTimeMillis());
+        //Copying this here to minimize race condition
+        long activeStartMs = windows.activeStartMs;
+
         Map<String,Object> data = new HashMap<>();
-        data.put("type", "windowed-map");
-        data.put("window-duration-ms", windowDurationMs);
-        data.put("data", Collections.unmodifiableMap(prevWindowMap));
-        return data;
+        //Check against both current and previous start times in case we had a race condition
+        if (newWindows.activeStartMs == activeStartMs || newWindows.prevStartMs == activeStartMs) {
+            data = Collections.unmodifiableMap(prevWindowMap);
+        }
+
+        Map<String,Object> value = new HashMap<>();
+        value.put("type", "windowed-map");
+        value.put("window-duration-ms", windowDurationMs);
+        value.put("data", data);
+        return value;
     }
 
-    private synchronized void checkDurationAndReset(long tsNow) {
-        if (tsNow - windowStartMs > windowDurationMs) {
-            prevWindowMap = curWindowMap;
-            curWindowMap = new ConcurrentHashMap<>();
-            windowStartMs = tsNow;
+    public Windows getWindowStartTimes(long tsMs) {
+        long activeStartMs = tsMs/windowDurationMs * windowDurationMs;
+        return new Windows(activeStartMs, activeStartMs - windowDurationMs);
+    }
+
+    private void updateWindowState(Windows newWindows) {
+        if (windows.activeStartMs != newWindows.activeStartMs) {
+            curWindowMap = new HashMap<>();
+            prevWindowMap = newWindows.prevStartMs == windows.activeStartMs? curWindowMap : new HashMap<>();
+            windows = newWindows;
+        }
+    }
+
+    public static class Windows {
+        public final long activeStartMs;
+        public final long prevStartMs;
+
+        public Windows(long activeStartMs, long prevStartMs) {
+            this.activeStartMs = activeStartMs;
+            this.prevStartMs = prevStartMs;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Windows windows = (Windows) o;
+            return Objects.equals(activeStartMs, windows.activeStartMs) &&
+                    Objects.equals(prevStartMs, windows.prevStartMs);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(activeStartMs, prevStartMs);
         }
     }
 }
