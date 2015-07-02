@@ -53,7 +53,7 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
     /**
      *
      * @param name metric name
-     * @param windowDurationMs Window size in millisecons
+     * @param windowDurationMs Window size in milliseconds
      * @param mergeFunc Function for merging multiple values for the same key
      */
     public WindowedMapGauge(String name, long windowDurationMs, BiFunction<V,V,V> mergeFunc) {
