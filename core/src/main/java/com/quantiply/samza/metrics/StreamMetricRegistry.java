@@ -18,6 +18,8 @@ package com.quantiply.samza.metrics;
 import com.codahale.metrics.*;
 import com.quantiply.samza.MetricAdaptor;
 
+import java.util.function.Function;
+
 /**
  Utility for creating a set of metrics that share a common prefix
  */
@@ -33,6 +35,10 @@ public class StreamMetricRegistry {
     public StreamMetricRegistry(String namePrefix, MetricAdaptor metricAdaptor) {
         this.namePrefix = namePrefix;
         this.metricAdaptor = metricAdaptor;
+    }
+
+    public MetricAdaptor getMetricAdaptor() {
+        return this.metricAdaptor;
     }
 
     public <T extends Metric> T register(String name, T metric) {
@@ -57,6 +63,12 @@ public class StreamMetricRegistry {
 
     public Gauge gauge(String name, Gauge gauge) {
         return metricAdaptor.gauge(getStreamMetricName(name), gauge);
+    }
+
+    public <T extends org.apache.samza.metrics.Gauge> T samzaGauge(String name, Function<String,T> gaugeFactory) {
+        T gauge = gaugeFactory.apply(getStreamMetricName(name));
+        metricAdaptor.getSamzaRegistry().newGauge(metricAdaptor.getGroupName(), gauge);
+        return gauge;
     }
 
     private String getStreamMetricName(String name) {

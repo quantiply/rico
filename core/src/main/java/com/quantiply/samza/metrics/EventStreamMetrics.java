@@ -23,9 +23,12 @@ import com.codahale.metrics.Histogram;
 public class EventStreamMetrics {
     public final Histogram lagFromOriginMs;
     public final Histogram lagFromPreviousMs;
+    public final WindowedMapGauge<Long> maxLagMsBySource;
 
     public EventStreamMetrics(StreamMetricRegistry registry) {
         lagFromOriginMs = registry.histogram("lag-from-origin-ms");
         lagFromPreviousMs = registry.histogram("lag-from-previous-step-ms");
+        //Setting 60s as window duration to match snapshot reporter
+        maxLagMsBySource = registry.samzaGauge("max-lag-by-origin-ms", name -> new WindowedMapGauge<>(name, 60000L, Long::max));
     }
 }
