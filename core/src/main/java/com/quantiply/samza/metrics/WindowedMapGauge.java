@@ -44,6 +44,7 @@ import java.util.function.BiFunction;
  */
 public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
     private final long windowDurationMs;
+    private final Clock clock;
     private Map<String,V> curWindowMap;
     private Map<String,V> prevWindowMap;
     private Windows windows;
@@ -64,6 +65,7 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
         assert windowDurationMs > 0L;
         this.windowDurationMs = windowDurationMs;
         this.mergeFunc = mergeFunc;
+        this.clock = clock;
         windows = getWindowStartTimes(clock.currentTimeMillis());
         curWindowMap = new HashMap<>();
         prevWindowMap = new HashMap<>();
@@ -74,9 +76,11 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
      * Called from the main event loop thread. All state changes are done in this thread.
      */
     public void update(String src, V val){
-        Windows newWindows = getWindowStartTimes(System.currentTimeMillis());
-        if (newWindows.activeStartMs != windows.activeStartMs) {
-            updateWindowState(newWindows);
+        Windows newWindows = getWindowStartTimes(clock.currentTimeMillis());
+        if (!newWindows.equals(windows)) {
+            prevWindowMap = newWindows.prevStartMs == windows.activeStartMs? curWindowMap : new HashMap<>();
+            curWindowMap = new HashMap<>();
+            windows = newWindows;
         }
         curWindowMap.merge(src, val, mergeFunc);
     }
@@ -84,7 +88,7 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
     /**
      *
      * This method is called by metric reporter threads. It's not strictly thread-safe
-     * but will be indistinguishable from stricly correct behavior.
+     * but in the worst case reports the previous value.
      */
     @Override
     public Map<String,Object> getValue() {
@@ -94,7 +98,7 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
 
         The worst case for this race condition is that we are off by one update.
          */
-        Windows newWindows = getWindowStartTimes(System.currentTimeMillis());
+        Windows newWindows = getWindowStartTimes(clock.currentTimeMillis());
         //Copying this here to minimize race condition
         long activeStartMs = windows.activeStartMs;
 
@@ -114,14 +118,6 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
     public Windows getWindowStartTimes(long tsMs) {
         long activeStartMs = tsMs/windowDurationMs * windowDurationMs;
         return new Windows(activeStartMs, activeStartMs - windowDurationMs);
-    }
-
-    private void updateWindowState(Windows newWindows) {
-        if (windows.activeStartMs != newWindows.activeStartMs) {
-            curWindowMap = new HashMap<>();
-            prevWindowMap = newWindows.prevStartMs == windows.activeStartMs? curWindowMap : new HashMap<>();
-            windows = newWindows;
-        }
     }
 
     public static class Windows {
@@ -145,6 +141,14 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
         @Override
         public int hashCode() {
             return Objects.hash(activeStartMs, prevStartMs);
+        }
+
+        @Override
+        public String toString() {
+            return "Windows{" +
+                    "activeStartMs=" + activeStartMs +
+                    ", prevStartMs=" + prevStartMs +
+                    '}';
         }
     }
 }
