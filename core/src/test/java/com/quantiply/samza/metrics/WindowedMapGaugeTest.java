@@ -32,24 +32,29 @@ public class WindowedMapGaugeTest {
         gauge.update("key1", 6L);
         gauge.update("key1", 4L);
         //Previous is still empty
-        assertEquals(0, ((Map)gauge.getValue().get("data")).size());
+        assertEquals(0, ((Map) gauge.getValue().get("data")).size());
 
         //Jump one window ahead
         when(clock.currentTimeMillis()).thenReturn(windowMs);
-        //State not updated yet
+        //Reporter is ahead by one
         assertEquals(0, ((Map) gauge.getValue().get("data")).size());
+        //This will align the state
         gauge.update("key1", 20L);
-        System.out.println(gauge.getValue());
+        //Report is now aligned
         assertEquals(6L, ((Map<String, Long>) gauge.getValue().get("data")).get("key1").longValue());
 
         //Jump another window ahead
         when(clock.currentTimeMillis()).thenReturn(windowMs*2);
         assertEquals(6L, ((Map<String, Long>) gauge.getValue().get("data")).get("key1").longValue());
-        gauge.update("key1", 0L);
+        gauge.update("key1", 99L);
+        assertEquals(20L, ((Map<String, Long>) gauge.getValue().get("data")).get("key1").longValue());
+        //Now put the reporter behind by one
+        when(clock.currentTimeMillis()).thenReturn(windowMs);
         assertEquals(20L, ((Map<String, Long>) gauge.getValue().get("data")).get("key1").longValue());
 
         //Jump two windows ahead
         when(clock.currentTimeMillis()).thenReturn(windowMs*4);
+        //Report is ahead by two
         assertEquals(0, ((Map) gauge.getValue().get("data")).size());
     }
 }

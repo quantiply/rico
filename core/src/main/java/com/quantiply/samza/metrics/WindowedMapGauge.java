@@ -96,15 +96,35 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
         Note that windows can only update every windowDurationMs and they only update
         in one direction (increasing time)
 
+        There are 3 cases to check for:
+        1) We might be ahead of the main thread
+           a) If we're ahead by more than one window then update() has not been called for at least
+              one window so we'll report an empty map.  If an update happens under our feet, it will
+              not make a difference.  Reporting empty map is still the correct answer.
+           b) If we're ahead by one window then we could be in a race condition where update is just slightly
+              behind.  We'll report as usual for this case.  If we were ahead and no update happens, we'll
+              report data that is one window stale.  If an update happens under our feet, the data will be
+              correct.
+        2) We might be aligned with the main thread. If an update happens under our feet, we'll report
+           data that is one window old.
+        3) We might be behind the main thread b/c of a race condition.  We'll check for this and report
+          the correct data.
+
+
         The worst case for this race condition is that we are off by one update.
          */
         Windows newWindows = getWindowStartTimes(clock.currentTimeMillis());
-        //Copying this here to minimize race condition
+        //Copying these here to minimize race conditions later on during comparisons
+        //Worst case here is that prevStartMs == activeStartMs
+        long prevStartMs = windows.prevStartMs;
         long activeStartMs = windows.activeStartMs;
 
         Map<String,Object> data = new HashMap<>();
-        //Check against both current and previous start times in case we had a race condition
-        if (newWindows.activeStartMs == activeStartMs || newWindows.prevStartMs == activeStartMs) {
+        //Check for the three cases above
+        if (newWindows.activeStartMs == activeStartMs //#2 aligned
+            || newWindows.prevStartMs == activeStartMs //#1 ahead by one
+                || newWindows.activeStartMs == prevStartMs //#3 behind by one
+                ) {
             data = Collections.unmodifiableMap(prevWindowMap);
         }
 
