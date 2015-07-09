@@ -102,6 +102,10 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         }
     }
 
+    public ErrorHandler getErrorHandler() {
+        return errorHandler;
+    }
+
     @Override
     public void init(Config config, TaskContext context) throws Exception {
         this.config = config;

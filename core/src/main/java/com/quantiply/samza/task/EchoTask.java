@@ -37,6 +37,6 @@ public class EchoTask extends BaseTask {
     }
 
     private void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        collector.send(new OutgoingMessageEnvelope(systemStreamOut, envelope.getMessage()));
+        collector.send(new OutgoingMessageEnvelope(systemStreamOut, null, envelope.getKey(), envelope.getMessage()));
     }
 }

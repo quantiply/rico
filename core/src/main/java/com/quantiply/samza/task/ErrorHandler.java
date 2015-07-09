@@ -65,6 +65,10 @@ public class ErrorHandler {
         logDroppedMsgConfig();
     }
 
+    public boolean dropOnError() {
+        return dropOnError;
+    }
+
     private void logDroppedMsgConfig() {
         StringBuilder builder = new StringBuilder();
         if (dropOnError) {
