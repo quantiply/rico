@@ -152,13 +152,26 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
 
     @Override
     public final void close() throws Exception {
-        errorHandler.stop();
+        Exception error = null;
+        if (errorHandler != null) {
+            try {
+                errorHandler.stop();
+            }
+            catch (Exception e) {
+                logger.error("Error stopping error handler", e);
+                error = e;
+            }
+        }
+
         try {
             _close();
         }
         catch (Exception e) {
             logger.error("Error on close", e);
-            throw e;
+            error = e;
+        }
+        if (error != null) {
+            throw error;
         }
     }
 
