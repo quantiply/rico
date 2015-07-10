@@ -23,6 +23,7 @@ import org.apache.samza.SamzaException;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
 import org.apache.samza.system.elasticsearch.indexrequest.IndexRequestFactory;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -31,6 +32,7 @@ import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,16 +63,19 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
   private final IndexRequestFactory indexRequestFactory;
   private final BulkProcessorFactory bulkProcessorFactory;
+  private final ElasticsearchSystemProducerMetrics metrics;
 
   private Client client;
 
   public ElasticsearchSystemProducer(String system, BulkProcessorFactory bulkProcessorFactory,
-                                     Client client, IndexRequestFactory indexRequestFactory) {
+                                     Client client, IndexRequestFactory indexRequestFactory,
+                                     ElasticsearchSystemProducerMetrics metrics) {
     this.system = system;
     this.sourceBulkProcessor = new HashMap<>();
     this.bulkProcessorFactory = bulkProcessorFactory;
     this.client = client;
     this.indexRequestFactory = indexRequestFactory;
+    this.metrics = metrics;
   }
 
 
@@ -99,11 +104,22 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+          int respLen = response.getItems().length;
+
           if (response.hasFailures()) {
             sendFailed.set(true);
+            int numFailed = 0;
+            for (BulkItemResponse resp: response.getItems()) {
+              if (resp.isFailed()) numFailed += 1;
+            }
+            metrics.bulkSendFailure.inc();
+            metrics.rejectedMsgs.inc(numFailed);
+            metrics.ackedMsgsInFailedBatch.inc(respLen - numFailed);
           } else {
+            metrics.bulkSendSuccess.inc();
+            metrics.ackedMsgsInSuccessBatch.inc(respLen);
             LOGGER.info(String.format("Written %s messages from %s to %s.",
-                                      response.getItems().length, source, system));
+                    response.getItems().length, source, system));
           }
         }
 
@@ -111,6 +127,8 @@ public class ElasticsearchSystemProducer implements SystemProducer {
         public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
           thrown.compareAndSet(null, failure);
           sendFailed.set(true);
+          metrics.bulkSendFailure.inc();
+          metrics.unAckedMsgs.inc(request.requests().size());
         }
     };
 

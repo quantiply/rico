@@ -20,16 +20,23 @@
 package org.apache.samza.system.elasticsearch;
 
 import org.apache.samza.SamzaException;
+import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
 import org.apache.samza.system.elasticsearch.indexrequest.IndexRequestFactory;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -43,6 +50,7 @@ public class ElasticsearchSystemProducerTest {
   private static final BulkProcessorFactory BULK_PROCESSOR_FACTORY = mock(BulkProcessorFactory.class);
   private static final Client CLIENT = mock(Client.class);
   private static final IndexRequestFactory INDEX_REQUEST_FACTORY = mock(IndexRequestFactory.class);
+  private static final ElasticsearchSystemProducerMetrics METRICS = new ElasticsearchSystemProducerMetrics("es", new MetricsRegistryMap());
   public static final String SOURCE_ONE = "one";
   public static final String SOURCE_TWO = "two";
   private SystemProducer producer;
@@ -54,7 +62,8 @@ public class ElasticsearchSystemProducerTest {
     producer = new ElasticsearchSystemProducer(SYSTEM_NAME,
                                                BULK_PROCESSOR_FACTORY,
                                                CLIENT,
-                                               INDEX_REQUEST_FACTORY);
+                                               INDEX_REQUEST_FACTORY,
+                                               METRICS);
 
     processorOne = mock(BulkProcessor.class);
     processorTwo = mock(BulkProcessor.class);
@@ -110,7 +119,7 @@ public class ElasticsearchSystemProducerTest {
         .thenReturn(processorOne);
     producer.register(SOURCE_ONE);
 
-    listenerCaptor.getValue().afterBulk(0, null, new Throwable());
+    listenerCaptor.getValue().afterBulk(0, mock(BulkRequest.class), new Throwable());
 
     producer.flush(SOURCE_ONE);
   }
@@ -126,8 +135,9 @@ public class ElasticsearchSystemProducerTest {
 
     BulkResponse response = mock(BulkResponse.class);
     when(response.hasFailures()).thenReturn(true);
+    when(response.getItems()).thenReturn(new BulkItemResponse[]{});
 
-    listenerCaptor.getValue().afterBulk(0, null, response);
+    listenerCaptor.getValue().afterBulk(0, mock(BulkRequest.class), response);
 
     producer.flush(SOURCE_ONE);
   }
