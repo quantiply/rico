@@ -110,7 +110,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
           } else {
             updateSuccessMetrics(response);
             LOGGER.info(String.format("Written %s messages from %s to %s.",
-                    response.getItems().length, source, system));
+                                      response.getItems().length, source, system));
           }
         }
 
