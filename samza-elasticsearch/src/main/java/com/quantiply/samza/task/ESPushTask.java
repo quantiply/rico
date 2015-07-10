@@ -10,6 +10,8 @@ import org.apache.samza.task.MessageCollector;
 import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
 
+import java.nio.charset.StandardCharsets;
+
 /**
 Samza task for pushing to Elasticsearch
  */
@@ -35,7 +37,11 @@ public class ESPushTask extends BaseTask {
     }
 
     private void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        //Message key is use for the document id
-        collector.send(new OutgoingMessageEnvelope(esIndexStream, null, envelope.getKey(), envelope.getMessage()));
+        //Message key is used for the document id
+        String id = new String((byte [])envelope.getKey(), StandardCharsets.UTF_8);
+        if (logger.isDebugEnabled()) {
+            logger.debug(String.format("Sending document to Elasticsearch with id %s", id));
+        }
+        collector.send(new OutgoingMessageEnvelope(esIndexStream, null, id, envelope.getMessage()));
     }
 }

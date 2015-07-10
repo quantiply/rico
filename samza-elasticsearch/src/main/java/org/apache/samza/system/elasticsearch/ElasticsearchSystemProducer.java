@@ -23,11 +23,13 @@ import org.apache.samza.SamzaException;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
 import org.apache.samza.system.elasticsearch.indexrequest.IndexRequestFactory;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,16 +110,8 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
           if (response.hasFailures()) {
             sendFailed.set(true);
-            int numFailed = 0;
-            for (BulkItemResponse resp: response.getItems()) {
-              if (resp.isFailed()) numFailed += 1;
-            }
-            metrics.bulkSendFailure.inc();
-            metrics.rejectedMsgs.inc(numFailed);
-            metrics.ackedMsgsInFailedBatch.inc(respLen - numFailed);
           } else {
-            metrics.bulkSendSuccess.inc();
-            metrics.ackedMsgsInSuccessBatch.inc(respLen);
+            updateSuccessMetrics(response);
             LOGGER.info(String.format("Written %s messages from %s to %s.",
                     response.getItems().length, source, system));
           }
@@ -127,12 +121,25 @@ public class ElasticsearchSystemProducer implements SystemProducer {
         public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
           thrown.compareAndSet(null, failure);
           sendFailed.set(true);
-          metrics.bulkSendFailure.inc();
-          metrics.unAckedMsgs.inc(request.requests().size());
         }
     };
 
     sourceBulkProcessor.put(source, bulkProcessorFactory.getBulkProcessor(client, listener));
+  }
+
+  private void updateSuccessMetrics(BulkResponse response) {
+    metrics.bulkSendSuccess.inc();
+    for (BulkItemResponse itemResp: response.getItems()) {
+        ActionResponse resp = itemResp.getResponse();
+        if (resp instanceof IndexResponse) {
+          if (((IndexResponse)resp).isCreated()) {
+            metrics.inserts.inc();
+          }
+          else {
+            metrics.updates.inc();
+          }
+        }
+      }
   }
 
   @Override

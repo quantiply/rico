@@ -5,11 +5,8 @@ import org.apache.samza.metrics.MetricsRegistry;
 
 public class ElasticsearchSystemProducerMetrics {
     public final Counter bulkSendSuccess;
-    public final Counter bulkSendFailure;
-    public final Counter rejectedMsgs;
-    public final Counter unAckedMsgs;
-    public final Counter ackedMsgsInFailedBatch;
-    public final Counter ackedMsgsInSuccessBatch;
+    public final Counter inserts;
+    public final Counter updates;
     private final MetricsRegistry registry;
     private final String group;
     private final String systemName;
@@ -20,11 +17,8 @@ public class ElasticsearchSystemProducerMetrics {
         this.systemName = systemName;
 
         bulkSendSuccess = newCounter("bulk-send-success");
-        bulkSendFailure = newCounter("bulk-send-failure");
-        ackedMsgsInFailedBatch = newCounter("msgs-acked-in-failed-batch");
-        ackedMsgsInSuccessBatch = newCounter("msgs-acked-in-success-batch");
-        rejectedMsgs = newCounter("msgs-rejected");
-        unAckedMsgs = newCounter("msgs-unacked");
+        inserts = newCounter("docs-inserted");
+        updates = newCounter("docs-updated");
     }
 
     private Counter newCounter(String name) {
