@@ -34,7 +34,6 @@ import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -106,8 +105,6 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-          int respLen = response.getItems().length;
-
           if (response.hasFailures()) {
             sendFailed.set(true);
           } else {
