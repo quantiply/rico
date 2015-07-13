@@ -242,18 +242,20 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         }
     }
 
-    protected GenericData.Record getCamusHeaders(GenericRecord eventRecord, Schema headerSchema, long tsNow) {
+    protected GenericData.Record getCamusHeaders(GenericRecord eventHeaders, Schema headerSchema, long tsNow) {
         GenericRecordBuilder builder = new GenericRecordBuilder(headerSchema);
-        if (headerSchema.getField("created") != null) {
+        if (headerSchema.getField("created") != null && !builder.has("created")) {
             builder.set("created", tsNow);
         }
-        if (headerSchema.getField("timestamp") != null && builder.has("timestamp")) {
-            builder.set("timestamp", eventRecord.get("timestamp"));
-        }
-        if (headerSchema.getField("id") != null && builder.has("id")) {
-            builder.set("id", eventRecord.get("id"));
-        }
+        copyAvroField(eventHeaders, headerSchema, builder, "timestamp");
+        copyAvroField(eventHeaders, headerSchema, builder, "id");
         return builder.build();
+    }
+
+    private void copyAvroField(GenericRecord src, Schema dstSchema, GenericRecordBuilder dstBuilder, String field) {
+        if (dstSchema.getField(field) != null && !dstBuilder.has(field) && src.getSchema().getField(field) != null) {
+            dstBuilder.set(field, src.get(field));
+        }
     }
 
     protected int getNumPartitionsForSystemStream(SystemStream systemStream) {
