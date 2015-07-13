@@ -25,6 +25,9 @@ import com.quantiply.samza.admin.KafkaAdmin;
 import com.quantiply.samza.admin.TaskInfo;
 import com.quantiply.samza.metrics.StreamMetricRegistry;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
@@ -237,6 +240,20 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
                 metrics.lagFromPreviousMs.update(tsNowMs - tsCreated);
             }
         }
+    }
+
+    protected GenericData.Record getCamusHeaders(GenericRecord eventRecord, Schema headerSchema, long tsNow) {
+        GenericRecordBuilder builder = new GenericRecordBuilder(headerSchema);
+        if (headerSchema.getField("created") != null) {
+            builder.set("created", tsNow);
+        }
+        if (headerSchema.getField("timestamp") != null && builder.has("timestamp")) {
+            builder.set("timestamp", eventRecord.get("timestamp"));
+        }
+        if (headerSchema.getField("id") != null && builder.has("id")) {
+            builder.set("id", eventRecord.get("id"));
+        }
+        return builder.build();
     }
 
     protected int getNumPartitionsForSystemStream(SystemStream systemStream) {
