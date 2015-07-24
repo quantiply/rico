@@ -26,9 +26,13 @@ public class EventStreamMetrics {
     public final WindowedMapGauge<Long> maxLagMsBySource;
 
     public EventStreamMetrics(StreamMetricRegistry registry) {
+        this(registry, registry.samzaGauge("max-lag-by-origin-ms", name -> new WindowedMapGauge<>(name, 60000L, Long::max)));
+    }
+
+    public EventStreamMetrics(StreamMetricRegistry registry, WindowedMapGauge<Long> maxLagMsBySource) {
         lagFromOriginMs = registry.histogram("lag-from-origin-ms");
         lagFromPreviousMs = registry.histogram("lag-from-previous-step-ms");
         //Setting 60s as window duration to match snapshot reporter
-        maxLagMsBySource = registry.samzaGauge("max-lag-by-origin-ms", name -> new WindowedMapGauge<>(name, 60000L, Long::max));
+        this.maxLagMsBySource = maxLagMsBySource;
     }
 }

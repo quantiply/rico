@@ -24,32 +24,33 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-public class TopNWindowedMapGauge<V> extends WindowedMapGauge<V> {
-    private int n = 10;
+public class TopNWindowedMapGauge<V extends Comparable<? super V>> extends WindowedMapGauge<V> {
+    private int n;
 
-    public TopNWindowedMapGauge(String name, long windowDurationMs, BiFunction<V, V, V> mergeFunc) {
+    public TopNWindowedMapGauge(String name, long windowDurationMs, BiFunction<V, V, V> mergeFunc, int n) {
         super(name, windowDurationMs, mergeFunc);
+        this.n = n;
     }
 
-    public TopNWindowedMapGauge(String name, long windowDurationMs, BiFunction<V, V, V> mergeFunc, Clock clock) {
+    public TopNWindowedMapGauge(String name, long windowDurationMs, BiFunction<V, V, V> mergeFunc, int n, Clock clock) {
         super(name, windowDurationMs, mergeFunc, clock);
+        this.n = n;
     }
 
     @Override
-    public Map<String, Object> getValue() {
-        Map<String, Object> fullMap = super.getValue();
-        return fullMap;
+    public Map<String, V> getSnapshot() {
+        Map<String, V> fullMap = super.getSnapshot();
+        return topN(fullMap);
     }
 
-    /*
-    Based on: http://stackoverflow.com/questions/109383/how-to-sort-a-mapkey-value-on-the-values-in-java
-     */
-    protected <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map)
+    protected Map<String, V> topN(Map<String, V> map)
     {
-        Map<K,V> result = new HashMap<>();
-        Stream<Map.Entry<K,V>> st = map.entrySet().stream();
+        Map<String,V> result = new HashMap<>();
+        Stream<Map.Entry<String,V>> st = map.entrySet().stream();
 
-        Comparator<Map.Entry<K,V>> comparator = Comparator.comparing((Map.Entry<K, V> e) -> e.getValue()).reversed();
+        Comparator<Map.Entry<String,V>> comparator = Comparator.comparing(
+                (Map.Entry<String, V> e) -> e.getValue())
+                .reversed();
         st
                 .sorted(comparator)
                 .limit(n)

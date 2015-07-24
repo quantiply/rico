@@ -85,13 +85,21 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
         curWindowMap.merge(src, val, mergeFunc);
     }
 
+    @Override
+    public Map<String,Object> getValue() {
+        Map<String,Object> value = new HashMap<>();
+        value.put("type", "windowed-map");
+        value.put("window-duration-ms", windowDurationMs);
+        value.put("data", getSnapshot());
+        return value;
+    }
+
     /**
      *
      * This method is called by metric reporter threads. It's not strictly thread-safe
      * but in the worst case reports the previous value.
      */
-    @Override
-    public Map<String,Object> getValue() {
+    public Map<String,V> getSnapshot() {
         /*
         Note that windows can only update every windowDurationMs and they only update
         in one direction (increasing time)
@@ -119,20 +127,15 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
         long prevStartMs = windows.prevStartMs;
         long activeStartMs = windows.activeStartMs;
 
-        Map<String,Object> data = new HashMap<>();
+        Map<String,V> data = new HashMap<>();
         //Check for the three cases above
         if (newWindows.activeStartMs == activeStartMs //#2 aligned
             || newWindows.prevStartMs == activeStartMs //#1 ahead by one
                 || newWindows.activeStartMs == prevStartMs //#3 behind by one
                 ) {
-            data = Collections.unmodifiableMap(prevWindowMap);
+            data = prevWindowMap;
         }
-
-        Map<String,Object> value = new HashMap<>();
-        value.put("type", "windowed-map");
-        value.put("window-duration-ms", windowDurationMs);
-        value.put("data", data);
-        return value;
+        return Collections.unmodifiableMap(data);
     }
 
     public Windows getWindowStartTimes(long tsMs) {
