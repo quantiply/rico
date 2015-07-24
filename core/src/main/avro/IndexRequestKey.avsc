@@ -1,0 +1,32 @@
+{
+  "type" : "record",
+  "name" : "IndexRequestKey",
+  "namespace" : "com.quantiply.rico.elasticsearch",
+  "doc": "Common header metadata for all Avro messages",
+  "fields" : [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "Document id"
+    },
+    {
+      "name": "version",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Document version - https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning"
+    },
+    {
+      "name": "version_type",
+      "type": [
+          "null",
+          { 
+              "type": "enum",
+              "name": "VersionType",
+              "symbols" : ["INTERNAL", "EXTERNAL", "EXTERNAL_GTE", "FORCE"]
+          }
+      ],
+      "default": null,
+      "doc": "Version type"
+    }
+  ]
+}
