@@ -17,22 +17,25 @@ package com.quantiply.samza.metrics;
 
 import com.codahale.metrics.Histogram;
 
+import java.util.function.Function;
+
 /**
  * Common metrics for event streams
  */
 public class EventStreamMetrics {
+    public final static long DEFAULT_WINDOW_DURATION_MS = 60000L;
     public final Histogram lagFromOriginMs;
     public final Histogram lagFromPreviousMs;
     public final WindowedMapGauge<Long> maxLagMsBySource;
 
     public EventStreamMetrics(StreamMetricRegistry registry) {
-        this(registry, registry.samzaGauge("max-lag-by-origin-ms", name -> new WindowedMapGauge<>(name, 60000L, Long::max)));
+        //Setting 60s as window duration to match snapshot reporter
+        this(registry, name -> new WindowedMapGauge<>(name, DEFAULT_WINDOW_DURATION_MS, Long::max));
     }
 
-    public EventStreamMetrics(StreamMetricRegistry registry, WindowedMapGauge<Long> maxLagMsBySource) {
+    public EventStreamMetrics(StreamMetricRegistry registry, Function<String,WindowedMapGauge<Long>> gaugeFactory) {
         lagFromOriginMs = registry.histogram("lag-from-origin-ms");
         lagFromPreviousMs = registry.histogram("lag-from-previous-step-ms");
-        //Setting 60s as window duration to match snapshot reporter
-        this.maxLagMsBySource = maxLagMsBySource;
+        maxLagMsBySource = registry.samzaGauge("max-lag-by-origin-ms", gaugeFactory);
     }
 }
