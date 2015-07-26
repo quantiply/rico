@@ -50,9 +50,13 @@ import java.util.stream.Collectors;
  be close to each other and that aliases will be used
  for querying that cover time periods that may overlap.
 
+ - Requires the Elasticsearch system to be called "es"
+ - Requires byte serdes for message keys and values
+
  */
 public class ESPushTask extends BaseTask {
-    private enum MetadataSrc { NONE, KEY, EMBEDDED };
+    private enum MetadataSrc { NONE, KEY, EMBEDDED }
+    private final static String CFS_ES_SYSTEM_NAME = "es";
     private final static String CFG_ES_INDEX_PREFIX = "rico.es.index.prefix";
     private final static String CFG_ES_INDEX_DATE_FORMAT = "rico.es.index.date.format";
     private final static String CFG_ES_INDEX_DATE_ZONE = "rico.es.index.date.zone";
@@ -124,12 +128,13 @@ public class ESPushTask extends BaseTask {
     private SystemStream calcESSystemStream(long tsNowMs) {
         ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(ZoneId.of(dateZone));
         String dateStr = dateTime.format(DateTimeFormatter.ofPattern(dateFormat));
-        return new SystemStream("es", String.format("%s%s/%s", indexNamePrefix, dateStr, docType));
+        return new SystemStream(CFS_ES_SYSTEM_NAME, String.format("%s%s/%s", indexNamePrefix, dateStr, docType));
     }
 
     private void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
         long tsNowMs = System.currentTimeMillis();
-        collector.send(getOutMsg(envelope, tsNowMs));
+        SystemStream stream = getESSystemStream(tsNowMs);
+        collector.send(outMsgExtractor.apply(envelope, stream));
     }
 
     private BiFunction<IncomingMessageEnvelope, SystemStream, OutgoingMessageEnvelope> getOutMsgExtractor() {
@@ -146,11 +151,6 @@ public class ESPushTask extends BaseTask {
                 break;
         }
         return func;
-    }
-
-    private OutgoingMessageEnvelope getOutMsg(IncomingMessageEnvelope envelope, long tsNowMs) {
-        SystemStream stream = getESSystemStream(tsNowMs);
-        return outMsgExtractor.apply(envelope, stream);
     }
 
     private OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
