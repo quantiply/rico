@@ -119,7 +119,7 @@ public class ESPushTask extends BaseTask {
         if (metadataSrc == MetadataSrc.KEY || metadataSrc == MetadataSrc.EMBEDDED) {
             String indexReqFactoryParam = String.format("systems.%s.index.request.factory", CFS_ES_SYSTEM_NAME);
             String indexReqFactoryStr = config.get(indexReqFactoryParam);
-            if (indexReqFactoryStr == null || indexReqFactoryStr != AvroKeyIndexRequestFactory.class.getCanonicalName()) {
+            if (indexReqFactoryStr == null || !indexReqFactoryStr.equals(AvroKeyIndexRequestFactory.class.getCanonicalName())) {
                 throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
                         metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
             }
@@ -184,7 +184,11 @@ public class ESPushTask extends BaseTask {
 
     private OutgoingMessageEnvelope getEmbeddedOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
         Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[])envelope.getMessage());
-        IndexRequestKey.Builder keyBuilder = IndexRequestKey.newBuilder().setId((String)document.get("_id"));
+        IndexRequestKey.Builder keyBuilder = IndexRequestKey.newBuilder();
+        if (document.containsKey("_id") && document.get("_id") instanceof String) {
+            keyBuilder.setId((String)document.get("_id"));
+            document.remove("_id");
+        }
         if (document.containsKey("_version") && document.get("_version") instanceof Long) {
             keyBuilder.setVersion((Long)document.get("_version"));
             document.remove("_version");

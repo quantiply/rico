@@ -6,7 +6,8 @@
   "fields" : [
     {
       "name": "id",
-      "type": "string",
+      "type": ["null", "string"],
+      "default": null,
       "doc": "Document id"
     },
     {
