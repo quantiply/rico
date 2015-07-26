@@ -27,6 +27,18 @@
       ],
       "default": null,
       "doc": "Version type"
+    },
+    {
+      "name": "timestamp",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Document timestamp - https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html"
+    },
+    {
+      "name": "ttl",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Document ttl in ms"
     }
   ]
 }

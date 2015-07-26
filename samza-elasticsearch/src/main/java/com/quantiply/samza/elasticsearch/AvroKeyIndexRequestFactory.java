@@ -30,6 +30,12 @@ public class AvroKeyIndexRequestFactory implements IndexRequestFactory {
             if (indexRequestKey.getVersionType() != null) {
                 indexRequest.versionType(VersionType.fromString(indexRequestKey.getVersionType().toString().toLowerCase()));
             }
+            if (indexRequestKey.getTimestamp() != null) {
+                indexRequest.timestamp(indexRequestKey.getTimestamp());
+            }
+            if (indexRequestKey.getTtl() != null) {
+                indexRequest.ttl(indexRequestKey.getTtl());
+            }
         }
 
         Object partitionKey = envelope.getPartitionKey();
