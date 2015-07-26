@@ -165,7 +165,7 @@ public class ESPushTask extends BaseTask {
     private OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
         //Message key is used for the document id
         String id = null;
-        if (envelope.getKey() !=  null) {
+        if (envelope.getKey() != null) {
             id = new String((byte [])envelope.getKey(), StandardCharsets.UTF_8);
         }
         if (logger.isDebugEnabled()) {
