@@ -18,6 +18,7 @@ package com.quantiply.samza.task;
 import com.quantiply.rico.elasticsearch.IndexRequestKey;
 import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.MetricAdaptor;
+import com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import org.apache.samza.config.Config;
@@ -115,6 +116,14 @@ public class ESPushTask extends BaseTask {
                     String.join(",", METADATA_SRC_OPTIONS)));
         }
         metadataSrc = MetadataSrc.valueOf(metadataSrcStr.toUpperCase());
+        if (metadataSrc == MetadataSrc.KEY || metadataSrc == MetadataSrc.EMBEDDED) {
+            String indexReqFactoryParam = String.format("systems.%s.index.request.factory", CFS_ES_SYSTEM_NAME);
+            String indexReqFactoryStr = config.get(indexReqFactoryParam);
+            if (indexReqFactoryStr == null || indexReqFactoryStr != AvroKeyIndexRequestFactory.class.getCanonicalName()) {
+                throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
+                        metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
+            }
+        }
     }
 
     private SystemStream getESSystemStream(long tsNowMs) {
