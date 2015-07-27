@@ -108,7 +108,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
 
     public void handleExpectedError(IncomingMessageEnvelope envelope, Exception e) throws Exception {
         if (logger.isInfoEnabled()) {
-            logger.error("Error processing message", e);
+            logger.info("Error processing message", e);
         }
         StreamMsgHandler handler = getStreamMsgHandler(envelope);
         errorHandler.handleExpectedError(envelope, e);
