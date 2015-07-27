@@ -95,7 +95,7 @@ public class ESPushTask extends BaseTask {
         outMsgExtractor = getOutMsgExtractor();
     }
 
-    private <R> void parseESConfig() {
+    private void parseESConfig() {
         indexNamePrefix = config.get(CFG_ES_INDEX_PREFIX);
         if (indexNamePrefix == null) {
             throw new ConfigException("Missing config property for Elasticsearch index prefix: " + CFG_ES_INDEX_PREFIX);
