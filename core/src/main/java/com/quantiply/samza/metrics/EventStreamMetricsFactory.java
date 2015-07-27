@@ -15,10 +15,28 @@
  */
 package com.quantiply.samza.metrics;
 
+import java.util.Optional;
+
 public class EventStreamMetricsFactory implements StreamMetricFactory<EventStreamMetrics> {
+    private final Optional<Integer> maxLagLimit;
+
+    public EventStreamMetricsFactory() {
+        this(Optional.empty());
+    }
+
+    public EventStreamMetricsFactory(int maxLagLimit) {
+        this(Optional.of(maxLagLimit));
+    }
+
+    private EventStreamMetricsFactory(Optional<Integer> maxLagLimit) {
+        this.maxLagLimit = maxLagLimit;
+    }
 
     @Override
     public EventStreamMetrics create(StreamMetricRegistry registry) {
+        if (maxLagLimit.isPresent()) {
+            return new EventStreamMetrics(registry, maxLagLimit.get());
+        }
         return new EventStreamMetrics(registry);
     }
 }

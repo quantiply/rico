@@ -33,6 +33,11 @@ public class EventStreamMetrics {
         this(registry, name -> new WindowedMapGauge<>(name, DEFAULT_WINDOW_DURATION_MS, Long::max));
     }
 
+    public EventStreamMetrics(StreamMetricRegistry registry, int maxLagLimit) {
+        //Setting 60s as window duration to match snapshot reporter
+        this(registry, name -> new TopNWindowedMapGauge<Long>(name, DEFAULT_WINDOW_DURATION_MS, Long::max, maxLagLimit));
+    }
+
     public EventStreamMetrics(StreamMetricRegistry registry, Function<String,WindowedMapGauge<Long>> gaugeFactory) {
         lagFromOriginMs = registry.histogram("lag-from-origin-ms");
         lagFromPreviousMs = registry.histogram("lag-from-previous-step-ms");
