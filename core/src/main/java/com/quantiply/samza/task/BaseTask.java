@@ -63,7 +63,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         void apply(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, M customMetrics) throws Exception;
     }
 
-    private class StreamMetrics {
+    public class StreamMetrics {
         public final Meter processed;
         public final Meter dropped;
 
@@ -94,11 +94,8 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
                 metrics.processed.mark();
             }
             catch (Exception e) {
-                if (logger.isInfoEnabled()) {
-                    //NOTE - logging at info level because these can be too numerous in PRD
-                    logger.info("Error handling message", e);
-                }
-                errorHandler.handleError(envelope, e);
+                logger.error("Exception processing message", e);
+                errorHandler.handleException(envelope, e);
                 //If control reaches here, the message was dropped
                 metrics.dropped.mark();
             }
@@ -107,6 +104,15 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
 
     public ErrorHandler getErrorHandler() {
         return errorHandler;
+    }
+
+    public void handleExpectedError(IncomingMessageEnvelope envelope, Exception e) throws Exception {
+        if (logger.isInfoEnabled()) {
+            logger.error("Error processing message", e);
+        }
+        StreamMsgHandler handler = getStreamMsgHandler(envelope);
+        errorHandler.handleExpectedError(envelope, e);
+        handler.metrics.dropped.mark();
     }
 
     @Override
@@ -140,6 +146,13 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         taskInfo.setMDC(envelope);
 
         //Dispatch
+        StreamMsgHandler handler = getStreamMsgHandler(envelope);
+        handler.process(envelope, collector, coordinator);
+
+        taskInfo.clearMDC();
+    }
+
+    private StreamMsgHandler getStreamMsgHandler(IncomingMessageEnvelope envelope) {
         StreamMsgHandler handler;
         String streamName = envelope.getSystemStreamPartition().getStream();
         if (handlerMap.containsKey(streamName)) {
@@ -151,10 +164,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         else {
             throw new ConfigException("No handler for input stream: " + streamName);
         }
-
-        handler.process(envelope, collector, coordinator);
-
-        taskInfo.clearMDC();
+        return handler;
     }
 
     @Override
@@ -189,32 +199,32 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
     protected abstract void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception;
 
     protected void registerDefaultHandler(Process processFunc) {
-        defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc));
+        defaultHandler = Optional.of(newStreamMsgHandler(Optional.empty(), processFunc));
     }
 
     protected <M> void registerDefaultHandler(ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
-        defaultHandler = Optional.of(getStreamMsgHandler(Optional.empty(), processFunc, metricFactory));
+        defaultHandler = Optional.of(newStreamMsgHandler(Optional.empty(), processFunc, metricFactory));
     }
 
     protected void registerHandler(String logicalStreamName, Process processFunc) {
         String streamName = getStreamName(logicalStreamName);
-        StreamMsgHandler handler = getStreamMsgHandler(Optional.of(streamName), processFunc);
+        StreamMsgHandler handler = newStreamMsgHandler(Optional.of(streamName), processFunc);
         handlerMap.put(handler.getName().get(), handler);
     }
 
     protected <M> void registerHandler(String logicalStreamName, ProcessWithMetrics<M> processFunc, StreamMetricFactory<M> metricFactory) {
-        StreamMsgHandler handler = getStreamMsgHandler(Optional.of(logicalStreamName), processFunc, metricFactory);
+        StreamMsgHandler handler = newStreamMsgHandler(Optional.of(logicalStreamName), processFunc, metricFactory);
         handlerMap.put(handler.getName().get(), handler);
     }
 
-    private <M> StreamMsgHandler getStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory) {
+    private <M> StreamMsgHandler newStreamMsgHandler(Optional<String> logicalStreamName, ProcessWithMetrics<M> processWithMetrics, StreamMetricFactory<M> metricFactory) {
         Optional<String> streamName = logicalStreamName.map(this::getStreamName);
         M custom = metricFactory.create(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
         Process process = (envelope, collector, coordinator) -> processWithMetrics.apply(envelope, collector, coordinator, custom);
-        return getStreamMsgHandler(streamName, process);
+        return newStreamMsgHandler(streamName, process);
     }
 
-    private StreamMsgHandler getStreamMsgHandler(Optional<String> streamName, Process process) {
+    private StreamMsgHandler newStreamMsgHandler(Optional<String> streamName, Process process) {
         StreamMetrics metrics = new StreamMetrics(new StreamMetricRegistry(getStreamMetricPrefix(streamName), metricAdaptor));
         return new StreamMsgHandler(streamName, process, metrics);
     }

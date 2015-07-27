@@ -94,10 +94,25 @@ public class ErrorHandler {
         return systemProducer;
     }
 
-    public void handleError(IncomingMessageEnvelope envelope, Exception e) throws Exception {
+    /*
+     * For handling unexpected errors.  Either kill the task for drop the messages
+     * depending on configuration.
+     */
+    public void handleException(IncomingMessageEnvelope envelope, Exception e) throws Exception {
         if (!dropOnError) {
             throw e;
         }
+        handleDroppedMessage(envelope, e);
+    }
+
+    /*
+     * For handling expected errors.  Drop the message
+     */
+    public void handleExpectedError(IncomingMessageEnvelope envelope, Exception e) {
+        handleDroppedMessage(envelope, e);
+    }
+
+    private void handleDroppedMessage(IncomingMessageEnvelope envelope, Exception e) {
         droppedMsgStream.ifPresent(stream -> {
             if (logger.isDebugEnabled()) {
                 logger.debug("Sending error info to dropped message stream: " + stream.getStream());
