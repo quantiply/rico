@@ -48,9 +48,10 @@ import java.util.stream.Collectors;
  Samza task for pushing to Elasticsearch
 
  Currently, index names are chosen by the time of import
- not the date of data.  The assumption is that these will
- be close to each other and that aliases will be used
- for querying that cover time periods that may overlap.
+ not the timestamp of the message.  The assumption is that
+ these two times will be close to each other and that
+ aliases will be used for querying that cover time periods
+ that may overlap.
 
  - Requires the Elasticsearch system to be called "es"
  - Requires byte serdes for message keys and values
