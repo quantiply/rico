@@ -145,7 +145,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     metrics.bulkSendSuccess.inc();
     int writes = 0;
     for (BulkItemResponse itemResp: response.getItems()) {
-      if (itemResp.isFailed()) {
+      if (itemResp.isFailed() && itemResp.getFailure().getStatus() == RestStatus.CONFLICT) {
         metrics.conflicts.inc();
       } else {
         ActionResponse resp = itemResp.getResponse();
