@@ -40,6 +40,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,8 @@ public class ESPushTask extends BaseTask {
     private final static String CFG_ES_INDEX_DATE_FORMAT = "rico.es.index.date.format";
     private final static String CFG_ES_INDEX_DATE_ZONE = "rico.es.index.date.zone";
     private final static String CFG_ES_DOC_TYPE = "rico.es.doc.type";
-    private final static String CFS_ES_DOC_METADATA_SRC = "rico.es.doc.metadata.source";
+    private final static String CFG_ES_DOC_METADATA_SRC = "rico.es.doc.metadata.source";
+    private final static String CFG_ES_VERSION_TYPE_DEFAULT = "rico.es.version.type.default";
     private final static long INDEX_NAME_CACHE_DURATION_MS = 60 * 1000L;
     private final static HashSet<String> METADATA_SRC_OPTIONS = Arrays.stream(MetadataSrc.values()).map(v -> v.toString().toLowerCase()).collect(Collectors.toCollection(HashSet::new));
     private static long updatedMs = 0L;
@@ -75,6 +77,7 @@ public class ESPushTask extends BaseTask {
     private AvroSerde avroSerde;
     private JsonSerde jsonSerde;
     private BiFunction<IncomingMessageEnvelope, SystemStream, OutgoingMessageEnvelope> outMsgExtractor;
+    private Optional<VersionType> defaultVersionType = Optional.empty();
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -95,24 +98,24 @@ public class ESPushTask extends BaseTask {
     private <R> void parseESConfig() {
         indexNamePrefix = config.get(CFG_ES_INDEX_PREFIX);
         if (indexNamePrefix == null) {
-            throw new ConfigException("Missing config property for Elasticearch index prefix: " + CFG_ES_INDEX_PREFIX);
+            throw new ConfigException("Missing config property for Elasticsearch index prefix: " + CFG_ES_INDEX_PREFIX);
         }
         dateFormat = config.get(CFG_ES_INDEX_DATE_FORMAT, "");
         if (dateFormat == null) {
-            throw new ConfigException("Missing config property Elasticearch index date format: " + CFG_ES_INDEX_DATE_FORMAT);
+            throw new ConfigException("Missing config property Elasticsearch index date format: " + CFG_ES_INDEX_DATE_FORMAT);
         }
         dateZone = config.get(CFG_ES_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
         if (dateZone == null) {
-            throw new ConfigException("Missing config property Elasticearch index time zone: " + CFG_ES_INDEX_DATE_ZONE);
+            throw new ConfigException("Missing config property Elasticsearch index time zone: " + CFG_ES_INDEX_DATE_ZONE);
         }
         docType = config.get(CFG_ES_DOC_TYPE);
         if (docType == null) {
-            throw new ConfigException("Missing config property for Elasticearch index doc type: " + CFG_ES_DOC_TYPE);
+            throw new ConfigException("Missing config property for Elasticsearch index doc type: " + CFG_ES_DOC_TYPE);
         }
-        String metadataSrcStr = config.get(CFS_ES_DOC_METADATA_SRC, "none").toLowerCase();
+        String metadataSrcStr = config.get(CFG_ES_DOC_METADATA_SRC, "none").toLowerCase();
         if (!METADATA_SRC_OPTIONS.contains(metadataSrcStr)) {
             throw new ConfigException(String.format("Bad value for metadata src param: %s.  Options are: %s",
-                    CFS_ES_DOC_METADATA_SRC,
+                    CFG_ES_DOC_METADATA_SRC,
                     String.join(",", METADATA_SRC_OPTIONS)));
         }
         metadataSrc = MetadataSrc.valueOf(metadataSrcStr.toUpperCase());
@@ -123,6 +126,10 @@ public class ESPushTask extends BaseTask {
                 throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
                         metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
             }
+        }
+        String defaultVersionTypeStr = config.get(CFG_ES_VERSION_TYPE_DEFAULT);
+        if (defaultVersionTypeStr != null) {
+            defaultVersionType = Optional.of(VersionType.valueOf(defaultVersionTypeStr.toUpperCase()));
         }
     }
 
@@ -176,6 +183,7 @@ public class ESPushTask extends BaseTask {
 
     private OutgoingMessageEnvelope getKeyOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
         IndexRequestKey key = (IndexRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
+        setDefaultVersionType(key);
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
         }
@@ -190,7 +198,7 @@ public class ESPushTask extends BaseTask {
             document.remove("_id");
         }
         if (document.containsKey("_version") && document.get("_version") instanceof Number) {
-            keyBuilder.setVersion(((Number)document.get("_version")).longValue());
+            keyBuilder.setVersion(((Number) document.get("_version")).longValue());
             document.remove("_version");
         }
         if (document.containsKey("_version_type") && document.get("_version_type") instanceof String) {
@@ -202,14 +210,20 @@ public class ESPushTask extends BaseTask {
             document.remove("_timestamp");
         }
         if (document.containsKey("_ttl") && document.get("_ttl") instanceof Number) {
-            keyBuilder.setTtl(((Number)document.get("_ttl")).longValue());
+            keyBuilder.setTtl(((Number) document.get("_ttl")).longValue());
             document.remove("_ttl");
         }
         IndexRequestKey key = keyBuilder.build();
+        setDefaultVersionType(key);
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
         }
         return new OutgoingMessageEnvelope(stream, null, key, document);
     }
 
+    private void setDefaultVersionType(IndexRequestKey key) {
+        if (key.getVersionType() == null && defaultVersionType.isPresent()) {
+            key.setVersionType(defaultVersionType.get());
+        }
+    }
 }
