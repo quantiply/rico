@@ -31,6 +31,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.rest.RestStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,17 +106,33 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+          boolean succeeded = true;
+          //Do not consider version conficts to be errors. Ignore old versions
           if (response.hasFailures()) {
+            for (BulkItemResponse itemResp : response.getItems()) {
+              if (itemResp.isFailed()) {
+                if (itemResp.getFailure().getStatus() != RestStatus.CONFLICT) {
+                  succeeded = false;
+                  LOGGER.error(itemResp.getFailureMessage());
+                } else if (LOGGER.isInfoEnabled()) {
+                  LOGGER.info(itemResp.getFailureMessage());
+                }
+              }
+            }
+          }
+          if (succeeded) {
+            int writes = updateSuccessMetrics(response);
+            LOGGER.info(String.format("Wrote %s messages from %s to %s.",
+                    writes, source, system));
+          }
+          else {
             sendFailed.set(true);
-          } else {
-            updateSuccessMetrics(response);
-            LOGGER.info(String.format("Written %s messages from %s to %s.",
-                                      response.getItems().length, source, system));
           }
         }
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
+          LOGGER.error(failure.getMessage());
           thrown.compareAndSet(null, failure);
           sendFailed.set(true);
         }
@@ -124,19 +141,25 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     sourceBulkProcessor.put(source, bulkProcessorFactory.getBulkProcessor(client, listener));
   }
 
-  private void updateSuccessMetrics(BulkResponse response) {
+  private int updateSuccessMetrics(BulkResponse response) {
     metrics.bulkSendSuccess.inc();
+    int writes = 0;
     for (BulkItemResponse itemResp: response.getItems()) {
+      if (itemResp.isFailed()) {
+        metrics.conflicts.inc();
+      } else {
         ActionResponse resp = itemResp.getResponse();
         if (resp instanceof IndexResponse) {
-          if (((IndexResponse)resp).isCreated()) {
+          writes += 1;
+          if (((IndexResponse) resp).isCreated()) {
             metrics.inserts.inc();
-          }
-          else {
+          } else {
             metrics.updates.inc();
           }
         }
       }
+    }
+    return writes;
   }
 
   @Override

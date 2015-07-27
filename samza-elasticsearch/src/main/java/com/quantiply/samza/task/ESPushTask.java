@@ -183,26 +183,26 @@ public class ESPushTask extends BaseTask {
     }
 
     private OutgoingMessageEnvelope getEmbeddedOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
-        Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[])envelope.getMessage());
+        Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[]) envelope.getMessage());
         IndexRequestKey.Builder keyBuilder = IndexRequestKey.newBuilder();
         if (document.containsKey("_id") && document.get("_id") instanceof String) {
-            keyBuilder.setId((String)document.get("_id"));
+            keyBuilder.setId((String) document.get("_id"));
             document.remove("_id");
         }
-        if (document.containsKey("_version") && document.get("_version") instanceof Long) {
-            keyBuilder.setVersion((Long)document.get("_version"));
+        if (document.containsKey("_version") && document.get("_version") instanceof Number) {
+            keyBuilder.setVersion(((Number)document.get("_version")).longValue());
             document.remove("_version");
         }
         if (document.containsKey("_version_type") && document.get("_version_type") instanceof String) {
-            keyBuilder.setVersionType(VersionType.valueOf((String) document.get("_version_type")));
+            keyBuilder.setVersionType(VersionType.valueOf(((String)document.get("_version_type")).toUpperCase()));
             document.remove("_version_type");
         }
         if (document.containsKey("_timestamp") && document.get("_timestamp") instanceof String) {
             keyBuilder.setTimestamp((String) document.get("_timestamp"));
             document.remove("_timestamp");
         }
-        if (document.containsKey("_ttl") && document.get("_ttl") instanceof Long) {
-            keyBuilder.setVersion((Long) document.get("_ttl"));
+        if (document.containsKey("_ttl") && document.get("_ttl") instanceof Number) {
+            keyBuilder.setTtl(((Number)document.get("_ttl")).longValue());
             document.remove("_ttl");
         }
         IndexRequestKey key = keyBuilder.build();

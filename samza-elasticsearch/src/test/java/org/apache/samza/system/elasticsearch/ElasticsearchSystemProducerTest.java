@@ -31,6 +31,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.rest.RestStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -135,7 +136,12 @@ public class ElasticsearchSystemProducerTest {
 
     BulkResponse response = mock(BulkResponse.class);
     when(response.hasFailures()).thenReturn(true);
-    when(response.getItems()).thenReturn(new BulkItemResponse[]{});
+    BulkItemResponse itemResp = mock(BulkItemResponse.class);
+    when(itemResp.isFailed()).thenReturn(true);
+    BulkItemResponse.Failure failure = mock(BulkItemResponse.Failure.class);
+    when(failure.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
+    when(itemResp.getFailure()).thenReturn(failure);
+    when(response.getItems()).thenReturn(new BulkItemResponse[]{itemResp});
 
     listenerCaptor.getValue().afterBulk(0, mock(BulkRequest.class), response);
 

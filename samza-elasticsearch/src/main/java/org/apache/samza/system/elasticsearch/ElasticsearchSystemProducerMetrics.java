@@ -7,6 +7,7 @@ public class ElasticsearchSystemProducerMetrics {
     public final Counter bulkSendSuccess;
     public final Counter inserts;
     public final Counter updates;
+    public final Counter conflicts;
     private final MetricsRegistry registry;
     private final String group;
     private final String systemName;
@@ -19,6 +20,7 @@ public class ElasticsearchSystemProducerMetrics {
         bulkSendSuccess = newCounter("bulk-send-success");
         inserts = newCounter("docs-inserted");
         updates = newCounter("docs-updated");
+        conflicts = newCounter("version-conflicts");
     }
 
     private Counter newCounter(String name) {
