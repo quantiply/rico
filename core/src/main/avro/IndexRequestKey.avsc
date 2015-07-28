@@ -2,7 +2,7 @@
   "type" : "record",
   "name" : "IndexRequestKey",
   "namespace" : "com.quantiply.rico.elasticsearch",
-  "doc": "Common header metadata for all Avro messages",
+  "doc": "Elasticsearch index request metadata",
   "fields" : [
     {
       "name": "id",
