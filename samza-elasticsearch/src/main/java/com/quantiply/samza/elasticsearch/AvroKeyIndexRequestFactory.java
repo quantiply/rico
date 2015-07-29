@@ -23,7 +23,7 @@ public class AvroKeyIndexRequestFactory implements IndexRequestFactory {
 
         IndexRequestKey indexRequestKey = (IndexRequestKey) envelope.getKey();
         if (indexRequestKey != null) {
-            indexRequest.id(indexRequestKey.getId());
+            indexRequest.id(indexRequestKey.getId().toString());
             if (indexRequestKey.getVersion() != null) {
                 indexRequest.version(indexRequestKey.getVersion());
             }
@@ -31,7 +31,7 @@ public class AvroKeyIndexRequestFactory implements IndexRequestFactory {
                 indexRequest.versionType(VersionType.fromString(indexRequestKey.getVersionType().toString().toLowerCase()));
             }
             if (indexRequestKey.getTimestamp() != null) {
-                indexRequest.timestamp(indexRequestKey.getTimestamp());
+                indexRequest.timestamp(indexRequestKey.getTimestamp().toString());
             }
             if (indexRequestKey.getTtl() != null) {
                 indexRequest.ttl(indexRequestKey.getTtl());
