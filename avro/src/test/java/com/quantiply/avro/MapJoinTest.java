@@ -4,9 +4,11 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
+import org.apache.avro.util.Utf8;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -62,7 +64,7 @@ public class MapJoinTest {
 
     private GenericRecord getIn1() {
         return new GenericRecordBuilder(getInput1Schema())
-                .set("foo", "yo yo")
+                .set("foo", new Utf8("yo yo".getBytes(StandardCharsets.UTF_8)))
                 .set("left_out", "forget me")
                 .build();
     }
