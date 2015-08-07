@@ -15,17 +15,12 @@
  */
 package com.quantiply.samza.task;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIgnoreType;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.quantiply.avro.AvroToJson;
 import com.quantiply.samza.MetricAdaptor;
+import com.quantiply.samza.metrics.EventStreamMetrics;
 import com.quantiply.samza.metrics.EventStreamMetricsFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import com.quantiply.samza.metrics.EventStreamMetrics;
-import org.apache.avro.Schema;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -51,21 +46,7 @@ import org.apache.samza.task.TaskCoordinator;
 public class AvroToJSONTask extends BaseTask {
     private AvroSerde avroSerde;
     private SystemStream outStream;
-    private final ObjectMapper objMapper;
-
-    @JsonIgnoreType
-    abstract class IgnoreTypeMixIn { }
-
-    {
-        objMapper = new ObjectMapper();
-        //Do not serialize Avro schemas
-        objMapper.addMixInAnnotations(Schema.class, IgnoreTypeMixIn.class);
-        //Use only public getters
-        objMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
-        objMapper.setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.PUBLIC_ONLY);
-        //Use lower case with underscores for JSON field names
-        objMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-    }
+    private final AvroToJson avroToJson = new AvroToJson();
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -77,7 +58,7 @@ public class AvroToJSONTask extends BaseTask {
     protected void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, EventStreamMetrics metrics) throws Exception {
         SpecificRecord inMsg = (SpecificRecord) avroSerde.fromBytes((byte[]) envelope.getMessage());
         updateLagMetricsForCamusRecord(inMsg, System.currentTimeMillis(), metrics);
-        byte[] outMsg = objMapper.writeValueAsBytes(inMsg);
+        byte[] outMsg = avroToJson.objectToJson(inMsg);
         OutgoingMessageEnvelope outEnv;
         if (envelope.getKey() == null) {
             outEnv = new OutgoingMessageEnvelope(outStream, outMsg);
