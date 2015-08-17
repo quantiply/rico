@@ -96,7 +96,7 @@ public class ESPushTask extends BaseTask {
                 func = this::getSimpleOutMsg;
                 break;
             case KEY_AVRO:
-                func = this::getKeyOutMsg;
+                func = this::getAvroKeyOutMsg;
                 break;
             case EMBEDDED:
                 func = this::getEmbeddedOutMsg;
@@ -118,7 +118,7 @@ public class ESPushTask extends BaseTask {
         return new OutgoingMessageEnvelope(stream, null, id, envelope.getMessage());
     }
 
-    private OutgoingMessageEnvelope getKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    private OutgoingMessageEnvelope getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         IndexRequestKey key = (IndexRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
         SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
         setDefaultVersionType(key, spec);
