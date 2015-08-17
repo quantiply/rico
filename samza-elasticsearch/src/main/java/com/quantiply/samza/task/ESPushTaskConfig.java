@@ -64,10 +64,10 @@ public class ESPushTaskConfig {
     }
 
     public static ESIndexSpec getDefaultConfig(Config config) {
-        MetadataSrc metadataSrc = getMetadataSrc("default", config);
+        MetadataSrc metadataSrc = getMetadataSrc("default", getDefaultMetadataStrParam(config), config);
         String indexNamePrefix = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_PREFIX, null);
         String indexNameDateFormat = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_FORMAT, null);
-        ZoneId indexNameDateZone = ZoneId.of(getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString()));
+        ZoneId indexNameDateZone = ZoneId.of(getDefaultDateZoneStr(config));
         String docType = getDefaultConfigParam(config, CFG_ES_DEFAULT_DOC_TYPE, null);
         String defaultVersionTypeStr = config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT);
         Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
@@ -89,11 +89,11 @@ public class ESPushTaskConfig {
     }
 
     private static ESIndexSpec getStreamConfig(String stream, Config config) {
-        MetadataSrc metadataSrc = getMetadataSrc(stream, config);
+        String metadataSrcStr = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, getDefaultMetadataStrParam(config));
+        MetadataSrc metadataSrc = getMetadataSrc(stream, metadataSrcStr, config);
         String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
         String indexNameDateFormat = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
-        String defaultDateZoneStr = config.get(CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
-        ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, defaultDateZoneStr));
+        ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, getDefaultDateZoneStr(config)));
         String docType = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
         String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
         Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
@@ -107,6 +107,14 @@ public class ESPushTaskConfig {
         );
     }
 
+    private static String getDefaultDateZoneStr(Config config) {
+        return config.get(CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
+    }
+
+    private static String getDefaultMetadataStrParam(Config config) {
+        return config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC, MetadataSrc.KEY_DOC_ID.name());
+    }
+
     private static Optional<VersionType> getVersionType(String defaultVersionTypeStr) {
         Optional<VersionType> defaultVersionType = Optional.empty();
         if (defaultVersionTypeStr != null) {
@@ -115,8 +123,8 @@ public class ESPushTaskConfig {
         return defaultVersionType;
     }
 
-    private static MetadataSrc getMetadataSrc(String stream, Config config) {
-        String metadataSrcStr = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC)).toLowerCase();
+    private static MetadataSrc getMetadataSrc(String stream, String metadataSrcStrParam, Config config) {
+        String metadataSrcStr = metadataSrcStrParam.toLowerCase();
         if (!METADATA_SRC_OPTIONS.contains(metadataSrcStr)) {
             throw new ConfigException(String.format("Bad value for metadata src param %s stream: %s.  Options are: %s",
                     stream, metadataSrcStr,
