@@ -61,6 +61,31 @@ public class ESPushTaskConfig {
 
     private final static HashSet<String> METADATA_SRC_OPTIONS = Arrays.stream(MetadataSrc.values()).map(v -> v.toString().toLowerCase()).collect(Collectors.toCollection(HashSet::new));
 
+    public static boolean isStreamConfig(Config config) {
+        String streamList = config.get(CFG_ES_STREAMS);
+        return streamList != null && streamList.length() > 0;
+    }
+
+    public static ESIndexSpec getDefaultConfig(Config config) {
+        String stream = "default";
+        MetadataSrc metadataSrc = getMetadataSrc(stream, config);
+        String indexNamePrefix = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_PREFIX, null);
+        String indexNameDateFormat = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_FORMAT, null);
+        ZoneId indexNameDateZone = ZoneId.of(getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString()));
+        String docType = getDefaultConfigParam(config, CFG_ES_DEFAULT_DOC_TYPE, null);
+        String defaultVersionTypeStr = config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT);
+        Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
+        return new ESIndexSpec(
+                stream,
+                metadataSrc,
+                indexNamePrefix,
+                indexNameDateFormat,
+                indexNameDateZone,
+                docType,
+                defaultVersionType
+        );
+    }
+
     public static Map<String,ESIndexSpec> getStreamMap(Config config) {
         //Get list of stream
         List<String> streams = config.getList(CFG_ES_STREAMS);
@@ -71,9 +96,37 @@ public class ESPushTaskConfig {
 
     private static ESIndexSpec getStreamConfig(String stream, Config config) {
         String input = getStreamConfigParam(stream, config, CFG_ES_STREAM_INPUT, null);
+        MetadataSrc metadataSrc = getMetadataSrc(stream, config);
+        String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
+        String indexNameDateFormat = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
+        String defaultDateZoneStr = config.get(CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
+        ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, defaultDateZoneStr));
+        String docType = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
+        String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
+        Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
+        return new ESIndexSpec(
+                input,
+                metadataSrc,
+                indexNamePrefix,
+                indexNameDateFormat,
+                indexNameDateZone,
+                docType,
+                defaultVersionType
+        );
+    }
+
+    private static Optional<VersionType> getVersionType(String defaultVersionTypeStr) {
+        Optional<VersionType> defaultVersionType = Optional.empty();
+        if (defaultVersionTypeStr != null) {
+            defaultVersionType = Optional.of(VersionType.valueOf(defaultVersionTypeStr.toUpperCase()));
+        }
+        return defaultVersionType;
+    }
+
+    private static MetadataSrc getMetadataSrc(String stream, Config config) {
         String metadataSrcStr = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC)).toLowerCase();
         if (!METADATA_SRC_OPTIONS.contains(metadataSrcStr)) {
-            throw new ConfigException(String.format("Bad value for metadata src param on stream %s: %s.  Options are: %s",
+            throw new ConfigException(String.format("Bad value for metadata src param %s stream: %s.  Options are: %s",
                     stream, metadataSrcStr,
                     String.join(",", METADATA_SRC_OPTIONS)));
         }
@@ -86,25 +139,15 @@ public class ESPushTaskConfig {
                         metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
             }
         }
-        String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
-        String indexNameDateFormat = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
-        String defaultDateZoneStr = config.get(CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
-        ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, defaultDateZoneStr));
-        String docType = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
-        String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
-        Optional<VersionType> defaultVersionType = Optional.empty();
-        if (defaultVersionTypeStr != null) {
-            defaultVersionType = Optional.of(VersionType.valueOf(defaultVersionTypeStr.toUpperCase()));
+        return metadataSrc;
+    }
+
+    private static String getDefaultConfigParam(Config config, String param, String defaultVal) {
+        String val = config.get(param, defaultVal);
+        if (val == null) {
+            throw new ConfigException("Missing ES config param: " + param);
         }
-        return new ESIndexSpec(
-                input,
-                metadataSrc,
-                indexNamePrefix,
-                indexNameDateFormat,
-                indexNameDateZone,
-                docType,
-                defaultVersionType
-        );
+        return val;
     }
 
     private static String getStreamConfigParam(String stream, Config config, String paramFormat, String defaultVal) {

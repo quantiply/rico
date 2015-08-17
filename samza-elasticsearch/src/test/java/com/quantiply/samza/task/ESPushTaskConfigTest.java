@@ -2,7 +2,6 @@ package com.quantiply.samza.task;
 
 import org.apache.samza.config.ConfigException;
 import org.apache.samza.config.MapConfig;
-import org.elasticsearch.index.VersionType;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -26,7 +25,32 @@ public class ESPushTaskConfigTest {
     }
 
     @Test
-    public void testConfig() throws Exception {
+    public void testDefaultConfig() throws Exception {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory");
+
+        map.put("rico.es.index.prefix", "slow_svc");
+        map.put("rico.es.index.date.zone", "Etc/UTC");
+        map.put("rico.es.index.date.format", ".yyyy");
+        map.put("rico.es.metadata.source", "key_doc_id");
+        map.put("rico.es.doc.type", "slow_svc_type");
+
+        MapConfig config = new MapConfig(map);
+        assertFalse(ESPushTaskConfig.isStreamConfig(config));
+        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
+        assertNotNull(esConfig);
+
+        assertEquals("default", esConfig.input);
+        assertEquals(ESPushTaskConfig.MetadataSrc.KEY_DOC_ID, esConfig.metadataSrc);
+        assertEquals("slow_svc", esConfig.indexNamePrefix);
+        assertEquals(".yyyy", esConfig.indexNameDateFormat);
+        assertEquals("Etc/UTC", esConfig.indexNameDateZone.getId());
+        assertEquals("slow_svc_type", esConfig.docType);
+        assertFalse(esConfig.defaultVersionType.isPresent());
+    }
+
+    @Test
+    public void testStreamConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
         map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory");
 
@@ -47,7 +71,9 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.stream.rep_latency.index.prefix", "db_rep_latency_index");
         map.put("rico.es.stream.rep_latency.doc.type", "db_rep_latency_type");
 
-        Map<String, ESPushTaskConfig.ESIndexSpec> streamMap = ESPushTaskConfig.getStreamMap(new MapConfig(map));
+        MapConfig config = new MapConfig(map);
+        assertTrue(ESPushTaskConfig.isStreamConfig(config));
+        Map<String, ESPushTaskConfig.ESIndexSpec> streamMap = ESPushTaskConfig.getStreamMap(config);
         ESPushTaskConfig.ESIndexSpec serverStatsConfig = streamMap.get("db_server_stats_topic");
         ESPushTaskConfig.ESIndexSpec repLatencyConfig = streamMap.get("db_rep_latency_topic");
         assertNotNull(serverStatsConfig);
@@ -70,6 +96,5 @@ public class ESPushTaskConfigTest {
         assertEquals("db_rep_latency_type", repLatencyConfig.docType);
         assertFalse(repLatencyConfig.defaultVersionType.isPresent());
     }
-
 
 }
