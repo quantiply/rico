@@ -147,7 +147,7 @@ public class ESPushTask extends BaseTask {
             keyBuilder.setTimestamp((String) document.get("_timestamp"));
             document.remove("_timestamp");
         }
-        if (document.containsKey("@timestamp") && document.get("@timestamp") instanceof String) {
+        if (document.containsKey("@timestamp") && document.get("@timestamp") instanceof Number) {
             keyBuilder.setTimestampUnixMs(((Number) document.get("@timestamp")).longValue());
             document.remove("@timestamp");
         }
