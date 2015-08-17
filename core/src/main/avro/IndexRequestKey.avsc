@@ -36,6 +36,12 @@
       "doc": "Document timestamp - https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html"
     },
     {
+      "name": "timestamp_unix_ms",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Milliseconds since epoch - used to choose the correct index for the message.  If not set, we use the import time (non-deterministic, non-idempotent)"
+    },
+    {
       "name": "ttl",
       "type": ["null", "long"],
       "default": null,
