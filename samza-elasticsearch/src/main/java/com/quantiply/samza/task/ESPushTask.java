@@ -18,11 +18,9 @@ package com.quantiply.samza.task;
 import com.quantiply.rico.elasticsearch.IndexRequestKey;
 import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.MetricAdaptor;
-import com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import org.apache.samza.config.Config;
-import org.apache.samza.config.ConfigException;
 import org.apache.samza.serializers.JsonSerde;
 import org.apache.samza.serializers.JsonSerdeFactory;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -34,133 +32,70 @@ import org.apache.samza.task.TaskCoordinator;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 /**
  Samza task for pushing to Elasticsearch
-
- Currently, index names are chosen by the time of import
- not the timestamp of the message.  The assumption is that
- these two times will be close to each other and that
- aliases will be used for querying that cover time periods
- that may overlap.
 
  - Requires the Elasticsearch system to be called "es"
  - Requires byte serdes for message keys and values
 
  */
 public class ESPushTask extends BaseTask {
-    private enum MetadataSrc { NONE, KEY, EMBEDDED }
-    private final static String CFS_ES_SYSTEM_NAME = "es";
-    private final static String CFG_ES_INDEX_PREFIX = "rico.es.index.prefix";
-    private final static String CFG_ES_INDEX_DATE_FORMAT = "rico.es.index.date.format";
-    private final static String CFG_ES_INDEX_DATE_ZONE = "rico.es.index.date.zone";
-    private final static String CFG_ES_DOC_TYPE = "rico.es.doc.type";
-    private final static String CFG_ES_DOC_METADATA_SRC = "rico.es.doc.metadata.source";
-    private final static String CFG_ES_VERSION_TYPE_DEFAULT = "rico.es.version.type.default";
-    private final static long INDEX_NAME_CACHE_DURATION_MS = 60 * 1000L;
-    private final static HashSet<String> METADATA_SRC_OPTIONS = Arrays.stream(MetadataSrc.values()).map(v -> v.toString().toLowerCase()).collect(Collectors.toCollection(HashSet::new));
-    private static long updatedMs = 0L;
     private SystemStream esStream;
-    private String indexNamePrefix;
-    private String docType;
-    private String dateFormat;
-    private String dateZone;
-    private MetadataSrc metadataSrc;
     private AvroSerde avroSerde;
     private JsonSerde jsonSerde;
-    private BiFunction<IncomingMessageEnvelope, SystemStream, OutgoingMessageEnvelope> outMsgExtractor;
-    private Optional<VersionType> defaultVersionType = Optional.empty();
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
-        parseESConfig();
-        registerDefaultHandler(this::processMsg);
+        jsonSerde = new JsonSerdeFactory().getSerde("json", config);
         if (getErrorHandler().dropOnError()) {
             logger.warn("Task is configured to drop messages on error");
         }
-        if (metadataSrc == MetadataSrc.KEY) {
+        boolean isStreamConfig = ESPushTaskConfig.isStreamConfig(config);
+        if (isStreamConfig) {
+            ESPushTaskConfig.getStreamMap(config).forEach((stream, esIndexSpec) -> {
+                registerHandler(stream, getHandler(config, esIndexSpec));
+            });
+        }
+        else {
+            registerDefaultHandler(getHandler(config, ESPushTaskConfig.getDefaultConfig(config)));
+        }
+    }
+
+    private SystemStream getESSystemStream(ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+        ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(spec.indexNameDateZone);
+        String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat));
+        return new SystemStream(ESPushTaskConfig.CFS_ES_SYSTEM_NAME, String.format("%s%s/%s", spec.indexNamePrefix, dateStr, spec.docType));
+    }
+
+    private Process getHandler(Config config, ESPushTaskConfig.ESIndexSpec esIndexSpec) {
+        if (avroSerde == null && esIndexSpec.metadataSrc.equals(ESPushTaskConfig.MetadataSrc.KEY_AVRO)) {
+            //Requires additional config for schema registry
             avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         }
-        if (metadataSrc == MetadataSrc.EMBEDDED) {
-            jsonSerde = new JsonSerdeFactory().getSerde("json", config);
-        }
-        outMsgExtractor = getOutMsgExtractor();
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> msgExtractor = getOutMsgExtractor(esIndexSpec);
+        return (envelope, collector, coordinator) -> {
+            handleMsg(envelope, collector, coordinator, esIndexSpec, msgExtractor);
+        };
     }
 
-    private void parseESConfig() {
-        indexNamePrefix = config.get(CFG_ES_INDEX_PREFIX);
-        if (indexNamePrefix == null) {
-            throw new ConfigException("Missing config property for Elasticsearch index prefix: " + CFG_ES_INDEX_PREFIX);
-        }
-        dateFormat = config.get(CFG_ES_INDEX_DATE_FORMAT, "");
-        if (dateFormat == null) {
-            throw new ConfigException("Missing config property Elasticsearch index date format: " + CFG_ES_INDEX_DATE_FORMAT);
-        }
-        dateZone = config.get(CFG_ES_INDEX_DATE_ZONE, ZoneId.systemDefault().toString());
-        if (dateZone == null) {
-            throw new ConfigException("Missing config property Elasticsearch index time zone: " + CFG_ES_INDEX_DATE_ZONE);
-        }
-        docType = config.get(CFG_ES_DOC_TYPE);
-        if (docType == null) {
-            throw new ConfigException("Missing config property for Elasticsearch index doc type: " + CFG_ES_DOC_TYPE);
-        }
-        String metadataSrcStr = config.get(CFG_ES_DOC_METADATA_SRC, "none").toLowerCase();
-        if (!METADATA_SRC_OPTIONS.contains(metadataSrcStr)) {
-            throw new ConfigException(String.format("Bad value for metadata src param: %s.  Options are: %s",
-                    CFG_ES_DOC_METADATA_SRC,
-                    String.join(",", METADATA_SRC_OPTIONS)));
-        }
-        metadataSrc = MetadataSrc.valueOf(metadataSrcStr.toUpperCase());
-        if (metadataSrc == MetadataSrc.KEY || metadataSrc == MetadataSrc.EMBEDDED) {
-            String indexReqFactoryParam = String.format("systems.%s.index.request.factory", CFS_ES_SYSTEM_NAME);
-            String indexReqFactoryStr = config.get(indexReqFactoryParam);
-            if (indexReqFactoryStr == null || !indexReqFactoryStr.equals(AvroKeyIndexRequestFactory.class.getCanonicalName())) {
-                throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
-                        metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
-            }
-        }
-        String defaultVersionTypeStr = config.get(CFG_ES_VERSION_TYPE_DEFAULT);
-        if (defaultVersionTypeStr != null) {
-            defaultVersionType = Optional.of(VersionType.valueOf(defaultVersionTypeStr.toUpperCase()));
-        }
+    private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> msgExtractor) {
+        collector.send(msgExtractor.apply(envelope, spec));
     }
 
-    private SystemStream getESSystemStream(long tsNowMs) {
-        if (esStream == null || (tsNowMs - updatedMs) > INDEX_NAME_CACHE_DURATION_MS) {
-            esStream = calcESSystemStream(tsNowMs);
-            updatedMs = tsNowMs;
-        }
-        return esStream;
-    }
-
-    private SystemStream calcESSystemStream(long tsNowMs) {
-        ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(ZoneId.of(dateZone));
-        String dateStr = dateTime.format(DateTimeFormatter.ofPattern(dateFormat));
-        return new SystemStream(CFS_ES_SYSTEM_NAME, String.format("%s%s/%s", indexNamePrefix, dateStr, docType));
-    }
-
-    private void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        long tsNowMs = System.currentTimeMillis();
-        SystemStream stream = getESSystemStream(tsNowMs);
-        collector.send(outMsgExtractor.apply(envelope, stream));
-    }
-
-    private BiFunction<IncomingMessageEnvelope, SystemStream, OutgoingMessageEnvelope> getOutMsgExtractor() {
-        BiFunction<IncomingMessageEnvelope, SystemStream, OutgoingMessageEnvelope> func = null;
-        switch (metadataSrc) {
-            case NONE:
+    private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> func = null;
+        switch (spec.metadataSrc) {
+            case KEY_DOC_ID:
                 func = this::getSimpleOutMsg;
                 break;
-            case KEY:
+            case KEY_AVRO:
                 func = this::getKeyOutMsg;
                 break;
             case EMBEDDED:
@@ -170,7 +105,8 @@ public class ESPushTask extends BaseTask {
         return func;
     }
 
-    private OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
+    private OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+        SystemStream stream = getESSystemStream(spec, Optional.empty());
         //Message key is used for the document id
         String id = null;
         if (envelope.getKey() != null) {
@@ -182,16 +118,17 @@ public class ESPushTask extends BaseTask {
         return new OutgoingMessageEnvelope(stream, null, id, envelope.getMessage());
     }
 
-    private OutgoingMessageEnvelope getKeyOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
+    private OutgoingMessageEnvelope getKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         IndexRequestKey key = (IndexRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
-        setDefaultVersionType(key);
+        SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
+        setDefaultVersionType(key, spec);
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
         }
         return new OutgoingMessageEnvelope(stream, null, key, envelope.getMessage());
     }
 
-    private OutgoingMessageEnvelope getEmbeddedOutMsg(IncomingMessageEnvelope envelope, SystemStream stream) {
+    private OutgoingMessageEnvelope getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[]) envelope.getMessage());
         IndexRequestKey.Builder keyBuilder = IndexRequestKey.newBuilder();
         if (document.containsKey("_id") && document.get("_id") instanceof String) {
@@ -203,28 +140,33 @@ public class ESPushTask extends BaseTask {
             document.remove("_version");
         }
         if (document.containsKey("_version_type") && document.get("_version_type") instanceof String) {
-            keyBuilder.setVersionType(VersionType.valueOf(((String)document.get("_version_type")).toUpperCase()));
+            keyBuilder.setVersionType(VersionType.valueOf(((String) document.get("_version_type")).toUpperCase()));
             document.remove("_version_type");
         }
         if (document.containsKey("_timestamp") && document.get("_timestamp") instanceof String) {
             keyBuilder.setTimestamp((String) document.get("_timestamp"));
             document.remove("_timestamp");
         }
+        if (document.containsKey("@timestamp") && document.get("@timestamp") instanceof String) {
+            keyBuilder.setTimestampUnixMs(((Number) document.get("@timestamp")).longValue());
+            document.remove("@timestamp");
+        }
         if (document.containsKey("_ttl") && document.get("_ttl") instanceof Number) {
             keyBuilder.setTtl(((Number) document.get("_ttl")).longValue());
             document.remove("_ttl");
         }
         IndexRequestKey key = keyBuilder.build();
-        setDefaultVersionType(key);
+        SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
+        setDefaultVersionType(key, spec);
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
         }
         return new OutgoingMessageEnvelope(stream, null, key, document);
     }
 
-    private void setDefaultVersionType(IndexRequestKey key) {
-        if (key.getVersionType() == null && defaultVersionType.isPresent()) {
-            key.setVersionType(defaultVersionType.get());
+    private void setDefaultVersionType(IndexRequestKey key, ESPushTaskConfig.ESIndexSpec spec) {
+        if (key.getVersionType() == null && spec.defaultVersionType.isPresent()) {
+            key.setVersionType(spec.defaultVersionType.get());
         }
     }
 }

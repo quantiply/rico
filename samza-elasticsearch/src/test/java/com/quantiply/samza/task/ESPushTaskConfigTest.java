@@ -40,7 +40,6 @@ public class ESPushTaskConfigTest {
         ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
         assertNotNull(esConfig);
 
-        assertEquals("default", esConfig.input);
         assertEquals(ESPushTaskConfig.MetadataSrc.KEY_DOC_ID, esConfig.metadataSrc);
         assertEquals("slow_svc", esConfig.indexNamePrefix);
         assertEquals(".yyyy", esConfig.indexNameDateFormat);
@@ -59,7 +58,6 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.index.date.format", ".yyyy");
         map.put("rico.es.metadata.source", "key_avro");
 
-        map.put("rico.es.stream.server_stats.input", "db_server_stats_topic");
         map.put("rico.es.stream.server_stats.index.prefix", "db_server_stats_index");
         map.put("rico.es.stream.server_stats.doc.type", "db_server_stats_type");
         map.put("rico.es.stream.server_stats.metadata.source", "embedded");
@@ -67,19 +65,17 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.stream.server_stats.index.date.zone", "America/New_York");
         map.put("rico.es.stream.server_stats.version.type.default", "external_gte");
 
-        map.put("rico.es.stream.rep_latency.input", "db_rep_latency_topic");
         map.put("rico.es.stream.rep_latency.index.prefix", "db_rep_latency_index");
         map.put("rico.es.stream.rep_latency.doc.type", "db_rep_latency_type");
 
         MapConfig config = new MapConfig(map);
         assertTrue(ESPushTaskConfig.isStreamConfig(config));
         Map<String, ESPushTaskConfig.ESIndexSpec> streamMap = ESPushTaskConfig.getStreamMap(config);
-        ESPushTaskConfig.ESIndexSpec serverStatsConfig = streamMap.get("db_server_stats_topic");
-        ESPushTaskConfig.ESIndexSpec repLatencyConfig = streamMap.get("db_rep_latency_topic");
+        ESPushTaskConfig.ESIndexSpec serverStatsConfig = streamMap.get("server_stats");
+        ESPushTaskConfig.ESIndexSpec repLatencyConfig = streamMap.get("rep_latency");
         assertNotNull(serverStatsConfig);
         assertNotNull(repLatencyConfig);
 
-        assertEquals("db_server_stats_topic", serverStatsConfig.input);
         assertEquals(ESPushTaskConfig.MetadataSrc.EMBEDDED, serverStatsConfig.metadataSrc);
         assertEquals("db_server_stats_index", serverStatsConfig.indexNamePrefix);
         assertEquals(".yyyy-MM", serverStatsConfig.indexNameDateFormat);
@@ -88,7 +84,6 @@ public class ESPushTaskConfigTest {
         assertTrue(serverStatsConfig.defaultVersionType.isPresent());
         assertEquals(com.quantiply.rico.elasticsearch.VersionType.EXTERNAL_GTE, serverStatsConfig.defaultVersionType.get());
 
-        assertEquals("db_rep_latency_topic", repLatencyConfig.input);
         assertEquals(ESPushTaskConfig.MetadataSrc.KEY_AVRO, repLatencyConfig.metadataSrc);
         assertEquals("db_rep_latency_index", repLatencyConfig.indexNamePrefix);
         assertEquals(".yyyy", repLatencyConfig.indexNameDateFormat);

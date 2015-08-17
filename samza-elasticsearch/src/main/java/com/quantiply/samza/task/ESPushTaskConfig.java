@@ -24,7 +24,6 @@ public class ESPushTaskConfig {
     public enum MetadataSrc { KEY_DOC_ID, KEY_AVRO, EMBEDDED }
 
     public static class ESIndexSpec {
-        public final String input;
         public final MetadataSrc metadataSrc;
         public final String indexNamePrefix;
         public final String indexNameDateFormat;
@@ -32,8 +31,7 @@ public class ESPushTaskConfig {
         public final String docType;
         public final Optional<VersionType> defaultVersionType;
 
-        public ESIndexSpec(String input, MetadataSrc metadataSrc, String indexNamePrefix, String indexNameDateFormat, ZoneId indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
-            this.input = input;
+        public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, String indexNameDateFormat, ZoneId indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
             this.metadataSrc = metadataSrc;
             this.indexNamePrefix = indexNamePrefix;
             this.indexNameDateFormat = indexNameDateFormat;
@@ -45,7 +43,6 @@ public class ESPushTaskConfig {
 
     public final static String CFS_ES_SYSTEM_NAME = "es";
     public final static String CFG_ES_STREAMS = "rico.es.streams";
-    public final static String CFG_ES_STREAM_INPUT = "rico.es.stream.%s.input";
     public final static String CFG_ES_DEFAULT_DOC_METADATA_SRC = "rico.es.metadata.source";
     public final static String CFG_ES_STREAM_DOC_METADATA_SRC = "rico.es.stream.%s.metadata.source";
     public final static String CFG_ES_DEFAULT_INDEX_PREFIX = "rico.es.index.prefix";
@@ -67,8 +64,7 @@ public class ESPushTaskConfig {
     }
 
     public static ESIndexSpec getDefaultConfig(Config config) {
-        String stream = "default";
-        MetadataSrc metadataSrc = getMetadataSrc(stream, config);
+        MetadataSrc metadataSrc = getMetadataSrc("default", config);
         String indexNamePrefix = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_PREFIX, null);
         String indexNameDateFormat = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_FORMAT, null);
         ZoneId indexNameDateZone = ZoneId.of(getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_ZONE, ZoneId.systemDefault().toString()));
@@ -76,7 +72,6 @@ public class ESPushTaskConfig {
         String defaultVersionTypeStr = config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT);
         Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
         return new ESIndexSpec(
-                stream,
                 metadataSrc,
                 indexNamePrefix,
                 indexNameDateFormat,
@@ -90,12 +85,10 @@ public class ESPushTaskConfig {
         //Get list of stream
         List<String> streams = config.getList(CFG_ES_STREAMS);
         return streams.stream()
-                .map(stream -> getStreamConfig(stream, config))
-                .collect(Collectors.toMap(spec -> spec.input, Function.identity()));
+                .collect(Collectors.toMap(Function.identity(), stream -> getStreamConfig(stream, config)));
     }
 
     private static ESIndexSpec getStreamConfig(String stream, Config config) {
-        String input = getStreamConfigParam(stream, config, CFG_ES_STREAM_INPUT, null);
         MetadataSrc metadataSrc = getMetadataSrc(stream, config);
         String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
         String indexNameDateFormat = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
@@ -105,7 +98,6 @@ public class ESPushTaskConfig {
         String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
         Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
         return new ESIndexSpec(
-                input,
                 metadataSrc,
                 indexNamePrefix,
                 indexNameDateFormat,
