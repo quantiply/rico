@@ -156,7 +156,7 @@ public class ESPushTask extends BaseTask {
             document.remove("_ttl");
         }
         IndexRequestKey key = keyBuilder.build();
-        SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
+        SystemStream stream = getESSystemStream(spec, Optional.ofNullable(key.getTimestampUnixMs()));
         setDefaultVersionType(key, spec);
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
