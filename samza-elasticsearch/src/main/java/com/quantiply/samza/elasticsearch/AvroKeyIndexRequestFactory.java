@@ -23,7 +23,9 @@ public class AvroKeyIndexRequestFactory implements IndexRequestFactory {
 
         IndexRequestKey indexRequestKey = (IndexRequestKey) envelope.getKey();
         if (indexRequestKey != null) {
-            indexRequest.id(indexRequestKey.getId().toString());
+            if (indexRequestKey.getId() != null) {
+                indexRequest.id(indexRequestKey.getId().toString());
+            }
             if (indexRequestKey.getVersion() != null) {
                 indexRequest.version(indexRequestKey.getVersion());
             }
