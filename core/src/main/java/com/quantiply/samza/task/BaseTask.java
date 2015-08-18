@@ -43,6 +43,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 
 public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask {
     protected TaskInfo taskInfo;
@@ -242,13 +244,19 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
             Schema.Field tsField = headerField.schema().getField("timestamp");
             Schema.Field createdField = headerField.schema().getField("created");
 
-            if (tsField != null && tsField.schema().getType() == Schema.Type.LONG) {
-                long tsEvent = (Long) header.get(tsField.pos());
-                metrics.lagFromOriginMs.update(tsNowMs - tsEvent);
+            if (tsField != null) {
+                Object ts = header.get(tsField.pos());
+                if (ts instanceof Long) {
+                    long tsEvent = (Long) ts;
+                    metrics.lagFromOriginMs.update(tsNowMs - tsEvent);
+                }
             }
-            if (createdField != null && createdField.schema().getType() == Schema.Type.LONG) {
-                long tsCreated = (Long) header.get(createdField.pos());
-                metrics.lagFromPreviousMs.update(tsNowMs - tsCreated);
+            if (createdField != null) {
+                Object created = header.get(createdField.pos());
+                if (created instanceof Long) {
+                    long tsCreated = (Long) created;
+                    metrics.lagFromPreviousMs.update(tsNowMs - tsCreated);
+                }
             }
         }
     }
