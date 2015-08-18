@@ -36,7 +36,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>0.0.11</version>
     <packaging>pom</packaging>
     
     <name>Quantiply Rico Parent</name>
