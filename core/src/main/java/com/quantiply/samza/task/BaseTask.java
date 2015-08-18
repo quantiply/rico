@@ -19,21 +19,22 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.quantiply.samza.ConfigConst;
 import com.quantiply.samza.MetricAdaptor;
-import com.quantiply.samza.metrics.StreamMetricFactory;
-import com.quantiply.samza.metrics.EventStreamMetrics;
 import com.quantiply.samza.admin.KafkaAdmin;
 import com.quantiply.samza.admin.TaskInfo;
+import com.quantiply.samza.metrics.EventStreamMetrics;
+import com.quantiply.samza.metrics.StreamMetricFactory;
 import com.quantiply.samza.metrics.StreamMetricRegistry;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.generic.IndexedRecord;
-import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
 import org.apache.samza.job.JobRunner;
-import org.apache.samza.system.*;
+import org.apache.samza.system.IncomingMessageEnvelope;
+import org.apache.samza.system.SystemStream;
+import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.task.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,7 +238,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
     protected void updateLagMetricsForCamusRecord(IndexedRecord msg, long tsNowMs, EventStreamMetrics metrics) {
         Schema.Field headerField = msg.getSchema().getField("header");
         if (headerField != null) {
-            SpecificRecord header = (SpecificRecord) msg.get(headerField.pos());
+            IndexedRecord header = (IndexedRecord) msg.get(headerField.pos());
             Schema.Field tsField = headerField.schema().getField("timestamp");
             Schema.Field createdField = headerField.schema().getField("created");
 
