@@ -43,8 +43,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.LongConsumer;
-import java.util.function.LongFunction;
 
 public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask {
     protected TaskInfo taskInfo;
