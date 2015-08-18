@@ -29,13 +29,17 @@ public class IndexRequestKeyUtil {
             Schema.Field tsField = headerField.schema().getField("timestamp");
             Schema.Field idField = headerField.schema().getField("id");
 
-            if (tsField != null && tsField.schema().getType() == Schema.Type.LONG) {
-                Long tsEvent = (Long) header.get(tsField.pos());
-                builder.setTimestampUnixMs(tsEvent);
+            if (tsField != null) {
+                Object ts = header.get(tsField.pos());
+                if (ts instanceof Long) {
+                    builder.setTimestampUnixMs((Long)ts);
+                }
             }
-            if (idField != null && idField.schema().getType() == Schema.Type.STRING) {
-                CharSequence id = (CharSequence) header.get(idField.pos());
-                builder.setId(id);
+            if (idField != null) {
+                Object id = header.get(idField.pos());
+                if (id instanceof CharSequence) {
+                    builder.setId((CharSequence)id);
+                }
             }
         }
         return builder.build();

@@ -32,28 +32,37 @@ public class IndexRequestKeyUtilTest {
                 .fields()
                 .name("header").type()
                    .record("Headers").namespace("com.quantiply.test").fields()
-                   .name("id").type().stringType().noDefault()
+                   .name("id").type().unionOf().stringType().and().nullType().endUnion().noDefault()
                    .name("timestamp").type().longType().noDefault()
                    .endRecord().noDefault()
                 .endRecord();
     }
 
-    protected GenericRecord getCamusMsg() {
+    protected GenericRecord getCamusMsg(String id) {
         return new GenericRecordBuilder(getCamusSchema())
                 .set("header",
                         new GenericRecordBuilder(getCamusSchema().getField("header").schema())
-                        .set("timestamp", 999999L)
-                        .set("id", "fakeId")
-                        .build()
+                                .set("timestamp", 999999L)
+                                .set("id", id)
+                                .build()
                 )
                 .build();
     }
 
     @Test
     public void testGetIndexRequestKeyFromCamus() throws Exception {
-        GenericRecord msg = getCamusMsg();
+        GenericRecord msg = getCamusMsg("fakeId");
         IndexRequestKey key = IndexRequestKeyUtil.getIndexRequestKeyFromCamus(msg);
         assertEquals(999999L, key.getTimestampUnixMs().longValue());
         assertEquals("fakeId", key.getId());
     }
+
+    @Test
+    public void testGetIndexRequestKeyFromCamusNullId() throws Exception {
+        GenericRecord msg = getCamusMsg(null);
+        IndexRequestKey key = IndexRequestKeyUtil.getIndexRequestKeyFromCamus(msg);
+        assertEquals(999999L, key.getTimestampUnixMs().longValue());
+        assertNull(key.getId());
+    }
+
 }
