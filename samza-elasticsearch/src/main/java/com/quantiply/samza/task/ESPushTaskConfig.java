@@ -48,7 +48,7 @@ public class ESPushTaskConfig {
 
         public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, String indexNameDateFormat, ZoneId indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
             this.metadataSrc = metadataSrc;
-            this.indexNamePrefix = indexNamePrefix;
+            this.indexNamePrefix = indexNamePrefix.toLowerCase(); //ES requires index names to be lower case
             this.indexNameDateFormat = indexNameDateFormat;
             this.indexNameDateZone = indexNameDateZone;
             this.docType = docType;

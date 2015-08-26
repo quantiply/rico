@@ -44,7 +44,7 @@ public class ESPushTaskConfigTest {
         Map<String, String> map = new HashMap<String, String>();
         map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory");
 
-        map.put("rico.es.index.prefix", "slow_svc");
+        map.put("rico.es.index.prefix", "Slow_svc");
         map.put("rico.es.index.date.zone", "Etc/UTC");
         map.put("rico.es.index.date.format", ".yyyy");
         map.put("rico.es.metadata.source", "key_doc_id");
