@@ -117,5 +117,7 @@ If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send the
 
 ### Recovering from poison pills
 
+If you get a bad record in the Kafka topic and it cause a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
+
 ##TODO
-* Support deletes
+* Add support for deletes
