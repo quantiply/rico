@@ -82,18 +82,35 @@ In this example, the job will pull from two topics and index them in daily index
 	#Override defaults as needed for each stream
 	rico.es.stream.apache.index.prefix=apache_logs
 	rico.es.stream.apache.index.prefix=tomcat_logs
+	
+### Example Samza Options
+```
+task.class=com.quantiply.samza.task.ESPushTask
+
+systems.es.samza.factory=org.apache.samza.system.elasticsearch.ElasticsearchSystemFactory
+systems.es.client.factory=org.apache.samza.system.elasticsearch.client.TransportClientFactory
+#When rico.es.metadata.source=key_doc_id, use
+#systems.es.index.request.factory=org.apache.samza.system.elasticsearch.indexrequest.DefaultIndexRequestFactory
+#When rico.es.metadata.source is key_avro or embedded
+systems.es.index.request.factory=com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory
+systems.es.client.transport.host=localhost
+systems.es.client.transport.port=9300
+systems.es.bulk.flush.interval.ms=100
+```
+
+For more details on the Elasticsearch System Producer, it's available [here](https://github.com/apache/samza/blob/master/docs/learn/documentation/versioned/jobs/configuration-table.html#L666-L712) until Samza 0.10 is released.
 
 ### Options
 
 Option  | Values
 ------------- | -------------
-`rico.es.index.prefix`| Prefix for the Elasticsearch index name.  Will be appended with the date format.
+`rico.es.index.prefix`| Prefix for the Elasticsearch index name; it gets lowercased and combined with the date format (Elasticsearch requires lower case index names).
 `rico.es.stream.<stream_name>.index.prefix`  | Same as above but for an individual stream
 `rico.es.index.date.format`| Appended to the index prefix. Must be a valid [DateTimeFormatter pattern](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 `rico.es.stream.<stream_name>.index.date.format`  | Same as above but for an individual stream
 `rico.es.index.date.zone`| Timezone to use for the index date format.  Must be a valid [ZoneId name](https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html). Defaults to system timezone.
 `rico.es.stream.<stream_name>.index.date.zone`  | Same as above but for an individual stream
-`rico.es.metadata.source`| Method for specifying metadata.  Valid values are `key_doc_id`, `key_avro`, and `embedded`.
+`rico.es.metadata.source`| Method for specifying metadata.  Valid values are `key_doc_id`, `key_avro`, and `embedded`.  Defaults to `key_doc_id`.
 `rico.es.stream.<stream_name>.metadata.source`  | Same as above but for an individual stream
 `rico.es.version.type.default`  | If this parameter is set, the job will use the value as the version_type for all documents which do not have version_type set in the metadata.  Value values are `internal`, `external`, `external_gte`, and `force`.
 `rico.es.stream.<stream_name>.version.type.default`  | Same as above but for an individual stream
@@ -111,7 +128,7 @@ Elasticsearch System Producer metrics will be included in your Samza container m
 },
 ```
 
-If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges of the form
+If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges with this form:
 
 `samza.<job-name>.<job-id>.container.<container-name>.es.producer.<metric>` 
 
@@ -120,4 +137,5 @@ If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send the
 If you get a bad record in the Kafka topic and it cause a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
 
 ##TODO
-* Add support for deletes
+* Add support for deletes (requires changes to system producer)
+* Add metric for tracking latency from message origin time (if provided in the metadata) to the time when index request is acknowledged.  This would provide a metric for complete end-to-end pipeline latency.  Also requires changes to the system producer in the Samza project.
