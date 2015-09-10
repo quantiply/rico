@@ -1,11 +1,11 @@
 #ESPushTask
 
-A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The indexes can be templatized so that data is partitioned by time. This task connects to the Elasticsearch cluster as a transport client and uses the bulk API.
+A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The index names can be templatized so that data is partitioned by time. This task connects to the Elasticsearch cluster as a transport client and uses the bulk API.
 
 ## Suitability
 * **Throughput** - Throughput depends on many factors including the index mapping but we've seen at least 10k documents/second per container (JVM) in production.
-* **Delivery** - Samza guarantees at least once delivery by periodically checkpointing it's offset from Kafka.  On recovery or restart, the job will continue from the previous checkpoint and may duplicate messages.  These can be detected and dealt with by including [metadata](#document-metadata).
-* **Message Order** - You can guarantee message order by partitioning the Kafka topic in a meaningful way (say by user or account).  Messages in each partition are processed in order by Samza and the Elasticsearch bulk API guarantees sequentially processing. Alternatively, you can use specify external version ids in the metadata that Elasticsearch can use to discard out-of-order writes.
+* **Delivery** - Samza guarantees at least once delivery by periodically checkpointing it's offsets in Kafka.  On recovery or restart, the job will continue from the previous checkpoint and may duplicate messages.  These can be detected and dealt with by including [metadata](#document-metadata).
+* **Message Order** - You can guarantee message order by partitioning the Kafka topic in a meaningful way (say by user or account).  Messages in each partition are processed in order by Samza and the Elasticsearch bulk API guarantees sequentially processing. Alternatively, you can specify external version ids in the metadata that Elasticsearch can use to discard out-of-order writes.
 * **Time-based partitioning** - You can define a pattern to use for the index name such that the job will periodically create new indexes (e.g. daily, weekly, quarterly, etc.).  If you include a timestamp in the [document metadata](#document-metadata), you will get deterministic, idempotent partitioning.
 * **Error handling** - the Samza job will fail if it encounters an unexpected error while indexing.  When running Samza on YARN, it will automatically restart the job eight times by default.  If you want it to try to auto-recover indefinitely, you can set [yarn.container.retry.count](yarn-container-retry-count)=-1.
 
@@ -24,7 +24,7 @@ If you don't need additional metdata for the document beyond an id, you can set 
 
 If you need to specify additional metadata while leaving the document untouched (either for throughput or clean design), you can provide an Avro message as the Kafka key.
 
-There are fields in the Avro message (all of them optional) are:
+The fields in the Avro message (all of them optional) are:
 
 * `id` - document id
 * `version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
@@ -40,18 +40,18 @@ Encoding metadata as Avro is the most effecient method but not the most convenie
 * `@timestamp` - timestamp (milliseconds since epoch) to choose the correct index for the message.
 * `_id` - document id
 * `_version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
-* `_version_type` - INTERNAL, EXTERNAL, EXTERNAL_GTE, FORCE
+* `_version_type` - internal, external, external_gte, force
 * `_timestamp` - document [timestamp](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html)
 * `_ttl` - document [ttl](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-ttl)
 
 
 ## Time-based Partitioning
 
-If you provide a document id and timestamp as metadata, you are guaranteed that a single copy of the document with end up in the correct index.  However, if you do not provide a timestamp, the job will use the current wall clock time for partitioning and you may end up with documents in the "wrong" index as well as duplicates across partitions.  Documents may end up in the "wrong" index if they arrive late and get imported after the wall clock as moved on to a new index.  Documents may be written to two indexes if a batch index request is re-tried after a partial failure or after the Samza job is restarted.
+If you provide a document id and timestamp as metadata, you are guaranteed that a single copy of the document with end up in the correct index.  However, if you do not provide a timestamp, the job will use the current wall clock time for partitioning and you may end up with documents in the "wrong" index as well as duplicates across partitions.  Documents may end up in the "wrong" index if they arrive late and get imported after the wall clock has moved on to a new index.  Documents may be written to two indexes if a batch index request is re-tried after a partial failure or after the Samza job is restarted.
 
 ## Configuration
 
-We'll start with a few examples.  This job reads from a single topic, expects the document id as the key in the Kafka message, and creates monthly indexes based on wall-clock time of the import as UTC.  An example index is `apache_logs.2015-09` with doctype `log`.
+We'll start with a few examples.  This job reads from a single topic, expects the document id as the key in the Kafka message, and creates monthly indexes based time of import in UTC.  An example index is `apache_logs.2015-09` with doctype `log`.
 
 ### Reading from a single topic with doc id as key
 
@@ -60,7 +60,6 @@ We'll start with a few examples.  This job reads from a single topic, expects th
 	#Kibana index patterns use UTC time - https://www.elastic.co/guide/en/kibana/current/settings.html#settings-create-pattern
 	rico.es.index.date.zone=Etc/UTC
 	rico.es.doc.type=log
-	rico.es.metadata.source=key_doc_id
 
 ### Reading from multiple topics
 
@@ -114,6 +113,8 @@ Option  | Values
 `rico.es.stream.<stream_name>.metadata.source`  | Same as above but for an individual stream
 `rico.es.version.type.default`  | If this parameter is set, the job will use the value as the version_type for all documents which do not have version_type set in the metadata.  Value values are `internal`, `external`, `external_gte`, and `force`.
 `rico.es.stream.<stream_name>.version.type.default`  | Same as above but for an individual stream
+`rico.es.doc.type`| Elasticsearch doc type
+`rico.es.stream.<stream_name>.doc.type`  | Same as above but for an individual stream
 
 ## Operations
 ### Metrics
@@ -134,7 +135,7 @@ If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send the
 
 ### Recovering from poison pills
 
-If you get a bad record in the Kafka topic and it cause a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
+If you get a bad record in an input Kafka topic and it causes a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
 
 ##TODO
 * Add support for deletes (requires changes to system producer)
