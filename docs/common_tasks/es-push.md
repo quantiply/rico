@@ -82,9 +82,19 @@ In this example, the job will pull from two topics and index them in daily index
 	rico.es.stream.apache.index.prefix=apache_logs
 	rico.es.stream.apache.index.prefix=tomcat_logs
 	
-### Example Samza Options
+### Samza Options
+
+This task expects the byte serde to be set for all keys and messages read from Kafka. See the example configuration below for the required values of `systems.es.index.request.factory`.
+
+For more details on the Elasticsearch system producer config, it's available [here](https://github.com/apache/samza/blob/master/docs/learn/documentation/versioned/jobs/configuration-table.html#L666-L712) until Samza 0.10 is released.
+
 ```
 task.class=com.quantiply.samza.task.ESPushTask
+
+#This task requires byte serde
+serializers.registry.byte.class=org.apache.samza.serializers.ByteSerdeFactory
+systems.kafka.samza.key.serde=byte
+systems.kafka.samza.msg.serde=byte
 
 systems.es.samza.factory=org.apache.samza.system.elasticsearch.ElasticsearchSystemFactory
 systems.es.client.factory=org.apache.samza.system.elasticsearch.client.TransportClientFactory
@@ -96,8 +106,6 @@ systems.es.client.transport.host=localhost
 systems.es.client.transport.port=9300
 systems.es.bulk.flush.interval.ms=100
 ```
-
-For more details on the Elasticsearch System Producer, it's available [here](https://github.com/apache/samza/blob/master/docs/learn/documentation/versioned/jobs/configuration-table.html#L666-L712) until Samza 0.10 is released.
 
 ### Options
 
