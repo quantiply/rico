@@ -91,7 +91,7 @@ In this example, the job will pull from two topics and index them in daily index
 	
 ### Samza Options
 
-This task expects the byte serde to be set for all keys and messages read from Kafka. See the example configuration below for the required values of `systems.es.index.request.factory`.
+This task expects the byte serde to be set for all keys and messages read from Kafka. See the example configuration below for the required value of `systems.es.index.request.factory`.
 
 For more details on the Elasticsearch system producer config, it's available [here](https://github.com/apache/samza/blob/master/docs/learn/documentation/versioned/jobs/configuration-table.html#L666-L712) until Samza 0.10 is released.
 
