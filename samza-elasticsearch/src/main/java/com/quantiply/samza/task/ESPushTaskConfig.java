@@ -17,6 +17,7 @@ package com.quantiply.samza.task;
 
 import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory;
+import com.quantiply.samza.elasticsearch.IndexRequestFromKey;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
 
@@ -149,9 +150,10 @@ public class ESPushTaskConfig {
         if (metadataSrc == MetadataSrc.KEY_AVRO || metadataSrc == MetadataSrc.EMBEDDED) {
             String indexReqFactoryParam = String.format("systems.%s.index.request.factory", CFS_ES_SYSTEM_NAME);
             String indexReqFactoryStr = config.get(indexReqFactoryParam);
-            if (indexReqFactoryStr == null || !indexReqFactoryStr.equals(AvroKeyIndexRequestFactory.class.getCanonicalName())) {
+            List<String> validNames = Arrays.asList(IndexRequestFromKey.class.getCanonicalName(), AvroKeyIndexRequestFactory.class.getCanonicalName());
+            if (indexReqFactoryStr == null || !validNames.contains(indexReqFactoryStr)) {
                 throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
-                        metadataSrcStr, indexReqFactoryParam, AvroKeyIndexRequestFactory.class.getCanonicalName()));
+                        metadataSrcStr, indexReqFactoryParam, IndexRequestFromKey.class.getCanonicalName()));
             }
         }
         return metadataSrc;

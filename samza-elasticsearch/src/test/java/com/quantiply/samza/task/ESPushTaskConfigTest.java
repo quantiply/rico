@@ -42,7 +42,7 @@ public class ESPushTaskConfigTest {
     @Test
     public void testDefaultConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
-        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory");
+        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.IndexRequestFromKey");
 
         map.put("rico.es.index.prefix", "Slow_svc");
         map.put("rico.es.index.date.zone", "Etc/UTC");
@@ -66,7 +66,7 @@ public class ESPushTaskConfigTest {
     @Test
     public void testStreamConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
-        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory");
+        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.IndexRequestFromKey");
 
         map.put("rico.es.streams", "server_stats,rep_latency");
         map.put("rico.es.index.date.zone", "Etc/UTC");
