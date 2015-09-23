@@ -105,10 +105,7 @@ systems.kafka.samza.msg.serde=byte
 
 systems.es.samza.factory=org.apache.samza.system.elasticsearch.ElasticsearchSystemFactory
 systems.es.client.factory=org.apache.samza.system.elasticsearch.client.TransportClientFactory
-#When rico.es.metadata.source=key_doc_id, use
-#systems.es.index.request.factory=org.apache.samza.system.elasticsearch.indexrequest.DefaultIndexRequestFactory
-#When rico.es.metadata.source is key_avro or embedded
-systems.es.index.request.factory=com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory
+systems.es.index.request.factory=com.quantiply.samza.elasticsearch.IndexRequestFromKey
 systems.es.client.transport.host=localhost
 systems.es.client.transport.port=9300
 systems.es.bulk.flush.interval.ms=100
