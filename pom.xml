@@ -31,12 +31,12 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <confluent.version>1.0-q1</confluent.version>
         <kafka.version>0.8.2.1</kafka.version>
         <jackson.version>2.2.2</jackson.version>
-        <elasticsearch.version>1.5.1</elasticsearch.version>
+        <elasticsearch.version>1.7.2</elasticsearch.version>
     </properties>
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.13-SNAPSHOT</version>
+    <version>0.0.13</version>
     <packaging>pom</packaging>
     
     <name>Quantiply Rico Parent</name>
