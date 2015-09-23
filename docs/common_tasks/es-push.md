@@ -109,6 +109,8 @@ systems.es.index.request.factory=com.quantiply.samza.elasticsearch.IndexRequestF
 systems.es.client.transport.host=localhost
 systems.es.client.transport.port=9300
 systems.es.bulk.flush.interval.ms=100
+systems.es.bulk.flush.max.actions=10000
+systems.es.bulk.flush.max.size.mb=10
 ```
 
 ### Options
