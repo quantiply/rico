@@ -35,9 +35,11 @@ import org.apache.samza.task.TaskCoordinator;
   Converts Avro to JSON
 
   This task expects:
-  - the input topic key to be serialized according the Camus/Confluent Platform spec
+  - the input messages to be Avro
+  - to fetch the schema from Confluent schema registry
   - the input and output topics are configured to use ByteSerde
-  - the output topic is specified with the "streams.out" property
+  - the output topic name to be specified with the "rico.streams.out" property
+  - if you want lag metrics, the Avro message should have a "header" fields with "created" and "timestamp" child fields.
 
   Caveats:
    - It currently assumes lowercase with underscore for naming JSON fields.  This could be configurable later
