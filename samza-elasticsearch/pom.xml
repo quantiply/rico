@@ -48,6 +48,14 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>samza-core_2.10</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.samza</groupId>
+            <artifactId>samza-shell</artifactId>
+            <classifier>dist</classifier>
+            <type>tgz</type>
+            <version>${samza.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -68,6 +76,25 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <!-- plugin to build the tar.gz file filled with examples -->
+            <plugin>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <version>2.5.5</version>
+              <configuration>
+                <descriptors>
+                  <descriptor>yarn-src.xml</descriptor>
+                </descriptors>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>make-assembly</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>single</goal>
+                  </goals>
+                </execution>
+              </executions>
             </plugin>
         </plugins>
     </build>
