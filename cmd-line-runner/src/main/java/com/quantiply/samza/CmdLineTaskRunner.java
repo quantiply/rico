@@ -22,11 +22,14 @@ import org.apache.samza.config.ConfigException;
 import org.apache.samza.config.factories.PropertiesConfigFactory;
 import org.apache.samza.container.TaskName;
 import org.apache.samza.metrics.MetricsRegistry;
+import org.apache.samza.metrics.MetricsRegistryMap;
+import org.apache.samza.metrics.ReadableMetricsRegistry;
+import org.apache.samza.metrics.reporter.JmxReporter;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.task.*;
-import org.apache.samza.util.NoOpMetricsRegistry;
+import org.apache.samza.metrics.reporter.JmxReporterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,13 +49,14 @@ public class CmdLineTaskRunner {
     private static Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
     private final String configPath;
     private Object task;
-    private boolean isWindowTriggered;
     private StringSerde serde;
+    private ReadableMetricsRegistry metricsRegistry;
     private boolean isVerbose;
 
     public CmdLineTaskRunner(String configPath, boolean isVerbose) {
         this.isVerbose = isVerbose;
         this.configPath = configPath;
+        metricsRegistry = new MetricsRegistryMap();
     }
 
     public void init() throws Exception {
@@ -80,8 +84,10 @@ public class CmdLineTaskRunner {
         task = clazz.newInstance();
         ((InitableTask) task).init(cfg, new CmdLineTaskContext() );
 
-        // TODO: Add a timer for window and handle it below.
-        isWindowTriggered = false;
+        // Initialize metrics
+        JmxReporter reporter = new JmxReporterFactory().getMetricsReporter("jmx", "cmdline", cfg);
+        reporter.register("jmx", metricsRegistry);
+        reporter.start();
     }
 
     public void close() throws Exception {
@@ -104,7 +110,7 @@ public class CmdLineTaskRunner {
     class CmdLineTaskContext implements TaskContext {
         @Override
         public MetricsRegistry getMetricsRegistry() {
-            return new NoOpMetricsRegistry();
+            return metricsRegistry;
         }
 
         @Override
