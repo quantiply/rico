@@ -48,20 +48,21 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>samza-kafka_2.10</artifactId>
         </dependency>
         <dependency>
-          <groupId>org.apache.samza</groupId>
-          <artifactId>samza-shell</artifactId>
-          <classifier>dist</classifier>
-          <type>tgz</type>
-          <version>${samza.version}</version>
+            <groupId>org.apache.samza</groupId>
+            <artifactId>samza-shell</artifactId>
+            <classifier>dist</classifier>
+            <type>tgz</type>
+            <version>${samza.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
         </dependency>
         <dependency>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-          <scope>test</scope>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
