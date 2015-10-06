@@ -235,6 +235,11 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         return String.format("streams.%s.", metricName);
     }
 
+    protected String getMessageIdFromSource(IncomingMessageEnvelope envelope) {
+        SystemStreamPartition ssp = envelope.getSystemStreamPartition();
+        return String.format("%s-%d-%s", ssp.getStream(), ssp.getPartition().getPartitionId(), envelope.getOffset());
+    }
+
     protected void updateLagMetricsForCamusRecord(IndexedRecord msg, long tsNowMs, EventStreamMetrics metrics) {
         Schema.Field headerField = msg.getSchema().getField("header");
         if (headerField != null) {
