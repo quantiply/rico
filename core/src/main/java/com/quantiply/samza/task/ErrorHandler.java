@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza.task;
 
+import com.codahale.metrics.Meter;
 import com.quantiply.samza.ConfigConst;
 import com.quantiply.samza.admin.TaskInfo;
 import org.apache.samza.config.Config;
@@ -42,6 +43,7 @@ public class ErrorHandler {
     private Optional<SystemProducer> systemProducer;
     private boolean dropOnError;
     private Serde serde;
+    private double dropMaxRatio;
 
     public ErrorHandler(Config config, TaskInfo taskInfo) {
         this.config = config;
@@ -51,6 +53,10 @@ public class ErrorHandler {
     public void start() {
         serde = new JsonSerdeFactory().getSerde(SYSTEM_PRODUCER_SOURCE, config);
         dropOnError = config.getBoolean(ConfigConst.DROP_ON_ERROR, false);
+        dropMaxRatio = config.getDouble(ConfigConst.DROP_MAX_RATIO, 0.5);
+        if (dropMaxRatio <= 0.0 || dropMaxRatio >= 1.0) {
+            throw new ConfigException(String.format("%s must be between 0.0 and 1.0", ConfigConst.DROP_MAX_RATIO));
+        }
         boolean logDroppedMsgs = config.getBoolean(ConfigConst.ENABLE_DROPPED_MESSAGE_LOG, false);
         droppedMsgStream = Optional.ofNullable(config.get(ConfigConst.DROPPED_MESSAGE_STREAM_NAME))
                 .map(streamName -> new SystemStream(ConfigConst.DEFAULT_SYSTEM_NAME, streamName));
@@ -98,21 +104,36 @@ public class ErrorHandler {
      * For handling unexpected errors.  Either kill the task for drop the messages
      * depending on configuration.
      */
-    public void handleException(IncomingMessageEnvelope envelope, Exception e) throws Exception {
-        if (!dropOnError) {
+    public void handleException(IncomingMessageEnvelope envelope, Exception e, BaseTask.StreamMetrics metrics) throws Exception {
+        if (!dropOnError || hasTooManyErrors(metrics)) {
             throw e;
         }
-        handleDroppedMessage(envelope, e);
+        handleDroppedMessage(envelope, e, metrics.dropped);
+    }
+
+    public boolean hasTooManyErrors(BaseTask.StreamMetrics metrics) {
+        long msgsDone = metrics.processed.getCount() + metrics.dropped.getCount();
+        if (msgsDone > 500L) {
+            double dropRatio = 1.0;
+            if (metrics.processed.getOneMinuteRate() > 0.0) {
+                dropRatio = metrics.dropped.getOneMinuteRate()/metrics.processed.getOneMinuteRate();
+            }
+            if (dropRatio > dropMaxRatio) {
+                logger.error(String.format("Error ratio (1min avg) %2f has exceeded threshold %f.", dropRatio, dropMaxRatio));
+                return true;
+            }
+        }
+        return false;
     }
 
     /*
      * For handling expected errors.  Drop the message
      */
-    public void handleExpectedError(IncomingMessageEnvelope envelope, Exception e) {
-        handleDroppedMessage(envelope, e);
+    public void handleExpectedError(IncomingMessageEnvelope envelope, Exception e, BaseTask.StreamMetrics metrics) {
+        handleDroppedMessage(envelope, e, metrics.dropped);
     }
 
-    private void handleDroppedMessage(IncomingMessageEnvelope envelope, Exception e) {
+    private void handleDroppedMessage(IncomingMessageEnvelope envelope, Exception e, Meter dropped) {
         droppedMsgStream.ifPresent(stream -> {
             if (logger.isDebugEnabled()) {
                 logger.debug("Sending error info to dropped message stream: " + stream.getStream());
@@ -120,6 +141,7 @@ public class ErrorHandler {
             byte[] msg = serializeDroppedMessage(envelope, e);
             systemProducer.get().send(SYSTEM_PRODUCER_SOURCE, new OutgoingMessageEnvelope(stream, msg));
         });
+        dropped.mark();
     }
 
     private byte[] serializeDroppedMessage(IncomingMessageEnvelope envelope, Exception e) {

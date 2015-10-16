@@ -96,9 +96,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
             }
             catch (Exception e) {
                 logger.error("Exception processing message", e);
-                errorHandler.handleException(envelope, e);
-                //If control reaches here, the message was dropped
-                metrics.dropped.mark();
+                errorHandler.handleException(envelope, e, metrics);
             }
         }
     }
@@ -112,8 +110,7 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
             logger.info("Error processing message", e);
         }
         StreamMsgHandler handler = getStreamMsgHandler(envelope);
-        errorHandler.handleExpectedError(envelope, e);
-        handler.metrics.dropped.mark();
+        errorHandler.handleExpectedError(envelope, e, handler.metrics);
     }
 
     @Override
