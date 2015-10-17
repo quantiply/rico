@@ -43,7 +43,7 @@ public class ErrorHandler {
     private Optional<SystemProducer> systemProducer;
     private boolean dropOnError;
     private Serde serde;
-    private double dropMaxRatio;
+    private double dropMaxRatio = 1.0;
 
     public ErrorHandler(Config config, TaskInfo taskInfo) {
         this.config = config;
@@ -73,6 +73,10 @@ public class ErrorHandler {
 
     public boolean dropOnError() {
         return dropOnError;
+    }
+
+    public double getDropMaxRatio() {
+        return dropMaxRatio;
     }
 
     private void logDroppedMsgConfig() {
@@ -115,7 +119,7 @@ public class ErrorHandler {
         long msgsDone = metrics.processed.getCount() + metrics.dropped.getCount();
         if (msgsDone > 500L) {
             double dropRatio = 1.0;
-            if (metrics.processed.getOneMinuteRate() > 0.0) {
+            if (metrics.dropped.getOneMinuteRate() > 0.0 && metrics.processed.getOneMinuteRate() > 0.0) {
                 dropRatio = metrics.dropped.getOneMinuteRate()/metrics.processed.getOneMinuteRate();
             }
             if (dropRatio > dropMaxRatio) {

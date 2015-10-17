@@ -64,13 +64,19 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
         void apply(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, M customMetrics) throws Exception;
     }
 
-    public class StreamMetrics {
+    public static class StreamMetrics {
         public final Meter processed;
         public final Meter dropped;
 
         public StreamMetrics(StreamMetricRegistry registry) {
             processed = registry.meter("processed");
             dropped = registry.meter("dropped");
+        }
+
+        //For unit testing
+        public StreamMetrics(Meter processed, Meter dropped) {
+            this.processed = processed;
+            this.dropped = dropped;
         }
     }
 
