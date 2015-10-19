@@ -24,6 +24,7 @@ import java.util.Properties;
 
 public class AvroSerdeFactory implements SerdeFactory<Object> {
     public static String CFG_SCHEMA_REGISTRY_URL = "rico.schema.registry.url";
+    public static String CFG_SCHEMA_REGISTRY_MASTER_URL = "rico.schema.registry.master.url";
 
     @Override
     public AvroSerde getSerde(String s, Config config) {
@@ -31,9 +32,10 @@ public class AvroSerdeFactory implements SerdeFactory<Object> {
         if (registryUrl == null) {
             throw new ConfigException("Missing property: " + CFG_SCHEMA_REGISTRY_URL);
         }
+        final String registryMasterUrl = config.get(CFG_SCHEMA_REGISTRY_MASTER_URL, registryUrl);
         final String specificReader = config.get("confluent.specific.avro.reader", "true");
         final Properties encoderProps = new Properties();
-        encoderProps.setProperty("schema.registry.url", registryUrl);
+        encoderProps.setProperty("schema.registry.url", registryMasterUrl);
         final Properties decoderProps = new Properties();
         decoderProps.setProperty("schema.registry.url", registryUrl);
         decoderProps.setProperty("specific.avro.reader", specificReader);
