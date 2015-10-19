@@ -56,13 +56,13 @@ The base task allows you to configure if you want to drop messages.  When a mess
 
 ## Avro Support
 
-Until an official Avro serde exists for Confluent Platform, we provide one.
+Until an official Avro serde for Samza exists which uses Confluent Platform, we [provide one](https://github.com/Quantiply/rico/blob/master/avro/src/main/java/com/quantiply/samza/serde/AvroSerde.java).
 
 ## Standard Partitioning Scheme for Avro Data
 
 Getting partitioning right is perhaps the hardest part of creating Samza jobs as the jobs is left completely in the developers hands.  If you load data from tools like kafka-avro-console-producer (from Confluent Platform), you can get surprising results that don't line up with data partitioned via Samza job.
 
-As of 0.9.0, Samza still uses the hashcode of the Java object to derive a partition id, unless you explicitly provide an partition id.  The new Kafka producer (used by kafka-avro-console-producer), however, uses a murmur2 hash of the message bytes to determine partition id.  Partitioning based on serialized bytes is preferred because it is well-defined for any message and does not require a Java object representation of the data.
+As of 0.9.x, Samza still uses the hashcode of the Java object to derive a partition id, unless you explicitly provide an partition id.  The new Kafka producer (used by kafka-avro-console-producer), however, uses a murmur2 hash of the message bytes to determine partition id.  Partitioning based on serialized bytes is preferred because it is well-defined for any message and does not require a Java object representation of the data.
 
 However, when using Camus/Confluent Platform framing for key messages, the first part of the key contains a non-deterministic schema id.  The base task provides utility methods to hash based solely on the content of the key, not on it's schema id.
 

@@ -153,5 +153,6 @@ If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send the
 If you get a bad record in an input Kafka topic and it causes a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
 
 ##TODO
-* Add support for deletes (requires changes to system producer)
+* Support for deletes (requires changes to system producer)
+* Support for partial updates
 * Add metric for tracking latency from message origin time (if provided in the metadata) to the time when index request is acknowledged.  This would provide a metric for complete end-to-end pipeline latency.  Also requires changes to the system producer in the Samza project.
