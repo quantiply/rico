@@ -117,14 +117,23 @@ public class ErrorHandler {
 
     public boolean hasTooManyErrors(BaseTask.StreamMetrics metrics) {
         long msgsDone = metrics.processed.getCount() + metrics.dropped.getCount();
-        if (msgsDone > 500L) {
-            double dropRatio = 1.0;
-            if (metrics.dropped.getOneMinuteRate() > 0.0 && metrics.processed.getOneMinuteRate() > 0.0) {
-                dropRatio = metrics.dropped.getOneMinuteRate()/metrics.processed.getOneMinuteRate();
+        if (msgsDone > 100L) {
+            double dropRate = metrics.dropped.getOneMinuteRate();
+            double successRate = metrics.processed.getOneMinuteRate();
+            if (dropRate > 0.0) {
+                double totalRate = dropRate + successRate;
+                double dropRatio = dropRate/totalRate;
+                if (logger.isTraceEnabled()) {
+                    logger.trace(String.format("Drop rate: %f msg/s, success rate %f msg/s, total rate %f msg/s, drop ratio %f, max drop ratio %f",
+                            dropRate, successRate, totalRate, dropRatio, dropMaxRatio));
+                }
+                if (dropRatio > dropMaxRatio) {
+                    logger.error(String.format("Error ratio (1min avg) %2f has exceeded threshold %f.", dropRatio, dropMaxRatio));
+                    return true;
+                }
             }
-            if (dropRatio > dropMaxRatio) {
-                logger.error(String.format("Error ratio (1min avg) %2f has exceeded threshold %f.", dropRatio, dropMaxRatio));
-                return true;
+            else {
+                logger.trace("Drop rate is still 0.0");
             }
         }
         return false;
@@ -145,6 +154,9 @@ public class ErrorHandler {
             byte[] msg = serializeDroppedMessage(envelope, e);
             systemProducer.get().send(SYSTEM_PRODUCER_SOURCE, new OutgoingMessageEnvelope(stream, msg));
         });
+        if (logger.isDebugEnabled()) {
+            logger.debug("Dropping message");
+        }
         dropped.mark();
     }
 

@@ -49,8 +49,6 @@ public class ErrorHandlerTest {
         when(clock.getTick()).thenReturn(TimeUnit.SECONDS.toNanos(10));
         assertTrue(metrics.processed.getOneMinuteRate() > 0);
         assertTrue(metrics.dropped.getOneMinuteRate() > 0);
-        System.out.println(metrics.processed.getOneMinuteRate());
-        System.out.println(metrics.dropped.getOneMinuteRate());
         assertTrue(errHandler.hasTooManyErrors(metrics));
     }
 
