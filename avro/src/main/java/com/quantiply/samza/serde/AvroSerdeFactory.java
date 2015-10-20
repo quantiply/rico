@@ -19,12 +19,15 @@ import kafka.utils.VerifiableProperties;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
 import org.apache.samza.serializers.SerdeFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 public class AvroSerdeFactory implements SerdeFactory<Object> {
     public static String CFG_SCHEMA_REGISTRY_URL = "rico.schema.registry.url";
     public static String CFG_SCHEMA_REGISTRY_MASTER_URL = "rico.schema.registry.master.url";
+    private static Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
     @Override
     public AvroSerde getSerde(String s, Config config) {
@@ -36,8 +39,10 @@ public class AvroSerdeFactory implements SerdeFactory<Object> {
         final String specificReader = config.get("confluent.specific.avro.reader", "true");
         final Properties encoderProps = new Properties();
         encoderProps.setProperty("schema.registry.url", registryMasterUrl);
+        logger.info("Avro encoder registry: " + registryMasterUrl);
         final Properties decoderProps = new Properties();
         decoderProps.setProperty("schema.registry.url", registryUrl);
+        logger.info("Avro decoder registry: " + registryUrl);
         decoderProps.setProperty("specific.avro.reader", specificReader);
         return new AvroSerde(new VerifiableProperties(encoderProps), new VerifiableProperties(decoderProps));
     }
