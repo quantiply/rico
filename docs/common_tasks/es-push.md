@@ -18,7 +18,7 @@ There are three ways to specify document metadata
 
 ### Kafka Key As Document Id
 
-If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the bytes directly to Elasticsearch for maximum throughput. If you do not specify a document id, a default id will be constructed based on the Kafka topic, partition, and offset.  This guarantees idempotent inserts.
+If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the bytes directly to Elasticsearch for maximum throughput. If you do not specify a document id, a default id will be constructed based on the Kafka topic, partition, and offset.  This guarantees idempotent inserts within a give Elasticsearch index. However, if you partition indexes by time, you can still get duplicates across partitions unless you also provide a timestamp.
 
 ### Kafka Key As Avro
 
