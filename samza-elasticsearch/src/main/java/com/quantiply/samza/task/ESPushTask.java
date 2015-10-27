@@ -46,9 +46,9 @@ import java.util.function.BiFunction;
 
  */
 public class ESPushTask extends BaseTask {
-    private SystemStream esStream;
-    private AvroSerde avroSerde;
-    private JsonSerde jsonSerde;
+    protected SystemStream esStream;
+    protected AvroSerde avroSerde;
+    protected JsonSerde jsonSerde;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -105,11 +105,14 @@ public class ESPushTask extends BaseTask {
         return func;
     }
 
-    private OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected OutgoingMessageEnvelope getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         SystemStream stream = getESSystemStream(spec, Optional.empty());
         //Message key is used for the document id
         String id = null;
-        if (envelope.getKey() != null) {
+        if (envelope.getKey() == null) {
+            id = getMessageIdFromSource(envelope);
+        }
+        else {
             id = new String((byte [])envelope.getKey(), StandardCharsets.UTF_8);
         }
         if (logger.isDebugEnabled()) {
@@ -118,8 +121,11 @@ public class ESPushTask extends BaseTask {
         return new OutgoingMessageEnvelope(stream, null, id, envelope.getMessage());
     }
 
-    private OutgoingMessageEnvelope getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected OutgoingMessageEnvelope getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         IndexRequestKey key = (IndexRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
+        if (key.getId() == null) {
+            key.setId(getMessageIdFromSource(envelope));
+        }
         SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
         setDefaultVersionType(key, spec);
         if (logger.isDebugEnabled()) {
@@ -134,6 +140,9 @@ public class ESPushTask extends BaseTask {
         if (document.containsKey("_id") && document.get("_id") instanceof String) {
             keyBuilder.setId((String) document.get("_id"));
             document.remove("_id");
+        }
+        else {
+            keyBuilder.setId(getMessageIdFromSource(envelope));
         }
         if (document.containsKey("_version") && document.get("_version") instanceof Number) {
             keyBuilder.setVersion(((Number) document.get("_version")).longValue());

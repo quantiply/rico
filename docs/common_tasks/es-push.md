@@ -18,7 +18,7 @@ There are three ways to specify document metadata
 
 ### Kafka Key As Document Id
 
-If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the bytes directly to Elasticsearch for maximum throughput. 
+If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the bytes directly to Elasticsearch for maximum throughput. If you do not specify a document id, a default id will be constructed based on the Kafka topic, partition, and offset.  This guarantees idempotent inserts.
 
 ### Kafka Key As Avro
 
@@ -26,7 +26,7 @@ If you need to specify additional metadata while leaving the document untouched 
 
 The fields in the Avro message (all of them optional) are:
 
-* `id` - document id
+* `id` - document id. If not set, it constructs a key based on Kafka topic, partition, and offset.
 * `version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
 * `version_type` - INTERNAL, EXTERNAL, EXTERNAL_GTE, FORCE
 * `timestamp` - document [timestamp](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html)
@@ -38,7 +38,7 @@ The fields in the Avro message (all of them optional) are:
 Encoding metadata as Avro is the most effecient method but not the most convenient.  The third alternative is to embed metadata into the JSON message itself.  The job will remove these special fields before indexing the document in Elasticsearch.
 
 * `@timestamp` - timestamp (milliseconds since epoch) to choose the correct index for the message.
-* `_id` - document id
+* `_id` - document id. If not set, it constructs a key based on Kafka topic, partition, and offset.
 * `_version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
 * `_version_type` - internal, external, external_gte, force
 * `_timestamp` - document [timestamp](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html)
