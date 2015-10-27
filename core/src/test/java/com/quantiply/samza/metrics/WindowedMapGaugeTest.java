@@ -22,6 +22,12 @@ public class WindowedMapGaugeTest {
         assertEquals(new WindowedMapGauge.Windows(300000L, 240000L), gauge.getWindowStartTimes(300001L));
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testUpdateWithNull() {
+        WindowedMapGauge<Long> gauge = new WindowedMapGauge<>("wtf", 60000L, Long::max);
+        gauge.update(null, 10L);
+    }
+
     @Test
     public void testUpdate() throws Exception {
         final long windowMs = 60000L;

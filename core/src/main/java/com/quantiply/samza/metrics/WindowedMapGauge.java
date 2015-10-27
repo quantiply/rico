@@ -17,6 +17,7 @@ package com.quantiply.samza.metrics;
 
 import org.apache.samza.metrics.Gauge;
 import org.apache.samza.util.Clock;
+import scala.xml.Null;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,6 +77,9 @@ public class WindowedMapGauge<V> extends Gauge<Map<String,Object>> {
      * Called from the main event loop thread. All state changes are done in this thread.
      */
     public void update(String src, V val){
+        if (src == null) {
+            throw new NullPointerException("Null source");
+        }
         Windows newWindows = getWindowStartTimes(clock.currentTimeMillis());
         if (!newWindows.equals(windows)) {
             prevWindowMap = newWindows.prevStartMs == windows.activeStartMs? curWindowMap : new HashMap<>();
