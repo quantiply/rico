@@ -52,7 +52,7 @@ Some metrics apply to the whole task such as the rate of messages being produced
 
 If a job receives a message that it cannot handle, it can either fail or drop the message and continue.  When availability matters more than accuracy, you can configure the job to drop failed messages.  In such a case, how do you know how many messages are being dropped and which ones?
 
-The base task allows you to configure if you want to drop messages.  When a message is dropped, it's tracked via a task metric and it's meta-data is written to a configurable topic so that the developer can later debug these messages and potentially re-process them.
+The base task allows you to configure if you want to drop messages.  When a message is dropped, it's tracked via a task metric and it's meta-data is written to a configurable topic so that the developer can later debug these messages and potentially re-process them.  If you allow messages to be dropped, you can set a maximum tolerable error rate.  If the ratio of errors to non-errors (1 minute average) exceeds this threshold value for a given task, the job will exit.
 
 ## Avro Support
 
