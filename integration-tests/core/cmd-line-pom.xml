@@ -11,7 +11,7 @@
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <avro.version>1.7.7</avro.version>
-      <rico.version>0.0.22-SNAPSHOT</rico.version>
+      <rico.version>1.0.0</rico.version>
       <samza.version>0.9.1</samza.version>
       <kafka.version>0.8.2.1</kafka.version>
       <jackson.version>1.8.5</jackson.version>
@@ -81,7 +81,7 @@
           <version>${avro.version}</version>
           <scope>provided</scope>
         </dependency>
-        <!-- 
+        <!--
           rhoover - ran into conflict with Avro + Samza versions of jackson-core-asl
         -->
         <dependency>
