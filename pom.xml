@@ -28,7 +28,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <avro.version>1.7.7</avro.version>
         <samza.version>0.9.1</samza.version>
-        <confluent.version>1.0-q1</confluent.version>
+        <confluent.version>1.0-q4</confluent.version>
         <kafka.version>0.8.2.1</kafka.version>
         <jackson.version>2.2.2</jackson.version>
         <elasticsearch.version>1.7.2</elasticsearch.version>

@@ -15,6 +15,8 @@
  */
 package com.quantiply.samza.serde;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import org.apache.avro.Schema;
 import org.apache.samza.serializers.Serde;
 import io.confluent.kafka.serializers.KafkaAvroDecoder;
 import io.confluent.kafka.serializers.KafkaAvroEncoder;
@@ -29,10 +31,20 @@ public class AvroSerde implements Serde<Object> {
         decoder = new KafkaAvroDecoder(decoderProps);
     }
 
+    /**
+     * For unit testing
+     */
+    public AvroSerde(SchemaRegistryClient srClient, VerifiableProperties decoderProps) {
+        encoder = new KafkaAvroEncoder(srClient);
+        decoder = new KafkaAvroDecoder(srClient, decoderProps);
+    }
+
     @Override
     public Object fromBytes(byte[] bytes) {
         return decoder.fromBytes(bytes);
     }
+
+    public Object fromBytes(byte[] bytes, Schema readerSchema) { return decoder.fromBytes(bytes, readerSchema); }
 
     @Override
     public byte[] toBytes(Object msg) {

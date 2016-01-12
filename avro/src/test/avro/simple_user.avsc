@@ -1,0 +1,11 @@
+{
+  "namespace": "com.quantiply.test",
+  "type": "record",
+  "name": "SimpleUser",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string"
+    }
+  ]
+}
