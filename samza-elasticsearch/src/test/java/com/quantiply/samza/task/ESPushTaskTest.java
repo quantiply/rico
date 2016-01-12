@@ -2,22 +2,19 @@ package com.quantiply.samza.task;
 
 import com.quantiply.rico.elasticsearch.IndexRequestKey;
 import com.quantiply.samza.serde.AvroSerde;
-import com.quantiply.samza.serde.AvroSerdeFactory;
 import org.apache.samza.Partition;
 import org.apache.samza.config.MapConfig;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStreamPartition;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import org.apache.samza.util.Clock;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ESPushTaskTest {
 
