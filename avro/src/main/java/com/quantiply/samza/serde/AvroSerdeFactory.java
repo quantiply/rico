@@ -27,6 +27,7 @@ import java.util.Properties;
 public class AvroSerdeFactory implements SerdeFactory<Object> {
     public static String CFG_SCHEMA_REGISTRY_URL = "rico.schema.registry.url";
     public static String CFG_SCHEMA_REGISTRY_MASTER_URL = "rico.schema.registry.master.url";
+    public static String CFG_SCHEMA_PROJECTION_CLASS = "rico.schema.projection.class";
     private static Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
     @Override
@@ -36,6 +37,7 @@ public class AvroSerdeFactory implements SerdeFactory<Object> {
             throw new ConfigException("Missing property: " + CFG_SCHEMA_REGISTRY_URL);
         }
         final String registryMasterUrl = config.get(CFG_SCHEMA_REGISTRY_MASTER_URL, registryUrl);
+        final String projectionClass = config.get(CFG_SCHEMA_PROJECTION_CLASS);
         final String specificReader = config.get("confluent.specific.avro.reader", "true");
         final Properties encoderProps = new Properties();
         encoderProps.setProperty("schema.registry.url", registryMasterUrl);
@@ -44,6 +46,9 @@ public class AvroSerdeFactory implements SerdeFactory<Object> {
         decoderProps.setProperty("schema.registry.url", registryUrl);
         logger.info("Avro decoder registry: " + registryUrl);
         decoderProps.setProperty("specific.avro.reader", specificReader);
+        if (projectionClass != null) {
+            decoderProps.setProperty("specific.avro.reader.class", projectionClass);
+        }
         return new AvroSerde(new VerifiableProperties(encoderProps), new VerifiableProperties(decoderProps));
     }
 }
