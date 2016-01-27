@@ -26,6 +26,10 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <artifactId>rico-samza-elasticsearch</artifactId>
 
+    <properties>
+        <jest.version>2.0.0</jest.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.quantiply.rico</groupId>
@@ -36,8 +40,9 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>slf4j-log4j12</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
+            <groupId>io.searchbox</groupId>
+            <artifactId>jest</artifactId>
+            <version>${jest.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>

@@ -71,7 +71,8 @@ public class ESPushTask extends BaseTask {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(spec.indexNameDateZone);
         String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat)).toLowerCase(); //ES index names must be lowercase
-        return new SystemStream(ESPushTaskConfig.CFS_ES_SYSTEM_NAME, String.format("%s%s/%s", spec.indexNamePrefix, dateStr, spec.docType));
+        return null;
+//        return new SystemStream(ESPushTaskConfig.CFS_ES_SYSTEM_NAME, String.format("%s%s/%s", spec.indexNamePrefix, dateStr, spec.docType));
     }
 
     private Process getHandler(Config config, ESPushTaskConfig.ESIndexSpec esIndexSpec) {

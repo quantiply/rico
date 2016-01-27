@@ -16,8 +16,6 @@
 package com.quantiply.samza.task;
 
 import com.quantiply.rico.elasticsearch.VersionType;
-import com.quantiply.samza.elasticsearch.AvroKeyIndexRequestFactory;
-import com.quantiply.samza.elasticsearch.IndexRequestFromKey;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
 
@@ -39,6 +37,18 @@ public class ESPushTaskConfig {
 
     public enum MetadataSrc { KEY_DOC_ID, KEY_AVRO, EMBEDDED }
 
+    public static class ESClientConfig {
+        public final String httpHost;
+        public final int httpPort;
+        public final Optional<Integer> flushMaxActions;
+
+        public ESClientConfig(String httpHost, int httpPort, Optional<Integer> flushMaxActions) {
+            this.httpHost = httpHost;
+            this.httpPort = httpPort;
+            this.flushMaxActions = flushMaxActions;
+        }
+    }
+
     public static class ESIndexSpec {
         public final MetadataSrc metadataSrc;
         public final String indexNamePrefix;
@@ -57,7 +67,9 @@ public class ESPushTaskConfig {
         }
     }
 
-    public final static String CFS_ES_SYSTEM_NAME = "es";
+    public final static String CFG_ES_HTTP_HOST = "rico.es.http.host";
+    public final static String CFG_ES_HTTP_PORT = "rico.es.http.port";
+    public final static String CFG_ES_FLUSH_MAX_ACTIONS = "rico.es.flush.max.actions";
     public final static String CFG_ES_STREAMS = "rico.es.streams";
     public final static String CFG_ES_DEFAULT_DOC_METADATA_SRC = "rico.es.metadata.source";
     public final static String CFG_ES_STREAM_DOC_METADATA_SRC = "rico.es.stream.%s.metadata.source";
@@ -77,6 +89,17 @@ public class ESPushTaskConfig {
     public static boolean isStreamConfig(Config config) {
         String streamList = config.get(CFG_ES_STREAMS);
         return streamList != null && streamList.length() > 0;
+    }
+
+    public static ESClientConfig getClientConfig(Config config) {
+        String httpHost = getDefaultConfigParam(config, CFG_ES_HTTP_HOST, null);
+        int httpPort = Integer.parseInt(getDefaultConfigParam(config, CFG_ES_HTTP_PORT, "80"));
+        Optional<Integer> flushMaxActions = getFlushMaxActions(config);
+        return new ESClientConfig(
+            httpHost,
+            httpPort,
+            flushMaxActions
+        );
     }
 
     public static ESIndexSpec getDefaultConfig(Config config) {
@@ -131,6 +154,15 @@ public class ESPushTaskConfig {
         return config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC, MetadataSrc.KEY_DOC_ID.name());
     }
 
+    private static Optional<Integer> getFlushMaxActions(Config config) {
+        Optional<Integer> maxActions = Optional.empty();
+        String maxActionsStr = config.get(CFG_ES_FLUSH_MAX_ACTIONS);
+        if (maxActionsStr != null) {
+            maxActions = Optional.of(Integer.parseInt(maxActionsStr));
+        }
+        return maxActions;
+    }
+
     private static Optional<VersionType> getVersionType(String defaultVersionTypeStr) {
         Optional<VersionType> defaultVersionType = Optional.empty();
         if (defaultVersionTypeStr != null) {
@@ -146,17 +178,7 @@ public class ESPushTaskConfig {
                     stream, metadataSrcStr,
                     String.join(",", METADATA_SRC_OPTIONS)));
         }
-        MetadataSrc metadataSrc = MetadataSrc.valueOf(metadataSrcStr.toUpperCase());
-        if (metadataSrc == MetadataSrc.KEY_AVRO || metadataSrc == MetadataSrc.EMBEDDED) {
-            String indexReqFactoryParam = String.format("systems.%s.index.request.factory", CFS_ES_SYSTEM_NAME);
-            String indexReqFactoryStr = config.get(indexReqFactoryParam);
-            List<String> validNames = Arrays.asList(IndexRequestFromKey.class.getCanonicalName(), AvroKeyIndexRequestFactory.class.getCanonicalName());
-            if (indexReqFactoryStr == null || !validNames.contains(indexReqFactoryStr)) {
-                throw new ConfigException(String.format("For the ES %s metadata source, %s must be set to %s",
-                        metadataSrcStr, indexReqFactoryParam, IndexRequestFromKey.class.getCanonicalName()));
-            }
-        }
-        return metadataSrc;
+        return MetadataSrc.valueOf(metadataSrcStr.toUpperCase());
     }
 
     private static String getDefaultConfigParam(Config config, String param, String defaultVal) {

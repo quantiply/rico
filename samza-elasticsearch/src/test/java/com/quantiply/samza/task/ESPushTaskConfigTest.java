@@ -40,10 +40,39 @@ public class ESPushTaskConfigTest {
     }
 
     @Test
+    public void testClientConfig() throws Exception {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("rico.es.http.host", "foo.com");
+        MapConfig config = new MapConfig(map);
+
+        ESPushTaskConfig.ESClientConfig clientConfig = ESPushTaskConfig.getClientConfig(config);
+        assertNotNull(clientConfig);
+        assertEquals("foo.com", clientConfig.httpHost);
+        assertEquals(80, clientConfig.httpPort);
+        assertFalse(clientConfig.flushMaxActions.isPresent());
+    }
+
+    @Test
+    public void testClientConfigExplicit() throws Exception {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("rico.es.http.host", "foo.com");
+        map.put("rico.es.http.port", "8080");
+        map.put("rico.es.flush.max.actions", "1000");
+        MapConfig config = new MapConfig(map);
+
+        ESPushTaskConfig.ESClientConfig clientConfig = ESPushTaskConfig.getClientConfig(config);
+        assertNotNull(clientConfig);
+        assertEquals("foo.com", clientConfig.httpHost);
+        assertEquals(8080, clientConfig.httpPort);
+        assertTrue(clientConfig.flushMaxActions.isPresent());
+        assertEquals(1000, clientConfig.flushMaxActions.get().intValue());
+    }
+
+    @Test
     public void testDefaultConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
-        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.IndexRequestFromKey");
 
+        map.put("rico.es.http.host", "foo.com");
         map.put("rico.es.index.prefix", "Slow_svc");
         map.put("rico.es.index.date.zone", "Etc/UTC");
         map.put("rico.es.index.date.format", ".yyyy");
@@ -66,7 +95,6 @@ public class ESPushTaskConfigTest {
     @Test
     public void testStreamConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
-        map.put("systems.es.index.request.factory", "com.quantiply.samza.elasticsearch.IndexRequestFromKey");
 
         map.put("rico.es.streams", "server_stats,rep_latency");
         map.put("rico.es.index.date.zone", "Etc/UTC");
