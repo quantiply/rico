@@ -29,6 +29,7 @@ import org.apache.samza.system.SystemStream;
 import org.apache.samza.task.MessageCollector;
 import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
+import org.apache.samza.task.WindowableTask;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -40,7 +41,7 @@ import java.util.function.BiFunction;
  - Requires byte serdes for message keys and values
 
  */
-public class ESPushTask extends BaseTask {
+public class ESPushTask extends BaseTask implements WindowableTask {
     protected SystemStream esStream;
     protected AvroSerde avroSerde;
     protected JsonSerde jsonSerde;
@@ -60,6 +61,12 @@ public class ESPushTask extends BaseTask {
         else {
             registerDefaultHandler(getHandler(config, ESPushTaskConfig.getDefaultConfig(config)));
         }
+        //TODO - assert manual checkpointing??
+    }
+
+    @Override
+    public void window(MessageCollector messageCollector, TaskCoordinator taskCoordinator) throws Exception {
+
     }
 
     private Process getHandler(Config config, ESPushTaskConfig.ESIndexSpec esIndexSpec) {
@@ -173,4 +180,5 @@ public class ESPushTask extends BaseTask {
             key.setEventTsUnixMs(tsNowMs);
         }
     }
+
 }

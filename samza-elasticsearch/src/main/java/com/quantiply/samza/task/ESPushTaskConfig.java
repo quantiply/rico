@@ -40,12 +40,14 @@ public class ESPushTaskConfig {
     public static class ESClientConfig {
         public final String httpHost;
         public final int httpPort;
-        public final Optional<Integer> flushMaxActions;
+        public final int flushMaxActions;
+        public final int flushMaxWindowIntervals;
 
-        public ESClientConfig(String httpHost, int httpPort, Optional<Integer> flushMaxActions) {
+        public ESClientConfig(String httpHost, int httpPort, int flushMaxActions, int flushMaxWindowIntervals) {
             this.httpHost = httpHost;
             this.httpPort = httpPort;
             this.flushMaxActions = flushMaxActions;
+            this.flushMaxWindowIntervals = flushMaxWindowIntervals;
         }
     }
 
@@ -70,6 +72,7 @@ public class ESPushTaskConfig {
     public final static String CFG_ES_HTTP_HOST = "rico.es.http.host";
     public final static String CFG_ES_HTTP_PORT = "rico.es.http.port";
     public final static String CFG_ES_FLUSH_MAX_ACTIONS = "rico.es.flush.max.actions";
+    public final static String CFG_ES_FLUSH_MAX_WINDOW_INTERVALS = "rico.es.flush.max.window.intervals";
     public final static String CFG_ES_STREAMS = "rico.es.streams";
     public final static String CFG_ES_DEFAULT_DOC_METADATA_SRC = "rico.es.metadata.source";
     public final static String CFG_ES_STREAM_DOC_METADATA_SRC = "rico.es.stream.%s.metadata.source";
@@ -83,6 +86,8 @@ public class ESPushTaskConfig {
     public final static String CFG_ES_STREAM_DOC_TYPE = "rico.es.stream.%s.doc.type";
     public final static String CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT = "rico.es.version.type.default";
     public final static String CFG_ES_STREAM_VERSION_TYPE_DEFAULT = "rico.es.stream.%s.version.type.default";
+    public final static String DEFAULT_FLUSH_MAX_ACTIONS = "10000";
+    public final static String DEFAULT_FLUSH_MAX_WINDOW_INTERVALS = "1000"; //1sec for window.ms minimum values (1 ms)
 
     private final static HashSet<String> METADATA_SRC_OPTIONS = Arrays.stream(MetadataSrc.values()).map(v -> v.toString().toLowerCase()).collect(Collectors.toCollection(HashSet::new));
 
@@ -94,11 +99,13 @@ public class ESPushTaskConfig {
     public static ESClientConfig getClientConfig(Config config) {
         String httpHost = getDefaultConfigParam(config, CFG_ES_HTTP_HOST, null);
         int httpPort = Integer.parseInt(getDefaultConfigParam(config, CFG_ES_HTTP_PORT, "80"));
-        Optional<Integer> flushMaxActions = getFlushMaxActions(config);
+        int flushMaxActions = getFlushMaxActions(config);
+        int flushMaxWindowIntervals = getFlushMaxWindowIntervals(config);
         return new ESClientConfig(
             httpHost,
             httpPort,
-            flushMaxActions
+            flushMaxActions,
+            flushMaxWindowIntervals
         );
     }
 
@@ -154,13 +161,12 @@ public class ESPushTaskConfig {
         return config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC, MetadataSrc.KEY_DOC_ID.name());
     }
 
-    private static Optional<Integer> getFlushMaxActions(Config config) {
-        Optional<Integer> maxActions = Optional.empty();
-        String maxActionsStr = config.get(CFG_ES_FLUSH_MAX_ACTIONS);
-        if (maxActionsStr != null) {
-            maxActions = Optional.of(Integer.parseInt(maxActionsStr));
-        }
-        return maxActions;
+    private static int getFlushMaxActions(Config config) {
+        return Integer.parseInt(config.get(CFG_ES_FLUSH_MAX_ACTIONS, DEFAULT_FLUSH_MAX_ACTIONS));
+    }
+
+    private static int getFlushMaxWindowIntervals(Config config) {
+        return Integer.parseInt(config.get(CFG_ES_FLUSH_MAX_WINDOW_INTERVALS, DEFAULT_FLUSH_MAX_WINDOW_INTERVALS));
     }
 
     private static Optional<VersionType> getVersionType(String defaultVersionTypeStr) {

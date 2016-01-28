@@ -43,6 +43,7 @@ public class HTTPBulkLoader {
   protected final JestClient client;
   protected final Consumer<BulkResult> afterFlush;
   protected final List<BulkableAction<DocumentResult>> actions;
+  protected int windowsSinceFlush = 0;
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
   public HTTPBulkLoader(ESPushTaskConfig.ESClientConfig clientConfig, Consumer<BulkResult> afterFlush) {
@@ -71,11 +72,15 @@ public class HTTPBulkLoader {
       }
       action = builder.build();
     }
+    else {
+      throw new RuntimeException("Not implemented");
+    }
     actions.add(action);
     checkFlush();
   }
 
-  public void onInterval() throws IOException {
+  public void window() throws IOException {
+    windowsSinceFlush += 1;
     checkFlush();
   }
 
@@ -85,6 +90,8 @@ public class HTTPBulkLoader {
       BulkResult bulkResult = client.execute(bulkRequest);
 
       //TODO - checkpoint Samza in the callback
+      //pass request event times
+      //pass trigger method
       afterFlush.accept(bulkResult);
     }
     catch (Exception e) {
@@ -92,12 +99,22 @@ public class HTTPBulkLoader {
       throw e;
     }
     finally {
+      windowsSinceFlush = 0;
       actions.clear();
     }
   }
 
-  protected boolean checkFlush() throws IOException {
-    return false;
+  protected boolean needsFlush() {
+    if (actions.size() >= clientConfig.flushMaxActions) {
+      return true;
+    }
+    return windowsSinceFlush >= clientConfig.flushMaxWindowIntervals;
+  }
+
+  protected void checkFlush() throws IOException {
+    if (needsFlush()) {
+      flush();
+    }
   }
 
   protected String getIndex(ESPushTaskConfig.ESIndexSpec spec, ActionRequestKey requestKey) {
