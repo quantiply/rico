@@ -65,15 +65,20 @@ public class ESPushTask extends BaseTask implements WindowableTask {
             registerDefaultHandler(getHandler(config, ESPushTaskConfig.getDefaultConfig(config)));
         }
         esLoader = new HTTPBulkLoader(ESPushTaskConfig.getClientConfig(config), this::onFlush);
-        //TODO - assert manual checkpointing??
+        //TODO - assert manual checkpointing?? - set task.commit.ms=-1?
     }
 
     protected void onFlush(HTTPBulkLoader.BulkReport report) {
-        logger.debug("After flush");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Committing task: " + coordinator.toString());
+        }
+        //Commit progress of Samza task
+        coordinator.commit(TaskCoordinator.RequestScope.CURRENT_TASK);
+        //TODO - update metrics here
     }
 
     @Override
-    public void window(MessageCollector messageCollector, TaskCoordinator taskCoordinator) throws Exception {
+    public void window(MessageCollector messageCollector, TaskCoordinator coordinator) throws Exception {
         esLoader.window();
     }
 
@@ -127,7 +132,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
             .setAction(Action.INDEX)
             .build();
         setDefaults(key, spec, envelope, tsNowMs);
-        return new HTTPBulkLoader.ActionRequest(key, spec, document);
+        return new HTTPBulkLoader.ActionRequest(key, spec, document, tsNowMs);
     }
 
     protected HTTPBulkLoader.ActionRequest getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
@@ -139,7 +144,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
         Map<String, Object> document = (Map<String, Object>) jsonSerde.fromBytes((byte[]) envelope.getMessage());
         ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
         setDefaults(key, spec, envelope, tsNowMs);
-        return new HTTPBulkLoader.ActionRequest(key, spec, document);
+        return new HTTPBulkLoader.ActionRequest(key, spec, document, tsNowMs);
     }
 
     protected HTTPBulkLoader.ActionRequest getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
@@ -171,7 +176,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
         }
         ActionRequestKey key = keyBuilder.build();
         setDefaults(key, spec, envelope, tsNowMs);
-        return new HTTPBulkLoader.ActionRequest(key, spec, document);
+        return new HTTPBulkLoader.ActionRequest(key, spec, document, tsNowMs);
     }
 
     private void setDefaults(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs) {

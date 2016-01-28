@@ -58,11 +58,13 @@ public class HTTPBulkLoader {
     public final ActionRequestKey key;
     public final ESPushTaskConfig.ESIndexSpec spec;
     public final Object source;
+    public final long timeMs;
 
-    public ActionRequest(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, Object source) {
+    public ActionRequest(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, Object source, long timeMs) {
       this.key = key;
       this.spec = spec;
       this.source = source;
+      this.timeMs = timeMs;
     }
   }
 
