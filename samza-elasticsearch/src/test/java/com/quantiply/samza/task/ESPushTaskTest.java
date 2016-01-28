@@ -6,6 +6,7 @@ import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.serde.AvroSerde;
 import org.apache.samza.Partition;
 import org.apache.samza.config.MapConfig;
+import org.apache.samza.serializers.JsonSerde;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.SystemStreamPartition;
 import org.junit.Test;
@@ -35,6 +36,8 @@ public class ESPushTaskTest {
         ESPushTask task = new ESPushTask();
         SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
         IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
+        task.jsonSerde = mock(JsonSerde.class);
+        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
         ActionRequestKey requestKey = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
         assertEquals("fake-0-1234", requestKey.getId().toString());
@@ -59,7 +62,7 @@ public class ESPushTaskTest {
         ESPushTask task = new ESPushTask();
         SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.DELETE)
+            .setAction(Action.INSERT)
             .setEventTsUnixMs(3L)
             .setPartitionTsUnixMs(4L)
             .setVersionType(VersionType.INTERNAL)
@@ -70,7 +73,7 @@ public class ESPushTaskTest {
         IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
         ActionRequestKey requestKey = task.getAvroKeyOutMsg(in, esConfig);
         assertEquals("fake-0-1234", requestKey.getId().toString());
-        assertEquals(Action.DELETE, requestKey.getAction());
+        assertEquals(Action.INSERT, requestKey.getAction());
         assertEquals(4L, requestKey.getPartitionTsUnixMs().longValue());
         assertEquals(3L, requestKey.getEventTsUnixMs().longValue());
         assertEquals(VersionType.INTERNAL, requestKey.getVersionType());
@@ -90,7 +93,9 @@ public class ESPushTaskTest {
 
         ESPushTask task = new ESPushTask();
         SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, "{}");
+        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
+        task.jsonSerde = mock(JsonSerde.class);
+        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
         ActionRequestKey requestKey = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
         assertEquals("fake-0-1234", requestKey.getId().toString());
