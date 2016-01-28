@@ -21,24 +21,24 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public class HTTPBulkLoader {
-  protected final Optional<Integer> maxActions;
+  protected final ESPushTaskConfig.ESClientConfig clientConfig;
   protected final JestClient client;
   protected final Consumer<BulkResult> afterFlush;
   protected final List<BulkableAction<DocumentResult>> actions;
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
   public HTTPBulkLoader(ESPushTaskConfig.ESClientConfig clientConfig, Consumer<BulkResult> afterFlush) {
+    this.clientConfig = clientConfig;
+    this.afterFlush = afterFlush;
+    actions = new ArrayList<>();
+
     String elasticUrl = String.format("http://%s:%s", clientConfig.httpHost, clientConfig.httpPort);
-    maxActions = clientConfig.flushMaxActions;
     JestClientFactory jestFactory = new JestClientFactory();
     jestFactory.setHttpClientConfig(new HttpClientConfig.Builder(elasticUrl).multiThreaded(true).build());
     client = jestFactory.getObject();
-    this.afterFlush = afterFlush;
-    actions = new ArrayList<>();
   }
 
   public void addAction(ESPushTaskConfig.ESIndexSpec spec, ActionRequestKey requestKey, Object source) throws IOException {
