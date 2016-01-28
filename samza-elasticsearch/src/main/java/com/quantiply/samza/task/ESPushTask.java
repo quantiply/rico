@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza.task;
 
+import com.quantiply.elasticsearch.HTTPBulkLoader;
 import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
 import com.quantiply.rico.elasticsearch.VersionType;
@@ -31,6 +32,7 @@ import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
 import org.apache.samza.task.WindowableTask;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +47,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
     protected SystemStream esStream;
     protected AvroSerde avroSerde;
     protected JsonSerde jsonSerde;
+    protected HTTPBulkLoader esLoader;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -61,12 +64,17 @@ public class ESPushTask extends BaseTask implements WindowableTask {
         else {
             registerDefaultHandler(getHandler(config, ESPushTaskConfig.getDefaultConfig(config)));
         }
+        esLoader = new HTTPBulkLoader(ESPushTaskConfig.getClientConfig(config), this::onFlush);
         //TODO - assert manual checkpointing??
+    }
+
+    protected void onFlush(HTTPBulkLoader.BulkReport report) {
+        logger.debug("After flush");
     }
 
     @Override
     public void window(MessageCollector messageCollector, TaskCoordinator taskCoordinator) throws Exception {
-
+        esLoader.window();
     }
 
     private Process getHandler(Config config, ESPushTaskConfig.ESIndexSpec esIndexSpec) {
@@ -74,18 +82,19 @@ public class ESPushTask extends BaseTask implements WindowableTask {
             //Requires additional config for schema registry
             avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         }
-        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> msgExtractor = getOutMsgExtractor(esIndexSpec);
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, HTTPBulkLoader.ActionRequest> msgExtractor = getOutMsgExtractor(esIndexSpec);
         return (envelope, collector, coordinator) -> {
             handleMsg(envelope, collector, coordinator, esIndexSpec, msgExtractor);
         };
     }
 
-    private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> msgExtractor) {
-        ActionRequestKey requestKey = msgExtractor.apply(envelope, spec);
+    private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, HTTPBulkLoader.ActionRequest> msgExtractor) throws IOException {
+        HTTPBulkLoader.ActionRequest request = msgExtractor.apply(envelope, spec);
+        esLoader.addAction(request);
     }
 
-    private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {
-        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> func = null;
+    private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, HTTPBulkLoader.ActionRequest> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, HTTPBulkLoader.ActionRequest> func = null;
         switch (spec.metadataSrc) {
             case KEY_DOC_ID:
                 func = this::getSimpleOutMsg;
@@ -100,11 +109,11 @@ public class ESPushTask extends BaseTask implements WindowableTask {
         return func;
     }
 
-    protected ActionRequestKey getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected HTTPBulkLoader.ActionRequest getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         return getSimpleOutMsg(envelope, spec, Optional.empty());
     }
 
-    protected ActionRequestKey getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+    protected HTTPBulkLoader.ActionRequest getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         Map<String, Object> document = (Map<String, Object>) jsonSerde.fromBytes((byte[]) envelope.getMessage());
 
@@ -118,25 +127,26 @@ public class ESPushTask extends BaseTask implements WindowableTask {
             .setAction(Action.INDEX)
             .build();
         setDefaults(key, spec, envelope, tsNowMs);
-        return key;
+        return new HTTPBulkLoader.ActionRequest(key, spec, document);
     }
 
-    protected ActionRequestKey getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected HTTPBulkLoader.ActionRequest getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         return getAvroKeyOutMsg(envelope, spec, Optional.empty());
     }
 
-    protected ActionRequestKey getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+    protected HTTPBulkLoader.ActionRequest getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+        Map<String, Object> document = (Map<String, Object>) jsonSerde.fromBytes((byte[]) envelope.getMessage());
         ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
         setDefaults(key, spec, envelope, tsNowMs);
-        return key;
+        return new HTTPBulkLoader.ActionRequest(key, spec, document);
     }
 
-    protected ActionRequestKey getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected HTTPBulkLoader.ActionRequest getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
         return getEmbeddedOutMsg(envelope, spec, Optional.empty());
     }
 
-    protected ActionRequestKey getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+    protected HTTPBulkLoader.ActionRequest getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[]) envelope.getMessage());
         ActionRequestKey.Builder keyBuilder = ActionRequestKey.newBuilder();
@@ -161,7 +171,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
         }
         ActionRequestKey key = keyBuilder.build();
         setDefaults(key, spec, envelope, tsNowMs);
-        return key;
+        return new HTTPBulkLoader.ActionRequest(key, spec, document);
     }
 
     private void setDefaults(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs) {

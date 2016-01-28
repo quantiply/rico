@@ -39,17 +39,46 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class HTTPBulkLoader {
+
+  public enum TriggerType { MAX_ACTIONS, MAX_INTERVALS, MANUAL }
+
+  public static class BulkReport {
+    public final BulkResult bulkResult;
+    public final TriggerType triggerType;
+    public final List<ActionRequest> requests;
+
+    public BulkReport(BulkResult bulkResult, TriggerType triggerType, List<ActionRequest> requests) {
+      this.bulkResult = bulkResult;
+      this.triggerType = triggerType;
+      this.requests = requests;
+    }
+  }
+
+  public static class ActionRequest {
+    public final ActionRequestKey key;
+    public final ESPushTaskConfig.ESIndexSpec spec;
+    public final Object source;
+
+    public ActionRequest(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, Object source) {
+      this.key = key;
+      this.spec = spec;
+      this.source = source;
+    }
+  }
+
   protected final ESPushTaskConfig.ESClientConfig clientConfig;
   protected final JestClient client;
-  protected final Consumer<BulkResult> afterFlush;
+  protected final Consumer<BulkReport> afterFlush;
   protected final List<BulkableAction<DocumentResult>> actions;
+  protected final List<ActionRequest> requests;
   protected int windowsSinceFlush = 0;
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
-  public HTTPBulkLoader(ESPushTaskConfig.ESClientConfig clientConfig, Consumer<BulkResult> afterFlush) {
+  public HTTPBulkLoader(ESPushTaskConfig.ESClientConfig clientConfig, Consumer<BulkReport> afterFlush) {
     this.clientConfig = clientConfig;
     this.afterFlush = afterFlush;
     actions = new ArrayList<>();
+    requests = new ArrayList<>();
 
     String elasticUrl = String.format("http://%s:%s", clientConfig.httpHost, clientConfig.httpPort);
     JestClientFactory jestFactory = new JestClientFactory();
@@ -57,18 +86,18 @@ public class HTTPBulkLoader {
     client = jestFactory.getObject();
   }
 
-  public void addAction(ESPushTaskConfig.ESIndexSpec spec, ActionRequestKey requestKey, Object source) throws IOException {
+  public void addAction(ActionRequest req) throws IOException {
     BulkableAction<DocumentResult> action = null;
-    if (requestKey.getAction().equals(Action.INDEX)) {
-      Index.Builder builder = new Index.Builder(source)
-          .id(requestKey.getId().toString())
-          .index(getIndex(spec, requestKey))
-          .type(spec.docType);
-      if (requestKey.getVersionType() != null) {
-        builder.setParameter(Parameters.VERSION_TYPE, requestKey.getVersionType().toString());
+    if (req.key.getAction().equals(Action.INDEX)) {
+      Index.Builder builder = new Index.Builder(req.source)
+          .id(req.key.getId().toString())
+          .index(getIndex(req.spec, req.key))
+          .type(req.spec.docType);
+      if (req.key.getVersionType() != null) {
+        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString());
       }
-      if (requestKey.getVersion() != null) {
-        builder.setParameter(Parameters.VERSION, requestKey.getVersion());
+      if (req.key.getVersion() != null) {
+        builder.setParameter(Parameters.VERSION, req.key.getVersion());
       }
       action = builder.build();
     }
@@ -76,6 +105,7 @@ public class HTTPBulkLoader {
       throw new RuntimeException("Not implemented");
     }
     actions.add(action);
+    requests.add(req);
     checkFlush();
   }
 
@@ -85,35 +115,42 @@ public class HTTPBulkLoader {
   }
 
   public void flush() throws IOException {
+    flush(TriggerType.MANUAL);
+  }
+
+  protected void flush(TriggerType triggerType) throws IOException {
     Bulk bulkRequest = new Bulk.Builder().addAction(actions).build();
     try {
       BulkResult bulkResult = client.execute(bulkRequest);
-
+      BulkReport report = new BulkReport(bulkResult, triggerType, requests);
       //TODO - checkpoint Samza in the callback
-      //pass request event times
-      //pass trigger method
-      afterFlush.accept(bulkResult);
+      afterFlush.accept(report);
     }
     catch (Exception e) {
-      logger.error("FUCK ME");
+      logger.error("Error writing to Elasticsearch", e);
       throw e;
     }
     finally {
       windowsSinceFlush = 0;
       actions.clear();
+      requests.clear();
     }
   }
 
-  protected boolean needsFlush() {
+  protected TriggerType getTrigger() {
     if (actions.size() >= clientConfig.flushMaxActions) {
-      return true;
+      return TriggerType.MAX_ACTIONS;
     }
-    return windowsSinceFlush >= clientConfig.flushMaxWindowIntervals;
+    if (windowsSinceFlush >= clientConfig.flushMaxWindowIntervals) {
+      return TriggerType.MAX_INTERVALS;
+    }
+    return null;
   }
 
   protected void checkFlush() throws IOException {
-    if (needsFlush()) {
-      flush();
+    TriggerType triggerType = getTrigger();
+    if (triggerType != null) {
+      flush(triggerType);
     }
   }
 

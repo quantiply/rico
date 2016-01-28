@@ -1,5 +1,6 @@
 package com.quantiply.samza.task;
 
+import com.quantiply.elasticsearch.HTTPBulkLoader;
 import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
 import com.quantiply.rico.elasticsearch.VersionType;
@@ -39,13 +40,13 @@ public class ESPushTaskTest {
         task.jsonSerde = mock(JsonSerde.class);
         when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
-        ActionRequestKey requestKey = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
-        assertEquals("fake-0-1234", requestKey.getId().toString());
-        assertEquals(Action.INDEX, requestKey.getAction());
-        assertEquals(tsNowMs, requestKey.getPartitionTsUnixMs().longValue());
-        assertEquals(tsNowMs, requestKey.getEventTsUnixMs().longValue());
-        assertNull("Version not set", requestKey.getVersion());
-        assertNull("Version type not set", requestKey.getVersionType());
+        HTTPBulkLoader.ActionRequest req = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
+        assertEquals("fake-0-1234", req.key.getId().toString());
+        assertEquals(Action.INDEX, req.key.getAction());
+        assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());
+        assertEquals(tsNowMs, req.key.getEventTsUnixMs().longValue());
+        assertNull("Version not set", req.key.getVersion());
+        assertNull("Version type not set", req.key.getVersionType());
     }
 
     @Test
@@ -70,14 +71,16 @@ public class ESPushTaskTest {
             .build();
         task.avroSerde = mock(AvroSerde.class);
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
+        task.jsonSerde = mock(JsonSerde.class);
+        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
-        ActionRequestKey requestKey = task.getAvroKeyOutMsg(in, esConfig);
-        assertEquals("fake-0-1234", requestKey.getId().toString());
-        assertEquals(Action.INSERT, requestKey.getAction());
-        assertEquals(4L, requestKey.getPartitionTsUnixMs().longValue());
-        assertEquals(3L, requestKey.getEventTsUnixMs().longValue());
-        assertEquals(VersionType.INTERNAL, requestKey.getVersionType());
-        assertEquals(5L, requestKey.getVersion().longValue());
+        HTTPBulkLoader.ActionRequest req = task.getAvroKeyOutMsg(in, esConfig);
+        assertEquals("fake-0-1234", req.key.getId().toString());
+        assertEquals(Action.INSERT, req.key.getAction());
+        assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
+        assertEquals(3L, req.key.getEventTsUnixMs().longValue());
+        assertEquals(VersionType.INTERNAL, req.key.getVersionType());
+        assertEquals(5L, req.key.getVersion().longValue());
     }
 
     @Test
@@ -97,12 +100,12 @@ public class ESPushTaskTest {
         task.jsonSerde = mock(JsonSerde.class);
         when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
-        ActionRequestKey requestKey = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
-        assertEquals("fake-0-1234", requestKey.getId().toString());
-        assertEquals(Action.INDEX, requestKey.getAction());
-        assertEquals(tsNowMs, requestKey.getPartitionTsUnixMs().longValue());
-        assertEquals(tsNowMs, requestKey.getEventTsUnixMs().longValue());
-        assertNull("Version not set", requestKey.getVersion());
-        assertNull("Version type not set", requestKey.getVersionType());
+        HTTPBulkLoader.ActionRequest req = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
+        assertEquals("fake-0-1234", req.key.getId().toString());
+        assertEquals(Action.INDEX, req.key.getAction());
+        assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());
+        assertEquals(tsNowMs, req.key.getEventTsUnixMs().longValue());
+        assertNull("Version not set", req.key.getVersion());
+        assertNull("Version type not set", req.key.getVersionType());
     }
 }

@@ -49,7 +49,8 @@ public class ESPushTaskConfigTest {
         assertNotNull(clientConfig);
         assertEquals("foo.com", clientConfig.httpHost);
         assertEquals(80, clientConfig.httpPort);
-        assertFalse(clientConfig.flushMaxActions.isPresent());
+        assertEquals(10000, clientConfig.flushMaxActions);
+        assertEquals(1000, clientConfig.flushMaxWindowIntervals);
     }
 
     @Test
@@ -58,14 +59,15 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.http.host", "foo.com");
         map.put("rico.es.http.port", "8080");
         map.put("rico.es.flush.max.actions", "1000");
+        map.put("rico.es.flush.max.window.intervals", "5");
         MapConfig config = new MapConfig(map);
 
         ESPushTaskConfig.ESClientConfig clientConfig = ESPushTaskConfig.getClientConfig(config);
         assertNotNull(clientConfig);
         assertEquals("foo.com", clientConfig.httpHost);
         assertEquals(8080, clientConfig.httpPort);
-        assertTrue(clientConfig.flushMaxActions.isPresent());
-        assertEquals(1000, clientConfig.flushMaxActions.get().intValue());
+        assertEquals(1000, clientConfig.flushMaxActions);
+        assertEquals(5, clientConfig.flushMaxWindowIntervals);
     }
 
     @Test
