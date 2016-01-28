@@ -15,15 +15,12 @@
  */
 package com.quantiply.samza.task;
 
-import com.quantiply.rico.elasticsearch.IndexRequestKey;
+import com.quantiply.rico.elasticsearch.Action;
+import com.quantiply.rico.elasticsearch.ActionRequestKey;
+import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
-import io.searchbox.action.BulkableAction;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.DocumentResult;
-import io.searchbox.core.Index;
-import io.searchbox.params.Parameters;
 import org.apache.samza.config.Config;
 import org.apache.samza.serializers.JsonSerde;
 import org.apache.samza.serializers.JsonSerdeFactory;
@@ -34,9 +31,6 @@ import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -73,21 +67,18 @@ public class ESPushTask extends BaseTask {
             //Requires additional config for schema registry
             avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         }
-        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> msgExtractor = getOutMsgExtractor(esIndexSpec);
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> msgExtractor = getOutMsgExtractor(esIndexSpec);
         return (envelope, collector, coordinator) -> {
             handleMsg(envelope, collector, coordinator, esIndexSpec, msgExtractor);
         };
     }
 
-    private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> msgExtractor) {
-        BulkableAction<DocumentResult> action = msgExtractor.apply(envelope, spec);
-        Bulk request = new Bulk.Builder()
-            .addAction(action)
-            .build();
+    private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> msgExtractor) {
+        ActionRequestKey requestKey = msgExtractor.apply(envelope, spec);
     }
 
-    private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {
-        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> func = null;
+    private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {
+        BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, ActionRequestKey> func = null;
         switch (spec.metadataSrc) {
             case KEY_DOC_ID:
                 func = this::getSimpleOutMsg;
@@ -102,96 +93,84 @@ public class ESPushTask extends BaseTask {
         return func;
     }
 
-    private String getIndex(ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
-//        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
-//        ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(spec.indexNameDateZone);
-//        String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat)).toLowerCase(); //ES index names must be lowercase
-//        return spec.indexNamePrefix + dateStr;
-        return null;
+    protected ActionRequestKey getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+        return getSimpleOutMsg(envelope, spec, Optional.empty());
     }
 
-    protected BulkableAction<DocumentResult> getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+    protected ActionRequestKey getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         Map<String, Object> document = (Map<String, Object>) jsonSerde.fromBytes((byte[]) envelope.getMessage());
-        Index.Builder builder = new Index.Builder(document);
 
-        //Message key is used for the document id
+        //Message key is used for the document id if set
         String id = null;
-        if (envelope.getKey() == null) {
-            id = getMessageIdFromSource(envelope);
-        }
-        else {
+        if (envelope.getKey() != null) {
             id = new String((byte [])envelope.getKey(), StandardCharsets.UTF_8);
         }
+        ActionRequestKey key = ActionRequestKey.newBuilder()
+            .setId(id)
+            .setAction(Action.INDEX)
+            .build();
+        setDefaults(key, spec, envelope, tsNowMs);
+        return key;
+    }
 
-        builder.id(id);
-        builder.index(getIndex(spec, Optional.empty()));
-        builder.type(spec.docType);
+    protected ActionRequestKey getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+        return getAvroKeyOutMsg(envelope, spec, Optional.empty());
+    }
 
-        Index action = builder.build();
+    protected ActionRequestKey getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+        ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
+        setDefaults(key, spec, envelope, tsNowMs);
+        return key;
+    }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug(String.format("Sending document to ES index %s/%s with id %s", action.getIndex(), action.getType(), id));
+    protected ActionRequestKey getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+        return getEmbeddedOutMsg(envelope, spec, Optional.empty());
+    }
+
+    protected ActionRequestKey getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+        Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[]) envelope.getMessage());
+        ActionRequestKey.Builder keyBuilder = ActionRequestKey.newBuilder();
+        keyBuilder.setAction(Action.INDEX);
+        if (document.containsKey("_id") && document.get("_id") instanceof String) {
+            keyBuilder.setId((String) document.get("_id"));
+            document.remove("_id");
         }
-        return action;
+        if (document.containsKey("_version") && document.get("_version") instanceof Number) {
+            keyBuilder.setVersion(((Number) document.get("_version")).longValue());
+            document.remove("_version");
+        }
+        if (document.containsKey("_version_type") && document.get("_version_type") instanceof String) {
+            keyBuilder.setVersionType(VersionType.valueOf(((String) document.get("_version_type")).toUpperCase()));
+            document.remove("_version_type");
+        }
+        if (document.containsKey("@timestamp") && document.get("@timestamp") instanceof Number) {
+            long msgTs = ((Number) document.get("@timestamp")).longValue();
+            keyBuilder.setPartitionTsUnixMs(msgTs);
+            keyBuilder.setEventTsUnixMs(msgTs);
+            document.remove("@timestamp");
+        }
+        ActionRequestKey key = keyBuilder.build();
+        setDefaults(key, spec, envelope, tsNowMs);
+        return key;
     }
 
-    protected BulkableAction<DocumentResult> getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
-//        IndexRequestKey key = (IndexRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
-//        if (key.getId() == null) {
-//            key.setId(getMessageIdFromSource(envelope));
-//        }
-//        SystemStream stream = getESSystemStream(spec, Optional.of(key.getTimestampUnixMs()));
-//        setDefaultVersionType(key, spec);
-//        if (logger.isDebugEnabled()) {
-//            logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
-//        }
-//        return new OutgoingMessageEnvelope(stream, null, key, envelope.getMessage());
-        return null;
-    }
-
-    private BulkableAction<DocumentResult> getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
-//        Map<String, Object> document = (Map<String, Object>)jsonSerde.fromBytes((byte[]) envelope.getMessage());
-//        IndexRequestKey.Builder keyBuilder = IndexRequestKey.newBuilder();
-//        if (document.containsKey("_id") && document.get("_id") instanceof String) {
-//            keyBuilder.setId((String) document.get("_id"));
-//            document.remove("_id");
-//        }
-//        else {
-//            keyBuilder.setId(getMessageIdFromSource(envelope));
-//        }
-//        if (document.containsKey("_version") && document.get("_version") instanceof Number) {
-//            keyBuilder.setVersion(((Number) document.get("_version")).longValue());
-//            document.remove("_version");
-//        }
-//        if (document.containsKey("_version_type") && document.get("_version_type") instanceof String) {
-//            keyBuilder.setVersionType(VersionType.valueOf(((String) document.get("_version_type")).toUpperCase()));
-//            document.remove("_version_type");
-//        }
-//        if (document.containsKey("_timestamp") && document.get("_timestamp") instanceof String) {
-//            keyBuilder.setTimestamp((String) document.get("_timestamp"));
-//            document.remove("_timestamp");
-//        }
-//        if (document.containsKey("@timestamp") && document.get("@timestamp") instanceof Number) {
-//            keyBuilder.setTimestampUnixMs(((Number) document.get("@timestamp")).longValue());
-//            document.remove("@timestamp");
-//        }
-//        if (document.containsKey("_ttl") && document.get("_ttl") instanceof Number) {
-//            keyBuilder.setTtl(((Number) document.get("_ttl")).longValue());
-//            document.remove("_ttl");
-//        }
-//        IndexRequestKey key = keyBuilder.build();
-//        SystemStream stream = getESSystemStream(spec, Optional.ofNullable(key.getTimestampUnixMs()));
-//        setDefaultVersionType(key, spec);
-//        if (logger.isDebugEnabled()) {
-//            logger.debug(String.format("Sending document to ES index %s with metadata %s", stream.getStream(), key));
-//        }
-//        return new OutgoingMessageEnvelope(stream, null, key, document);
-        return null;
-    }
-
-    private void setDefaultVersionType(IndexRequestKey key, ESPushTaskConfig.ESIndexSpec spec) {
-        if (key.getVersionType() == null && spec.defaultVersionType.isPresent()) {
-            key.setVersionType(spec.defaultVersionType.get());
+    private void setDefaults(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs) {
+        if (key.getAction().equals(Action.INDEX) || key.getAction().equals(Action.INSERT)) {
+            if (key.getId() == null) {
+                key.setId(getMessageIdFromSource(envelope));
+            }
+            if (key.getPartitionTsUnixMs() == null && key.getAction() != Action.DELETE && key.getAction() != Action.UPDATE) {
+                key.setPartitionTsUnixMs(tsNowMs);
+            }
+        }
+        if (key.getVersionType() == null) {
+            key.setVersionType(spec.defaultVersionType.orElse(null));
+        }
+        if (key.getEventTsUnixMs() == null) {
+            key.setEventTsUnixMs(tsNowMs);
         }
     }
 }

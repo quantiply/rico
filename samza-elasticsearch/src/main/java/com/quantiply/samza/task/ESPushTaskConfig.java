@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Quantiply Corporation. All rights reserved.
+ * Copyright 2014-2016 Quantiply Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,13 +128,13 @@ public class ESPushTaskConfig {
     }
 
     private static ESIndexSpec getStreamConfig(String stream, Config config) {
-        String metadataSrcStr = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, getDefaultMetadataStrParam(config));
+        String metadataSrcStr = getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, getDefaultMetadataStrParam(config));
         MetadataSrc metadataSrc = getMetadataSrc(stream, metadataSrcStr, config);
-        String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
-        Optional<String> indexNameDateFormat = Optional.ofNullable(config.get(CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT)));
-        ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, getDefaultDateZoneStr(config)));
-        String docType = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
-        String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
+        String indexNamePrefix = getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
+        Optional<String> indexNameDateFormat = Optional.ofNullable(getOptionalStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT)));
+        ZoneId indexNameDateZone = ZoneId.of(getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, getDefaultDateZoneStr(config)));
+        String docType = getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
+        String defaultVersionTypeStr = getOptionalStreamConfigParam(stream, config, CFG_ES_STREAM_VERSION_TYPE_DEFAULT, config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
         Optional<VersionType> defaultVersionType = getVersionType(defaultVersionTypeStr);
         return new ESIndexSpec(
                 metadataSrc,
@@ -189,10 +189,18 @@ public class ESPushTaskConfig {
         return val;
     }
 
-    private static String getStreamConfigParam(String stream, Config config, String paramFormat, String defaultVal) {
+    private static String getOptionalStreamConfigParam(String stream, Config config, String paramFormat, String defaultVal) {
+        return getStreamConfigParam(stream, config, paramFormat, defaultVal, false);
+    }
+
+    private static String getRequiredStreamConfigParam(String stream, Config config, String paramFormat, String defaultVal) {
+        return getStreamConfigParam(stream, config, paramFormat, defaultVal, true);
+    }
+
+    private static String getStreamConfigParam(String stream, Config config, String paramFormat, String defaultVal, boolean required) {
         String param = String.format(paramFormat, stream);
         String val = config.get(param, defaultVal);
-        if (val == null) {
+        if (required && val == null) {
             throw new ConfigException("Missing ES config param: " + param);
         }
         return val;

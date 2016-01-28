@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Quantiply Corporation. All rights reserved.
+ * Copyright 2014-2016 Quantiply Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ public class ESPushTaskConfigTest {
 
         assertEquals(ESPushTaskConfig.MetadataSrc.KEY_DOC_ID, esConfig.metadataSrc);
         assertEquals("slow_svc", esConfig.indexNamePrefix);
-        assertEquals(".yyyy", esConfig.indexNameDateFormat);
+        assertEquals(".yyyy", esConfig.indexNameDateFormat.get());
         assertEquals("Etc/UTC", esConfig.indexNameDateZone.getId());
         assertEquals("slow_svc_type", esConfig.docType);
         assertFalse(esConfig.defaultVersionType.isPresent());
@@ -121,7 +121,7 @@ public class ESPushTaskConfigTest {
 
         assertEquals(ESPushTaskConfig.MetadataSrc.EMBEDDED, serverStatsConfig.metadataSrc);
         assertEquals("db_server_stats_index", serverStatsConfig.indexNamePrefix);
-        assertEquals(".yyyy-MM", serverStatsConfig.indexNameDateFormat);
+        assertEquals(".yyyy-MM", serverStatsConfig.indexNameDateFormat.get());
         assertEquals("America/New_York", serverStatsConfig.indexNameDateZone.getId());
         assertEquals("db_server_stats_type", serverStatsConfig.docType);
         assertTrue(serverStatsConfig.defaultVersionType.isPresent());
@@ -129,7 +129,7 @@ public class ESPushTaskConfigTest {
 
         assertEquals(ESPushTaskConfig.MetadataSrc.KEY_AVRO, repLatencyConfig.metadataSrc);
         assertEquals("db_rep_latency_index", repLatencyConfig.indexNamePrefix);
-        assertEquals(".yyyy", repLatencyConfig.indexNameDateFormat);
+        assertEquals(".yyyy", repLatencyConfig.indexNameDateFormat.get());
         assertEquals("Etc/UTC", repLatencyConfig.indexNameDateZone.getId());
         assertEquals("db_rep_latency_type", repLatencyConfig.docType);
         assertFalse(repLatencyConfig.defaultVersionType.isPresent());
