@@ -20,8 +20,10 @@ import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import io.searchbox.action.BulkableAction;
+import io.searchbox.core.Bulk;
 import io.searchbox.core.DocumentResult;
 import io.searchbox.core.Index;
+import io.searchbox.params.Parameters;
 import org.apache.samza.config.Config;
 import org.apache.samza.serializers.JsonSerde;
 import org.apache.samza.serializers.JsonSerdeFactory;
@@ -79,6 +81,9 @@ public class ESPushTask extends BaseTask {
 
     private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> msgExtractor) {
         BulkableAction<DocumentResult> action = msgExtractor.apply(envelope, spec);
+        Bulk request = new Bulk.Builder()
+            .addAction(action)
+            .build();
     }
 
     private BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, BulkableAction<DocumentResult>> getOutMsgExtractor(ESPushTaskConfig.ESIndexSpec spec) {

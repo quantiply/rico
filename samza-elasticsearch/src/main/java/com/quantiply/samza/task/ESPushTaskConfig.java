@@ -52,12 +52,12 @@ public class ESPushTaskConfig {
     public static class ESIndexSpec {
         public final MetadataSrc metadataSrc;
         public final String indexNamePrefix;
-        public final String indexNameDateFormat;
-        public final ZoneId indexNameDateZone;
+        public final Optional<String> indexNameDateFormat;
+        public final Optional<ZoneId> indexNameDateZone;
         public final String docType;
         public final Optional<VersionType> defaultVersionType;
 
-        public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, String indexNameDateFormat, ZoneId indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
+        public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, Optional<String> indexNameDateFormat, Optional<ZoneId> indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
             this.metadataSrc = metadataSrc;
             this.indexNamePrefix = indexNamePrefix.toLowerCase(); //ES requires index names to be lower case
             this.indexNameDateFormat = indexNameDateFormat;

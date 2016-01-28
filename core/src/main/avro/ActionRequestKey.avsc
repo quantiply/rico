@@ -1,9 +1,19 @@
 {
   "type" : "record",
-  "name" : "IndexRequestKey",
+  "name" : "ActionRequestKey",
   "namespace" : "com.quantiply.rico.elasticsearch",
-  "doc": "Elasticsearch index request metadata",
+  "doc": "Elasticsearch action request metadata",
   "fields" : [
+    {
+      "name": "action",
+      "type": {
+        "type": "enum",
+        "name": "Action",
+        "symbols" : ["INDEX", "INSERT", "UPDATE", "DELETE"]
+      },
+      "default": "INDEX",
+      "doc": "Action to perform"
+    },
     {
       "name": "id",
       "type": ["null", "string"],
@@ -30,22 +40,16 @@
       "doc": "Version type"
     },
     {
-      "name": "timestamp",
-      "type": ["null", "string"],
-      "default": null,
-      "doc": "Document timestamp - https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html"
-    },
-    {
-      "name": "timestamp_unix_ms",
+      "name": "partition_ts_unix_ms",
       "type": ["null", "long"],
       "default": null,
-      "doc": "Milliseconds since epoch - used to choose the correct index for the message.  If not set, we use the import time (non-deterministic, non-idempotent)"
+      "doc": "Milliseconds since epoch - used to choose the correct index for the message.  If not set, we use the import time (non-deterministic, non-idempotent) for inserts"
     },
     {
-      "name": "ttl",
+      "name": "event_ts_unix_ms",
       "type": ["null", "long"],
       "default": null,
-      "doc": "Document ttl in ms"
+      "doc": "Milliseconds since epoch - used to compute latency metric from event origin time. For inserts, this will usually be the same as partition_ts_unix_ms but for updates + deletes, these are very different."
     }
   ]
 }
