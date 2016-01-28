@@ -103,10 +103,11 @@ public class ESPushTask extends BaseTask {
     }
 
     private String getIndex(ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
-        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
-        ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(spec.indexNameDateZone);
-        String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat)).toLowerCase(); //ES index names must be lowercase
-        return spec.indexNamePrefix + dateStr;
+//        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+//        ZonedDateTime dateTime = Instant.ofEpochMilli(tsNowMs).atZone(spec.indexNameDateZone);
+//        String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat)).toLowerCase(); //ES index names must be lowercase
+//        return spec.indexNamePrefix + dateStr;
+        return null;
     }
 
     protected BulkableAction<DocumentResult> getSimpleOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {

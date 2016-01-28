@@ -87,7 +87,7 @@ public class HTTPBulkLoader {
 
   protected String getIndex(ESPushTaskConfig.ESIndexSpec spec, ActionRequestKey requestKey) {
     if (spec.indexNameDateFormat.isPresent()) {
-      ZonedDateTime dateTime = Instant.ofEpochMilli(requestKey.getPartitionTsUnixMs()).atZone(spec.indexNameDateZone.get());
+      ZonedDateTime dateTime = Instant.ofEpochMilli(requestKey.getPartitionTsUnixMs()).atZone(spec.indexNameDateZone);
       //ES index names must be lowercase
       String dateStr = dateTime.format(DateTimeFormatter.ofPattern(spec.indexNameDateFormat.get())).toLowerCase();
       return spec.indexNamePrefix + dateStr;

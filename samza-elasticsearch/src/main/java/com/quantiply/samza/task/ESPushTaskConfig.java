@@ -53,11 +53,11 @@ public class ESPushTaskConfig {
         public final MetadataSrc metadataSrc;
         public final String indexNamePrefix;
         public final Optional<String> indexNameDateFormat;
-        public final Optional<ZoneId> indexNameDateZone;
+        public final ZoneId indexNameDateZone;
         public final String docType;
         public final Optional<VersionType> defaultVersionType;
 
-        public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, Optional<String> indexNameDateFormat, Optional<ZoneId> indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
+        public ESIndexSpec(MetadataSrc metadataSrc, String indexNamePrefix, Optional<String> indexNameDateFormat, ZoneId indexNameDateZone, String docType, Optional<VersionType> defaultVersionType) {
             this.metadataSrc = metadataSrc;
             this.indexNamePrefix = indexNamePrefix.toLowerCase(); //ES requires index names to be lower case
             this.indexNameDateFormat = indexNameDateFormat;
@@ -105,7 +105,7 @@ public class ESPushTaskConfig {
     public static ESIndexSpec getDefaultConfig(Config config) {
         MetadataSrc metadataSrc = getMetadataSrc("default", getDefaultMetadataStrParam(config), config);
         String indexNamePrefix = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_PREFIX, null);
-        String indexNameDateFormat = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_DATE_FORMAT, null);
+        Optional<String> indexNameDateFormat = Optional.ofNullable(config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
         ZoneId indexNameDateZone = ZoneId.of(getDefaultDateZoneStr(config));
         String docType = getDefaultConfigParam(config, CFG_ES_DEFAULT_DOC_TYPE, null);
         String defaultVersionTypeStr = config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT);
@@ -131,7 +131,7 @@ public class ESPushTaskConfig {
         String metadataSrcStr = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, getDefaultMetadataStrParam(config));
         MetadataSrc metadataSrc = getMetadataSrc(stream, metadataSrcStr, config);
         String indexNamePrefix = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
-        String indexNameDateFormat = getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
+        Optional<String> indexNameDateFormat = Optional.ofNullable(config.get(CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT)));
         ZoneId indexNameDateZone = ZoneId.of(getStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, getDefaultDateZoneStr(config)));
         String docType = getStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_TYPE, config.get(CFG_ES_DEFAULT_DOC_TYPE));
         String defaultVersionTypeStr = config.get(String.format(CFG_ES_STREAM_VERSION_TYPE_DEFAULT, stream), config.get(CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT));
