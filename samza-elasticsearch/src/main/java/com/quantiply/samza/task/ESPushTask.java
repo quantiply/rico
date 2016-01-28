@@ -48,6 +48,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
     protected AvroSerde avroSerde;
     protected JsonSerde jsonSerde;
     protected HTTPBulkLoader esLoader;
+    protected TaskCoordinator taskCoordinator;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -70,15 +71,16 @@ public class ESPushTask extends BaseTask implements WindowableTask {
 
     protected void onFlush(HTTPBulkLoader.BulkReport report) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Committing task: " + coordinator.toString());
+            logger.debug("Committing task: " + taskCoordinator.toString());
         }
         //Commit progress of Samza task
-        coordinator.commit(TaskCoordinator.RequestScope.CURRENT_TASK);
+        taskCoordinator.commit(TaskCoordinator.RequestScope.CURRENT_TASK);
         //TODO - update metrics here
     }
 
     @Override
     public void window(MessageCollector messageCollector, TaskCoordinator coordinator) throws Exception {
+        taskCoordinator = coordinator;
         esLoader.window();
     }
 
@@ -94,6 +96,7 @@ public class ESPushTask extends BaseTask implements WindowableTask {
     }
 
     private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, HTTPBulkLoader.ActionRequest> msgExtractor) throws IOException {
+        taskCoordinator = coordinator;
         HTTPBulkLoader.ActionRequest request = msgExtractor.apply(envelope, spec);
         esLoader.addAction(request);
     }
