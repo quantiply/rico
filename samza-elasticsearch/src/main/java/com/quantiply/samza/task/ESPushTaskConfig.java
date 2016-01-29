@@ -42,12 +42,14 @@ public class ESPushTaskConfig {
         public final int httpPort;
         public final int flushMaxActions;
         public final int flushMaxWindowIntervals;
+        public final int commitWindowIntervals;
 
-        public ESClientConfig(String httpHost, int httpPort, int flushMaxActions, int flushMaxWindowIntervals) {
+        public ESClientConfig(String httpHost, int httpPort, int flushMaxActions, int flushMaxWindowIntervals, int commitWindowIntervals) {
             this.httpHost = httpHost;
             this.httpPort = httpPort;
             this.flushMaxActions = flushMaxActions;
             this.flushMaxWindowIntervals = flushMaxWindowIntervals;
+            this.commitWindowIntervals = commitWindowIntervals;
         }
     }
 
@@ -73,6 +75,7 @@ public class ESPushTaskConfig {
     public final static String CFG_ES_HTTP_PORT = "rico.es.http.port";
     public final static String CFG_ES_FLUSH_MAX_ACTIONS = "rico.es.flush.max.actions";
     public final static String CFG_ES_FLUSH_MAX_WINDOW_INTERVALS = "rico.es.flush.max.window.intervals";
+    public final static String CFG_ES_COMMIT_WINDOW_INTERVALS = "rico.es.commit.window.intervals";
     public final static String CFG_ES_STREAMS = "rico.es.streams";
     public final static String CFG_ES_DEFAULT_DOC_METADATA_SRC = "rico.es.metadata.source";
     public final static String CFG_ES_STREAM_DOC_METADATA_SRC = "rico.es.stream.%s.metadata.source";
@@ -101,11 +104,13 @@ public class ESPushTaskConfig {
         int httpPort = Integer.parseInt(getDefaultConfigParam(config, CFG_ES_HTTP_PORT, "80"));
         int flushMaxActions = getFlushMaxActions(config);
         int flushMaxWindowIntervals = getFlushMaxWindowIntervals(config);
+        int commitWindowIntervals = 1;
         return new ESClientConfig(
-            httpHost,
-            httpPort,
-            flushMaxActions,
-            flushMaxWindowIntervals
+                httpHost,
+                httpPort,
+                flushMaxActions,
+                flushMaxWindowIntervals,
+                commitWindowIntervals
         );
     }
 
@@ -163,6 +168,10 @@ public class ESPushTaskConfig {
 
     private static int getFlushMaxActions(Config config) {
         return Integer.parseInt(config.get(CFG_ES_FLUSH_MAX_ACTIONS, DEFAULT_FLUSH_MAX_ACTIONS));
+    }
+
+    private static int getCommitWindowIntervals(Config config) {
+        return Integer.parseInt(config.get(CFG_ES_COMMIT_WINDOW_INTERVALS, DEFAULT_FLUSH_MAX_WINDOW_INTERVALS));
     }
 
     private static int getFlushMaxWindowIntervals(Config config) {
