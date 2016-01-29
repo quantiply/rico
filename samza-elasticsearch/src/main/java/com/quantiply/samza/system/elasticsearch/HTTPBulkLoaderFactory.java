@@ -22,8 +22,6 @@ package com.quantiply.samza.system.elasticsearch;
 import com.quantiply.elasticsearch.HTTPBulkLoader;
 import io.searchbox.client.JestClient;
 
-import java.util.function.Consumer;
-
 /**
  * Creates {@link HTTPBulkLoader} instances based on properties from the Samza job.
  */
@@ -34,12 +32,11 @@ public class HTTPBulkLoaderFactory {
     this.config = config;
   }
 
-  public HTTPBulkLoader getBulkLoader(JestClient client, Consumer<HTTPBulkLoader.BulkReport> afterFlush) {
+  public HTTPBulkLoader getBulkLoader(JestClient client) {
     HTTPBulkLoader.Config loaderConf = new HTTPBulkLoader.Config(
-        client,
         config.getBulkFlushMaxActions(),
         config.getBulkFlushIntervalMS()
     );
-    return new HTTPBulkLoader(loaderConf, afterFlush);
+    return new HTTPBulkLoader(loaderConf, client);
   }
 }

@@ -20,8 +20,6 @@ import com.quantiply.rico.elasticsearch.ActionRequestKey;
 import com.quantiply.samza.task.ESPushTaskConfig;
 import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
-import io.searchbox.client.JestClientFactory;
-import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.BulkResult;
 import io.searchbox.core.DocumentResult;
@@ -42,12 +40,10 @@ import java.util.function.Consumer;
 public class HTTPBulkLoader {
 
   public static class Config {
-    public final JestClient client;
     public final int flushMaxActions;
     public final Optional<Integer> flushMaxMs;
 
-    public Config(JestClient client, int flushMaxActions, Optional<Integer>  flushMaxMs) {
-      this.client = client;
+    public Config(int flushMaxActions, Optional<Integer>  flushMaxMs) {
       this.flushMaxActions = flushMaxActions;
       this.flushMaxMs = flushMaxMs;
     }
@@ -83,22 +79,16 @@ public class HTTPBulkLoader {
 
   protected final Config config;
   protected final JestClient client;
-  protected final Consumer<BulkReport> afterFlush;
   protected final List<BulkableAction<DocumentResult>> actions;
   protected final List<ActionRequest> requests;
   protected int windowsSinceFlush = 0;
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
-  public HTTPBulkLoader(Config config, Consumer<BulkReport> afterFlush) {
+  public HTTPBulkLoader(Config config, JestClient client) {
     this.config = config;
-    this.afterFlush = afterFlush;
+    this.client = client;
     actions = new ArrayList<>();
     requests = new ArrayList<>();
-
-    String elasticUrl = String.format("http://%s:%s", config.httpHost, config.httpPort);
-    JestClientFactory jestFactory = new JestClientFactory();
-    jestFactory.setHttpClientConfig(new HttpClientConfig.Builder(elasticUrl).multiThreaded(true).build());
-    client = jestFactory.getObject();
   }
 
   public void addAction(ActionRequest req) {
@@ -129,17 +119,16 @@ public class HTTPBulkLoader {
     checkFlush();
   }
 
-  public void flush() throws IOException {
-    flush(TriggerType.MANUAL);
+  public BulkReport flush() throws IOException {
+    return flush(TriggerType.MANUAL);
   }
 
-  protected void flush(TriggerType triggerType) throws IOException {
+  protected BulkReport flush(TriggerType triggerType) throws IOException {
     Bulk bulkRequest = new Bulk.Builder().addAction(actions).build();
+    BulkReport report = null;
     try {
       BulkResult bulkResult = client.execute(bulkRequest);
-      BulkReport report = new BulkReport(bulkResult, triggerType, requests);
-      //TODO - checkpoint Samza in the callback
-      afterFlush.accept(report);
+      report = new BulkReport(bulkResult, triggerType, requests);
     }
     catch (Exception e) {
       logger.error("Error writing to Elasticsearch", e);
@@ -150,6 +139,7 @@ public class HTTPBulkLoader {
       actions.clear();
       requests.clear();
     }
+    return report;
   }
 
   public void close() {
