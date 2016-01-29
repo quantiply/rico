@@ -36,9 +36,22 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class HTTPBulkLoader {
+
+  public static class Config {
+    public final JestClient client;
+    public final int flushMaxActions;
+    public final Optional<Integer> flushMaxMs;
+
+    public Config(JestClient client, int flushMaxActions, Optional<Integer>  flushMaxMs) {
+      this.client = client;
+      this.flushMaxActions = flushMaxActions;
+      this.flushMaxMs = flushMaxMs;
+    }
+  }
 
   public enum TriggerType { MAX_ACTIONS, MAX_INTERVALS, MANUAL }
 
@@ -68,7 +81,7 @@ public class HTTPBulkLoader {
     }
   }
 
-  protected final ESPushTaskConfig.ESClientConfig clientConfig;
+  protected final Config config;
   protected final JestClient client;
   protected final Consumer<BulkReport> afterFlush;
   protected final List<BulkableAction<DocumentResult>> actions;
@@ -76,19 +89,19 @@ public class HTTPBulkLoader {
   protected int windowsSinceFlush = 0;
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
-  public HTTPBulkLoader(ESPushTaskConfig.ESClientConfig clientConfig, Consumer<BulkReport> afterFlush) {
-    this.clientConfig = clientConfig;
+  public HTTPBulkLoader(Config config, Consumer<BulkReport> afterFlush) {
+    this.config = config;
     this.afterFlush = afterFlush;
     actions = new ArrayList<>();
     requests = new ArrayList<>();
 
-    String elasticUrl = String.format("http://%s:%s", clientConfig.httpHost, clientConfig.httpPort);
+    String elasticUrl = String.format("http://%s:%s", config.httpHost, config.httpPort);
     JestClientFactory jestFactory = new JestClientFactory();
     jestFactory.setHttpClientConfig(new HttpClientConfig.Builder(elasticUrl).multiThreaded(true).build());
     client = jestFactory.getObject();
   }
 
-  public void addAction(ActionRequest req) throws IOException {
+  public void addAction(ActionRequest req) {
     BulkableAction<DocumentResult> action = null;
     if (req.key.getAction().equals(Action.INDEX)) {
       Index.Builder builder = new Index.Builder(req.source)
@@ -108,7 +121,7 @@ public class HTTPBulkLoader {
     }
     actions.add(action);
     requests.add(req);
-    checkFlush();
+//    checkFlush();
   }
 
   public void window() throws IOException {
@@ -139,13 +152,17 @@ public class HTTPBulkLoader {
     }
   }
 
+  public void close() {
+    client.shutdownClient();
+  }
+
   protected TriggerType getTrigger() {
-    if (actions.size() >= clientConfig.flushMaxActions) {
+    if (actions.size() >= config.flushMaxActions) {
       return TriggerType.MAX_ACTIONS;
     }
-    if (windowsSinceFlush >= clientConfig.flushMaxWindowIntervals) {
-      return TriggerType.MAX_INTERVALS;
-    }
+//    if (windowsSinceFlush >= config.flushMaxWindowIntervals) {
+//      return TriggerType.MAX_INTERVALS;
+//    }
     return null;
   }
 
