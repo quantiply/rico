@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class HTTPBulkLoader {
@@ -113,8 +114,7 @@ public class HTTPBulkLoader {
   }
 
   protected static final int SHUTDOWN_WAIT_MS = 100;
-  protected final Config config;
-  protected final JestClient client;
+  protected final Writer writer;
   protected final ArrayBlockingQueue<WriterCommand> writerCmdQueue;
   protected final ExecutorService writerExecSvc;
 
@@ -126,11 +126,10 @@ public class HTTPBulkLoader {
    * JEST client's lifecycle is manage externally (i.e. must be closed elsewhere)
    * so that it may be shared by multiple instances
    */
-  public HTTPBulkLoader(Config config, JestClient client) {
-    this.config = config;
-    this.client = client;
+  public HTTPBulkLoader(Config config, JestClient client, Optional<Consumer<BulkReport>> onFlushOpt) {
     this.writerCmdQueue = new ArrayBlockingQueue<>(config.flushMaxActions);
     this.writerExecSvc = Executors.newFixedThreadPool(1);
+    this.writer = new Writer(config, client, writerCmdQueue, onFlushOpt);
   }
 
   /**
@@ -203,7 +202,7 @@ public class HTTPBulkLoader {
   }
 
   public void start() {
-    writerExecSvc.submit(new Writer(config, client, writerCmdQueue));
+    writerExecSvc.submit(writer);
   }
 
   /**
@@ -221,16 +220,18 @@ public class HTTPBulkLoader {
   protected class Writer implements Runnable {
     protected final Config config;
     protected final JestClient client;
+    protected final Optional<Consumer<BulkReport>> onFlushOpt;
     protected final BlockingQueue<WriterCommand> cmdQueue;
     protected long lastFlushTsMs;
     protected Throwable error = null;
     protected final List<WriterCommand> requests;
     protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
-    public Writer(Config config, JestClient client, BlockingQueue<WriterCommand> cmdQueue) {
+    public Writer(Config config, JestClient client, BlockingQueue<WriterCommand> cmdQueue, Optional<Consumer<BulkReport>> onFlushOpt) {
       this.config = config;
       this.cmdQueue = cmdQueue;
       this.client = client;
+      this.onFlushOpt = onFlushOpt;
       this.requests = new ArrayList<>(config.flushMaxActions);
     }
 
@@ -247,23 +248,33 @@ public class HTTPBulkLoader {
     }
 
     protected void flush(TriggerType triggerType) throws IOException {
-      Bulk.Builder bulkReqBuilder = new Bulk.Builder();
-      for (WriterCommand cmd: requests) {
-        bulkReqBuilder.addAction(cmd.request.action);
+      List<SourcedActionRequest> sourcedReqs = null;
+      if (onFlushOpt.isPresent()) {
+        //This must be done before the list is cleared in the finally block
+        sourcedReqs = requests.stream().map(cmd -> cmd.request).collect(Collectors.toList());
       }
-      Bulk bulkRequest = bulkReqBuilder.build();
-      BulkReport report = null;
+
+      BulkResult bulkResult = null;
       try {
-        BulkResult bulkResult = client.execute(bulkRequest);
-        List<SourcedActionRequest> sourcedReqs = requests.stream().map(cmd -> cmd.request).collect(Collectors.toList());
-        report = new BulkReport(bulkResult, triggerType, sourcedReqs);
+        bulkResult = client.execute(getBulkRequest());
         //TODO - check for any errors and set error variable
-        //TODO - call client flush listener
       }
       finally {
         requests.clear();
         lastFlushTsMs = System.currentTimeMillis();
       }
+      //Callback flush listener
+      if (onFlushOpt.isPresent()) {
+        onFlushOpt.get().accept(new BulkReport(bulkResult, triggerType, sourcedReqs));
+      }
+    }
+
+    protected Bulk getBulkRequest() {
+      Bulk.Builder bulkReqBuilder = new Bulk.Builder();
+      for (WriterCommand cmd: requests) {
+        bulkReqBuilder.addAction(cmd.request.action);
+      }
+      return bulkReqBuilder.build();
     }
 
     /**

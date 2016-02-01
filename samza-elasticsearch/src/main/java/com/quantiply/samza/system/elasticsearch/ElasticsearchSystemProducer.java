@@ -35,14 +35,15 @@ import java.util.function.Function;
 /** A {@link SystemProducer} for Elasticsearch that builds on top of the {@link HTTPBulkLoader}
  *
  * <p>
- * Each system that is configured in Samza has an independent {@link HTTPBulkLoader} that flush
+ * Each Samza system in the config has an independent {@link HTTPBulkLoader} that flushes
  * separably to Elasticsearch. Each {@link HTTPBulkLoader} will maintain the ordering of messages
  * being sent from tasks per Samza container. If you have multiple containers writing to the same
  * message id there is no guarantee of ordering in Elasticsearch.
  * </p>
  *
  * <p>
- * This can be fully configured from the Samza job properties.
+ * Samza calls flush() each task separately but this system producer flushes all tasks together
+ * to avoid the extra machinery of a bulk loader per task, each with their own writer threads.
  * </p>
  *
  * */
@@ -68,10 +69,13 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     this.metrics = metrics;
   }
 
+  public void onFlush(HTTPBulkLoader.BulkReport report) {
+
+  }
 
   @Override
   public void start() {
-    // Nothing to do.
+    bulkLoader.start();
   }
 
   @Override
@@ -87,7 +91,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   }
 
   @Override
-  public void send(String source, OutgoingMessageEnvelope envelope) {
+  public void send(final String source, final OutgoingMessageEnvelope envelope) {
     try {
       bulkLoader.addAction(source, msgToAction.apply(envelope));
     } catch (IOException e) {

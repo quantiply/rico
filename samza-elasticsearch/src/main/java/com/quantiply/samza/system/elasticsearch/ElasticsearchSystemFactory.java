@@ -20,7 +20,7 @@
 package com.quantiply.samza.system.elasticsearch;
 
 import com.quantiply.elasticsearch.HTTPBulkLoader;
-import com.quantiply.samza.MsgToAction;
+import com.quantiply.samza.task.ESMsgToAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
@@ -73,7 +73,7 @@ public class ElasticsearchSystemFactory implements SystemFactory {
   }
 
   protected static Function<OutgoingMessageEnvelope,HTTPBulkLoader.ActionRequest> getActionRequestConverter() {
-    return MsgToAction::convert;
+    return ESMsgToAction::convert;
   }
 
 }
