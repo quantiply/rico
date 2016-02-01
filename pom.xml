@@ -30,7 +30,8 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <samza.version>0.9.1</samza.version>
         <confluent.version>1.0-q5</confluent.version>
         <kafka.version>0.8.2.1</kafka.version>
-        <jackson.version>2.2.2</jackson.version>
+        <jackson.databind.version>2.2.2</jackson.databind.version>
+        <jackson.core.version>1.8.5</jackson.core.version>
     </properties>
 
     <groupId>com.quantiply.rico</groupId>
@@ -158,7 +159,15 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
+                <version>${jackson.databind.version}</version>
+            </dependency>
+            <!--
+               rhoover - ran into conflict with Avro + Samza versions of jackson-core-asl
+            -->
+            <dependency>
+                <groupId>org.codehaus.jackson</groupId>
+                <artifactId>jackson-core-asl</artifactId>
+                <version>${jackson.core.version}</version>
             </dependency>
             <dependency>
               <groupId>junit</groupId>

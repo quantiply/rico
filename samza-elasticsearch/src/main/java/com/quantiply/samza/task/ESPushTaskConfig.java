@@ -37,22 +37,6 @@ public class ESPushTaskConfig {
 
     public enum MetadataSrc { KEY_DOC_ID, KEY_AVRO, EMBEDDED }
 
-    public static class ESClientConfig {
-        public final String httpHost;
-        public final int httpPort;
-        public final int flushMaxActions;
-        public final int flushMaxWindowIntervals;
-        public final int commitWindowIntervals;
-
-        public ESClientConfig(String httpHost, int httpPort, int flushMaxActions, int flushMaxWindowIntervals, int commitWindowIntervals) {
-            this.httpHost = httpHost;
-            this.httpPort = httpPort;
-            this.flushMaxActions = flushMaxActions;
-            this.flushMaxWindowIntervals = flushMaxWindowIntervals;
-            this.commitWindowIntervals = commitWindowIntervals;
-        }
-    }
-
     public static class ESIndexSpec {
         public final MetadataSrc metadataSrc;
         public final String indexNamePrefix;
@@ -71,11 +55,8 @@ public class ESPushTaskConfig {
         }
     }
 
-    public final static String CFG_ES_HTTP_HOST = "rico.es.http.host";
-    public final static String CFG_ES_HTTP_PORT = "rico.es.http.port";
-    public final static String CFG_ES_FLUSH_MAX_ACTIONS = "rico.es.flush.max.actions";
-    public final static String CFG_ES_FLUSH_MAX_WINDOW_INTERVALS = "rico.es.flush.max.window.intervals";
-    public final static String CFG_ES_COMMIT_WINDOW_INTERVALS = "rico.es.commit.window.intervals";
+    public final static String CFS_ES_SYSTEM_NAME = "es";
+    public final static String CFG_ES_STREAM_NAME = "bulk-http";
     public final static String CFG_ES_STREAMS = "rico.es.streams";
     public final static String CFG_ES_DEFAULT_DOC_METADATA_SRC = "rico.es.metadata.source";
     public final static String CFG_ES_STREAM_DOC_METADATA_SRC = "rico.es.stream.%s.metadata.source";
@@ -89,29 +70,12 @@ public class ESPushTaskConfig {
     public final static String CFG_ES_STREAM_DOC_TYPE = "rico.es.stream.%s.doc.type";
     public final static String CFG_ES_DEFAULT_VERSION_TYPE_DEFAULT = "rico.es.version.type.default";
     public final static String CFG_ES_STREAM_VERSION_TYPE_DEFAULT = "rico.es.stream.%s.version.type.default";
-    public final static String DEFAULT_FLUSH_MAX_ACTIONS = "10000";
-    public final static String DEFAULT_FLUSH_MAX_WINDOW_INTERVALS = "1000"; //1sec for window.ms minimum values (1 ms)
 
     private final static HashSet<String> METADATA_SRC_OPTIONS = Arrays.stream(MetadataSrc.values()).map(v -> v.toString().toLowerCase()).collect(Collectors.toCollection(HashSet::new));
 
     public static boolean isStreamConfig(Config config) {
         String streamList = config.get(CFG_ES_STREAMS);
         return streamList != null && streamList.length() > 0;
-    }
-
-    public static ESClientConfig getClientConfig(Config config) {
-        String httpHost = getDefaultConfigParam(config, CFG_ES_HTTP_HOST, null);
-        int httpPort = Integer.parseInt(getDefaultConfigParam(config, CFG_ES_HTTP_PORT, "80"));
-        int flushMaxActions = getFlushMaxActions(config);
-        int flushMaxWindowIntervals = getFlushMaxWindowIntervals(config);
-        int commitWindowIntervals = 1;
-        return new ESClientConfig(
-                httpHost,
-                httpPort,
-                flushMaxActions,
-                flushMaxWindowIntervals,
-                commitWindowIntervals
-        );
     }
 
     public static ESIndexSpec getDefaultConfig(Config config) {
@@ -164,18 +128,6 @@ public class ESPushTaskConfig {
 
     private static String getDefaultMetadataStrParam(Config config) {
         return config.get(CFG_ES_DEFAULT_DOC_METADATA_SRC, MetadataSrc.KEY_DOC_ID.name());
-    }
-
-    private static int getFlushMaxActions(Config config) {
-        return Integer.parseInt(config.get(CFG_ES_FLUSH_MAX_ACTIONS, DEFAULT_FLUSH_MAX_ACTIONS));
-    }
-
-    private static int getCommitWindowIntervals(Config config) {
-        return Integer.parseInt(config.get(CFG_ES_COMMIT_WINDOW_INTERVALS, DEFAULT_FLUSH_MAX_WINDOW_INTERVALS));
-    }
-
-    private static int getFlushMaxWindowIntervals(Config config) {
-        return Integer.parseInt(config.get(CFG_ES_FLUSH_MAX_WINDOW_INTERVALS, DEFAULT_FLUSH_MAX_WINDOW_INTERVALS));
     }
 
     private static Optional<VersionType> getVersionType(String defaultVersionTypeStr) {
