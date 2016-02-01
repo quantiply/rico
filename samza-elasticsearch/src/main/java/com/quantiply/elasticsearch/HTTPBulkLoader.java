@@ -227,7 +227,7 @@ public class HTTPBulkLoader {
 
   /**
    *
-   * Writer thread
+   * Writer thread - makes all calls to Elasticsearch
    *
    */
   protected class Writer implements Runnable {

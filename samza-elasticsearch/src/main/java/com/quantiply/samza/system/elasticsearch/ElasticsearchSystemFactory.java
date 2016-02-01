@@ -20,15 +20,12 @@
 package com.quantiply.samza.system.elasticsearch;
 
 import com.quantiply.elasticsearch.HTTPBulkLoader;
-import com.quantiply.samza.task.ESMsgToAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.system.*;
-
-import java.util.function.Function;
 
 /**
  * A {@link SystemFactory} for Elasticsearch.
@@ -50,7 +47,7 @@ public class ElasticsearchSystemFactory implements SystemFactory {
     return new ElasticsearchSystemProducer(name,
                                            getBulkLoaderFactory(elasticsearchConfig),
                                            getClient(elasticsearchConfig),
-                                           getActionRequestConverter(),
+                                           env -> (HTTPBulkLoader.ActionRequest)env.getMessage(),
                                            new ElasticsearchSystemProducerMetrics(name, metricsRegistry));
   }
 
@@ -70,10 +67,6 @@ public class ElasticsearchSystemFactory implements SystemFactory {
     //Using a single connection (not a pool, multiThreaded == false) b/c flushes are sequential and blocking
     jestFactory.setHttpClientConfig(new HttpClientConfig.Builder(elasticUrl).multiThreaded(false).build());
     return jestFactory.getObject();
-  }
-
-  protected static Function<OutgoingMessageEnvelope,HTTPBulkLoader.ActionRequest> getActionRequestConverter() {
-    return ESMsgToAction::convert;
   }
 
 }

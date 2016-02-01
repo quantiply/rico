@@ -21,6 +21,7 @@ package com.quantiply.samza.system.elasticsearch;
 
 import com.quantiply.elasticsearch.HTTPBulkLoader;
 import io.searchbox.client.JestClient;
+import io.searchbox.core.BulkResult;
 import org.apache.samza.SamzaException;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
@@ -65,12 +66,16 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     this.systemName = systemName;
     this.client = client;
     this.msgToAction = msgToAction;
-    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client);
+    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client, this::onFlush);
     this.metrics = metrics;
   }
 
   public void onFlush(HTTPBulkLoader.BulkReport report) {
-
+    metrics.bulkSendSuccess.inc();
+    for (BulkResult.BulkResultItem item: report.bulkResult.getItems()) {
+      LOGGER.debug(item.toString());
+//      switch (item.operation)
+    }
   }
 
   @Override
