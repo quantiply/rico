@@ -17,7 +17,6 @@ package com.quantiply.elasticsearch;
 
 import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
-import com.quantiply.samza.task.ESPushTaskConfig;
 import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Bulk;
@@ -29,9 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -53,9 +49,9 @@ public class HTTPBulkLoader {
   public static class BulkReport {
     public final BulkResult bulkResult;
     public final TriggerType triggerType;
-    public final List<ActionRequest> requests;
+    public final List<SourcedActionRequest> requests;
 
-    public BulkReport(BulkResult bulkResult, TriggerType triggerType, List<ActionRequest> requests) {
+    public BulkReport(BulkResult bulkResult, TriggerType triggerType, List<SourcedActionRequest> requests) {
       this.bulkResult = bulkResult;
       this.triggerType = triggerType;
       this.requests = requests;
@@ -79,10 +75,20 @@ public class HTTPBulkLoader {
     }
   }
 
+  public static class SourcedActionRequest {
+    public final ActionRequest request;
+    public final String source;
+
+    public SourcedActionRequest(String source, ActionRequest request) {
+      this.request = request;
+      this.source = source;
+    }
+  }
+
   protected final Config config;
   protected final JestClient client;
   protected final List<BulkableAction<DocumentResult>> actions;
-  protected final List<ActionRequest> requests;
+  protected final List<SourcedActionRequest> requests;
   protected long lastFlushTsMs = System.currentTimeMillis();
   protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
@@ -100,8 +106,7 @@ public class HTTPBulkLoader {
    * @param req
    * @throws IOException
      */
-  public void addAction(ActionRequest req) {
-//    long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+  public void addAction(String source, ActionRequest req) {
     BulkableAction<DocumentResult> action = null;
     if (req.key.getAction().equals(Action.INDEX)) {
       Index.Builder builder = new Index.Builder(req.document)
@@ -120,17 +125,17 @@ public class HTTPBulkLoader {
       throw new RuntimeException("Not implemented");
     }
     actions.add(action);
-    requests.add(req);
+    requests.add(new SourcedActionRequest(source, req));
 //    checkFlush(req.receivedTsMs); //TODO - is this the right time??
   }
 
   /**
    * Issue flush request to writer thread and block until complete
    *
-   * @return
-   * @throws IOException
-     */
-  public BulkReport flush() throws IOException {
+   * Error contract:
+   *    this method will throw an Exception if any non-ignorable errors occur in the writer thread
+   */
+  public BulkReport flush() {
     return flush(TriggerType.FLUSH_CALL);
   }
 

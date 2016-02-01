@@ -35,7 +35,7 @@ import java.util.function.Function;
 /** A {@link SystemProducer} for Elasticsearch that builds on top of the {@link HTTPBulkLoader}
  *
  * <p>
- * Each systemName that is configured in Samza has an independent {@link HTTPBulkLoader} that flush
+ * Each system that is configured in Samza has an independent {@link HTTPBulkLoader} that flush
  * separably to Elasticsearch. Each {@link HTTPBulkLoader} will maintain the ordering of messages
  * being sent from tasks per Samza container. If you have multiple containers writing to the same
  * message id there is no guarantee of ordering in Elasticsearch.
@@ -50,11 +50,10 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSystemProducer.class);
 
   private final String systemName;
-  private final Map<String, HTTPBulkLoader> sourceBulkLoader;
+  private final HTTPBulkLoader bulkLoader;
   private final JestClient client;
 
   private final ElasticsearchSystemProducerMetrics metrics;
-  private final HTTPBulkLoaderFactory bulkLoaderFactory;
   private final Function<OutgoingMessageEnvelope, HTTPBulkLoader.ActionRequest> msgToAction;
 
   public ElasticsearchSystemProducer(String systemName,
@@ -63,10 +62,9 @@ public class ElasticsearchSystemProducer implements SystemProducer {
                                      Function<OutgoingMessageEnvelope,HTTPBulkLoader.ActionRequest> msgToAction,
                                      ElasticsearchSystemProducerMetrics metrics) {
     this.systemName = systemName;
-    this.bulkLoaderFactory = bulkLoaderFactory;
     this.client = client;
     this.msgToAction = msgToAction;
-    this.sourceBulkLoader = new HashMap<>();
+    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client);
     this.metrics = metrics;
   }
 
@@ -78,48 +76,40 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
   @Override
   public void stop() {
-    for (Map.Entry<String, HTTPBulkLoader> e : sourceBulkLoader.entrySet()) {
-      flush(e.getKey());
-      e.getValue().close();
-    }
+    flushAll();
+    bulkLoader.close();
   }
 
   @Override
   public void register(final String source) {
-    sourceBulkLoader.put(source, bulkLoaderFactory.getBulkLoader(client));
+    //TODO - create metrics per source??
   }
 
   @Override
   public void send(String source, OutgoingMessageEnvelope envelope) {
-    sourceBulkLoader.get(source).addAction(msgToAction.apply(envelope));
+    bulkLoader.addAction(source, msgToAction.apply(envelope));
   }
 
   @Override
-  public void flush(String source) {
+  public void flush(final String source) {
+    flushAll();
+  }
+
+  /**
+   * Error contract:
+   *    this method will throw an Exception if any non-ignorable errors have occurred
+   */
+  public void flushAll() {
     try {
-      sourceBulkLoader.get(source).flush();
+      HTTPBulkLoader.BulkReport report = bulkLoader.flush();
+      //TODO - update metrics by source
     }
-    catch (IOException e) {
-      String message = String.format("Unable to send message from %s to systemName %s.", source,
-          systemName);
+    catch (Exception e) {
+      String message = String.format("Unable to write to Elasticsearch system from %s.", systemName);
       LOGGER.error(message);
       throw new SamzaException(message, e);
     }
-
-//    if (sendFailed.get()) {
-//      String message = String.format("Unable to send message from %s to systemName %s.", source,
-//          systemName);
-//      LOGGER.error(message);
-//
-//      Throwable cause = thrown.get();
-//      if (cause != null) {
-//        throw new SamzaException(message, cause);
-//      } else {
-//        throw new SamzaException(message);
-//      }
-//    }
-
-    LOGGER.info(String.format("Flushed %s to %s.", source, systemName));
+    LOGGER.info(String.format("Flushed Elasticsearch system: %s.", systemName));
   }
 
 }
