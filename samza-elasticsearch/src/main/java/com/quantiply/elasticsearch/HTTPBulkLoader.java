@@ -133,48 +133,14 @@ public class HTTPBulkLoader {
   }
 
   /**
-   * Convert requests to JEST API objects and pass to writer thread
+   * Convert request to JEST API and passes it to writer thread
    *
    * May block if internal buffer is full
    */
   public void addAction(String source, ActionRequest req) throws IOException {
-    BulkableAction<DocumentResult> action = null;
-    if (req.key.getAction().equals(Action.INDEX)) {
-      Index.Builder builder = new Index.Builder(req.document)
-          .id(req.key.getId().toString())
-          .index(req.index)
-          .type(req.docType);
-      if (req.key.getVersionType() != null) {
-        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString());
-      }
-      if (req.key.getVersion() != null) {
-        builder.setParameter(Parameters.VERSION, req.key.getVersion());
-      }
-      action = builder.build();
-    }
-    else {
-      //TODO - finish me
-      throw new RuntimeException("Not implemented");
-    }
-
+    BulkableAction<DocumentResult> action = convertToJestAction(req);
     WriterCommand addCmd = WriterCommand.getAddCmd(new SourcedActionRequest(source, req, action));
-    try {
-      //May block if queue is full
-      writerCmdQueue.put(addCmd);
-    }
-    catch (InterruptedException firstEx) {
-      /* If the main Samza thread is interrupted, it's likely a shutdown command
-        Try for a clean shutdown by waiting a little longer to enqueue the message
-       */
-      try {
-        if (!writerCmdQueue.offer(addCmd, SHUTDOWN_WAIT_MS, TimeUnit.MILLISECONDS)) {
-         throw new IOException("Timed out trying to pass message to Elasticsearch writer on shutdown");
-        }
-      }
-      catch (InterruptedException e) {
-        throw new IOException("Interrupted passing message to Elasticsearch writer", e);
-      }
-    }
+    sendCmd(addCmd);
   }
 
   /**
@@ -185,7 +151,9 @@ public class HTTPBulkLoader {
    */
   public void flush() throws IOException {
     WriterCommand flushCmd = WriterCommand.getFlushCmd();
+    sendCmd(flushCmd);
     try {
+      //Wait on flush to complete
       flushCmd.flushCompletedFuture.get();
     } catch (InterruptedException e) {
       /* If the main Samza thread is interrupted, it's likely a shutdown command
@@ -201,6 +169,9 @@ public class HTTPBulkLoader {
     }
   }
 
+  /**
+   * Start writer thread
+   */
   public void start() {
     writerExecSvc.submit(writer);
   }
@@ -210,6 +181,48 @@ public class HTTPBulkLoader {
    */
   public void stop() {
     writerExecSvc.shutdown();
+  }
+
+  protected BulkableAction<DocumentResult> convertToJestAction(ActionRequest req) {
+    BulkableAction<DocumentResult> action = null;
+    if (req.key.getAction().equals(Action.INDEX)) {
+      Index.Builder builder = new Index.Builder(req.document)
+              .id(req.key.getId().toString())
+              .index(req.index)
+              .type(req.docType);
+      if (req.key.getVersionType() != null) {
+        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString());
+      }
+      if (req.key.getVersion() != null) {
+        builder.setParameter(Parameters.VERSION, req.key.getVersion());
+      }
+      action = builder.build();
+    }
+    else {
+      //TODO - finish me
+      throw new RuntimeException("Not implemented");
+    }
+    return action;
+  }
+
+  protected void sendCmd(WriterCommand cmd) throws IOException {
+    try {
+      //May block if queue is full
+      writerCmdQueue.put(cmd);
+    }
+    catch (InterruptedException firstEx) {
+      /* If the main Samza thread is interrupted, it's likely a shutdown command
+        Try for a clean shutdown by waiting a little longer to enqueue the message
+       */
+      try {
+        if (!writerCmdQueue.offer(cmd, SHUTDOWN_WAIT_MS, TimeUnit.MILLISECONDS)) {
+          throw new IOException("Timed out trying to pass message to Elasticsearch writer on shutdown");
+        }
+      }
+      catch (InterruptedException e) {
+        throw new IOException("Interrupted passing message to Elasticsearch writer", e);
+      }
+    }
   }
 
   /**
@@ -225,7 +238,7 @@ public class HTTPBulkLoader {
     protected long lastFlushTsMs;
     protected Throwable error = null;
     protected final List<WriterCommand> requests;
-    protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
+    protected Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
     public Writer(Config config, JestClient client, BlockingQueue<WriterCommand> cmdQueue, Optional<Consumer<BulkReport>> onFlushOpt) {
       this.config = config;
@@ -233,6 +246,37 @@ public class HTTPBulkLoader {
       this.client = client;
       this.onFlushOpt = onFlushOpt;
       this.requests = new ArrayList<>(config.flushMaxActions);
+    }
+
+    @Override
+    public void run() {
+      lastFlushTsMs = System.currentTimeMillis();
+      while (true) try {
+        WriterCommand cmd = poll();
+        if (cmd == null) {
+          flush(TriggerType.MAX_INTERVAL);
+        }
+        else if (cmd.type.equals(WriterCommandType.ADD_ACTION)) {
+          handleAddCmd(cmd);
+        }
+        else if (cmd.type.equals(WriterCommandType.FLUSH)) {
+          if (!handleFlushCmd(cmd)) {
+            logger.error("Elasticsearch writer thread shutting down after error");
+            return;
+          }
+        }
+        else {
+          throw new IllegalStateException("Unknown cmd type: " + cmd.type);
+        }
+      }
+      catch (InterruptedException e) {
+        logger.info("Elasticsearch writer thread received shutdown");
+        return;
+      }
+      catch (Exception e) {
+        logger.error("Error writing to Elasticsearch", e);
+        error = e;
+      }
     }
 
     protected WriterCommand poll() throws InterruptedException {
@@ -258,8 +302,7 @@ public class HTTPBulkLoader {
       try {
         bulkResult = client.execute(getBulkRequest());
         //TODO - check for any errors and set error variable
-      }
-      finally {
+      } finally {
         requests.clear();
         lastFlushTsMs = System.currentTimeMillis();
       }
@@ -271,16 +314,16 @@ public class HTTPBulkLoader {
 
     protected Bulk getBulkRequest() {
       Bulk.Builder bulkReqBuilder = new Bulk.Builder();
-      for (WriterCommand cmd: requests) {
+      for (WriterCommand cmd : requests) {
         bulkReqBuilder.addAction(cmd.request.action);
       }
       return bulkReqBuilder.build();
     }
 
     /**
-     *  Responsible for informing main thread of any errors
+     * Responsible for informing main thread of any errors
      *
-     *  @return returns true if flush was successful
+     * @return returns true if flush was successful
      */
     protected boolean handleFlushCmd(WriterCommand cmd) {
       //If any errors have previously occurred, fail immediately!!!
@@ -290,8 +333,7 @@ public class HTTPBulkLoader {
       }
       try {
         flush(TriggerType.FLUSH_CMD);
-      }
-      catch (Exception e) {
+      } catch (Exception e) {
         cmd.flushCompletedFuture.completeExceptionally(e);
         return false;
       }
@@ -305,32 +347,5 @@ public class HTTPBulkLoader {
         flush(TriggerType.MAX_ACTIONS);
       }
     }
-
-    @Override
-    public void run() {
-      lastFlushTsMs = System.currentTimeMillis();
-      while (true) try {
-        WriterCommand cmd = poll();
-        if (cmd == null) {
-          flush(TriggerType.MAX_INTERVAL);
-        } else if (cmd.type.equals(WriterCommandType.ADD_ACTION)) {
-          handleAddCmd(cmd);
-        } else if (cmd.type.equals(WriterCommandType.FLUSH)) {
-          if (!handleFlushCmd(cmd)) {
-            logger.error("Elasticsearch writer thread shutting down after error");
-            return;
-          }
-        } else {
-          throw new IllegalStateException("Unknown cmd type: " + cmd.type);
-        }
-      } catch (InterruptedException e) {
-        logger.info("Elasticsearch writer thread received shutdown");
-        return;
-      } catch (Exception e) {
-        logger.error("Error writing to Elasticsearch", e);
-        error = e;
-      }
-    }
   }
-
 }
