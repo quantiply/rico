@@ -292,6 +292,11 @@ public class HTTPBulkLoader {
     }
 
     protected void flush(TriggerType triggerType) throws IOException {
+      if (requests.size() == 0) {
+        lastFlushTsMs = System.currentTimeMillis();
+        return;
+      }
+
       List<SourcedActionRequest> sourcedReqs = null;
       if (onFlushOpt.isPresent()) {
         //This must be done before the list is cleared in the finally block
@@ -347,5 +352,6 @@ public class HTTPBulkLoader {
         flush(TriggerType.MAX_ACTIONS);
       }
     }
+
   }
 }
