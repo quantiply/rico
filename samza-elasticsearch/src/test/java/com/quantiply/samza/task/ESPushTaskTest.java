@@ -5,13 +5,15 @@ import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
 import com.quantiply.rico.elasticsearch.VersionType;
 import com.quantiply.samza.serde.AvroSerde;
+import com.quantiply.samza.serde.JsonSerde;
 import org.apache.samza.Partition;
 import org.apache.samza.config.MapConfig;
-import org.apache.samza.serializers.JsonSerde;
 import org.apache.samza.system.IncomingMessageEnvelope;
+import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStreamPartition;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -36,11 +38,10 @@ public class ESPushTaskTest {
 
         ESPushTask task = new ESPushTask();
         SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
-        task.jsonSerde = mock(JsonSerde.class);
-        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
+        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, "".getBytes(StandardCharsets.UTF_8));
         long tsNowMs = 1453952662L;
-        HTTPBulkLoader.ActionRequest req = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
+        OutgoingMessageEnvelope out = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());
@@ -71,10 +72,9 @@ public class ESPushTaskTest {
             .build();
         task.avroSerde = mock(AvroSerde.class);
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
-        task.jsonSerde = mock(JsonSerde.class);
-        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
-        HTTPBulkLoader.ActionRequest req = task.getAvroKeyOutMsg(in, esConfig);
+        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, "".getBytes(StandardCharsets.UTF_8));
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(in, esConfig);
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INSERT, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
@@ -100,7 +100,8 @@ public class ESPushTaskTest {
         task.jsonSerde = mock(JsonSerde.class);
         when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
-        HTTPBulkLoader.ActionRequest req = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
+        OutgoingMessageEnvelope out = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());

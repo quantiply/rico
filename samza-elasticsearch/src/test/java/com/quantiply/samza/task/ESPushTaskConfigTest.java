@@ -38,7 +38,7 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.streams", "");
         ESPushTaskConfig.getStreamMap(new MapConfig(map));
     }
-    
+
     @Test
     public void testDefaultConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
