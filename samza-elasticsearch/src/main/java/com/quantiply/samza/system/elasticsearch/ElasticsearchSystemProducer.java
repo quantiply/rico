@@ -77,7 +77,8 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   @Override
   public void stop() {
     flushAll();
-    bulkLoader.close();
+    bulkLoader.stop();
+    client.shutdownClient();
   }
 
   @Override
@@ -87,7 +88,13 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
   @Override
   public void send(String source, OutgoingMessageEnvelope envelope) {
-    bulkLoader.addAction(source, msgToAction.apply(envelope));
+    try {
+      bulkLoader.addAction(source, msgToAction.apply(envelope));
+    } catch (IOException e) {
+      String message = String.format("Error writing to Elasticsearch system %s.", systemName);
+      LOGGER.error(message, e);
+      throw new SamzaException(message, e);
+    }
   }
 
   @Override
@@ -101,15 +108,14 @@ public class ElasticsearchSystemProducer implements SystemProducer {
    */
   public void flushAll() {
     try {
-      HTTPBulkLoader.BulkReport report = bulkLoader.flush();
-      //TODO - update metrics by source
+      bulkLoader.flush();
+      LOGGER.info(String.format("Flushed Elasticsearch system: %s.", systemName));
     }
     catch (Exception e) {
-      String message = String.format("Unable to write to Elasticsearch system from %s.", systemName);
-      LOGGER.error(message);
+      String message = String.format("Error writing to Elasticsearch system %s.", systemName);
+      LOGGER.error(message, e);
       throw new SamzaException(message, e);
     }
-    LOGGER.info(String.format("Flushed Elasticsearch system: %s.", systemName));
   }
 
 }

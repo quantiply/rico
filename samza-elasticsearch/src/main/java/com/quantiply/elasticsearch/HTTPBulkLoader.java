@@ -24,7 +24,6 @@ import io.searchbox.core.BulkResult;
 import io.searchbox.core.DocumentResult;
 import io.searchbox.core.Index;
 import io.searchbox.params.Parameters;
-import org.apache.samza.SamzaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,21 +112,20 @@ public class HTTPBulkLoader {
     public final CompletableFuture<Void> flushCompletedFuture;
   }
 
+  protected static final int SHUTDOWN_WAIT_MS = 100;
   protected final Config config;
   protected final JestClient client;
   protected final ArrayBlockingQueue<WriterCommand> writerCmdQueue;
   protected final ExecutorService writerExecSvc;
-
-  protected Logger logger = LoggerFactory.getLogger(new Object(){}.getClass().getEnclosingClass());
 
   /**
    * Elasticsearch HTTP Bulk Loader
    *
    * Methods in this class run in the client's thread
    *
-   * @param config
-   * @param client - JEST client - it's lifecycle is manage externally (i.e. must be closed elsewhere)
-     */
+   * JEST client's lifecycle is manage externally (i.e. must be closed elsewhere)
+   * so that it may be shared by multiple instances
+   */
   public HTTPBulkLoader(Config config, JestClient client) {
     this.config = config;
     this.client = client;
@@ -140,7 +138,7 @@ public class HTTPBulkLoader {
    *
    * May block if internal buffer is full
    */
-  public void addAction(String source, ActionRequest req) {
+  public void addAction(String source, ActionRequest req) throws IOException {
     BulkableAction<DocumentResult> action = null;
     if (req.key.getAction().equals(Action.INDEX)) {
       Index.Builder builder = new Index.Builder(req.document)
@@ -156,6 +154,7 @@ public class HTTPBulkLoader {
       action = builder.build();
     }
     else {
+      //TODO - finish me
       throw new RuntimeException("Not implemented");
     }
 
@@ -169,15 +168,14 @@ public class HTTPBulkLoader {
         Try for a clean shutdown by waiting a little longer to enqueue the message
        */
       try {
-        if (!writerCmdQueue.offer(addCmd, 100, TimeUnit.MILLISECONDS)) {
-         throw new SamzaException("Timed out trying to pass message to Elasticsearch writer on shutdown");
+        if (!writerCmdQueue.offer(addCmd, SHUTDOWN_WAIT_MS, TimeUnit.MILLISECONDS)) {
+         throw new IOException("Timed out trying to pass message to Elasticsearch writer on shutdown");
         }
       }
       catch (InterruptedException e) {
-        throw new SamzaException("Interrupted passing message to Elasticsearch writer", e);
+        throw new IOException("Interrupted passing message to Elasticsearch writer", e);
       }
     }
-//    checkFlush(req.receivedTsMs); //TODO - is this the right time??
   }
 
   /**
@@ -186,28 +184,22 @@ public class HTTPBulkLoader {
    * Error contract:
    *    this method will throw an Exception if any non-ignorable errors occur in the writer thread
    */
-  public BulkReport flush() {
+  public void flush() throws IOException {
     WriterCommand flushCmd = WriterCommand.getFlushCmd();
-    return flush(TriggerType.FLUSH_CALL);
-  }
-
-  protected BulkReport flush(TriggerType triggerType) throws IOException {
-    Bulk bulkRequest = new Bulk.Builder().addAction(actions).build();
-    BulkReport report = null;
     try {
-      BulkResult bulkResult = client.execute(bulkRequest);
-      report = new BulkReport(bulkResult, triggerType, requests);
+      flushCmd.flushCompletedFuture.get();
+    } catch (InterruptedException e) {
+      /* If the main Samza thread is interrupted, it's likely a shutdown command
+        Try for a clean shutdown by waiting a little longer on the flush
+       */
+      try {
+        flushCmd.flushCompletedFuture.get(SHUTDOWN_WAIT_MS, TimeUnit.MILLISECONDS);
+      } catch (Exception retryEx) {
+        throw new IOException("Error trying to flush to Elasticsearch on shutdown", e);
+      }
+    } catch (ExecutionException e) {
+      throw new IOException("Error writing to Elasticsearch", e.getCause());
     }
-    catch (Exception e) {
-      logger.error("Error writing to Elasticsearch", e);
-      throw e;
-    }
-    finally {
-      actions.clear();
-      requests.clear();
-      lastFlushTsMs = System.currentTimeMillis();
-    }
-    return report;
   }
 
   public void start() {
@@ -219,28 +211,7 @@ public class HTTPBulkLoader {
    */
   public void stop() {
     writerExecSvc.shutdown();
-    //client.shutdownClient(); TODO - this is SystemProducer's responsibility
   }
-//
-//  protected TriggerType getTrigger(long tsNowMs) {
-//    if (actions.size() >= config.flushMaxActions) {
-//      return TriggerType.MAX_ACTIONS;
-//    }
-//    if (config.flushMaxIntervalMs.isPresent()) {
-//      long msSinceFlush = tsNowMs - lastFlushTsMs;
-//      if (msSinceFlush > config.flushMaxIntervalMs.get()) {
-//        return TriggerType.MAX_INTERVAL;
-//      }
-//    }
-//    return null;
-//  }
-//
-//  protected void checkFlush(long tsNowMs) throws IOException {
-//    TriggerType triggerType = getTrigger(tsNowMs);
-//    if (triggerType != null) {
-//      flush(triggerType);
-//    }
-//  }
 
   /**
    *
@@ -335,7 +306,7 @@ public class HTTPBulkLoader {
           handleAddCmd(cmd);
         } else if (cmd.type.equals(WriterCommandType.FLUSH)) {
           if (!handleFlushCmd(cmd)) {
-            logger.error("Elasticsearch writer shutting down after failed flush");
+            logger.error("Elasticsearch writer thread shutting down after error");
             return;
           }
         } else {
@@ -345,6 +316,7 @@ public class HTTPBulkLoader {
         logger.info("Elasticsearch writer thread received shutdown");
         return;
       } catch (Exception e) {
+        logger.error("Error writing to Elasticsearch", e);
         error = e;
       }
     }
