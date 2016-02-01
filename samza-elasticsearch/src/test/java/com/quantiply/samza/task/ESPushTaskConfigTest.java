@@ -38,38 +38,7 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.streams", "");
         ESPushTaskConfig.getStreamMap(new MapConfig(map));
     }
-
-    @Test
-    public void testClientConfig() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.http.host", "foo.com");
-        MapConfig config = new MapConfig(map);
-
-        ESPushTaskConfig.ESClientConfig clientConfig = ESPushTaskConfig.getClientConfig(config);
-        assertNotNull(clientConfig);
-        assertEquals("foo.com", clientConfig.httpHost);
-        assertEquals(80, clientConfig.httpPort);
-        assertEquals(10000, clientConfig.flushMaxActions);
-        assertEquals(1000, clientConfig.flushMaxWindowIntervals);
-    }
-
-    @Test
-    public void testClientConfigExplicit() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.http.host", "foo.com");
-        map.put("rico.es.http.port", "8080");
-        map.put("rico.es.flush.max.actions", "1000");
-        map.put("rico.es.flush.max.window.intervals", "5");
-        MapConfig config = new MapConfig(map);
-
-        ESPushTaskConfig.ESClientConfig clientConfig = ESPushTaskConfig.getClientConfig(config);
-        assertNotNull(clientConfig);
-        assertEquals("foo.com", clientConfig.httpHost);
-        assertEquals(8080, clientConfig.httpPort);
-        assertEquals(1000, clientConfig.flushMaxActions);
-        assertEquals(5, clientConfig.flushMaxWindowIntervals);
-    }
-
+    
     @Test
     public void testDefaultConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();

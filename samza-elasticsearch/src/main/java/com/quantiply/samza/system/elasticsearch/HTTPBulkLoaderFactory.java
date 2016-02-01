@@ -22,6 +22,7 @@ package com.quantiply.samza.system.elasticsearch;
 import com.quantiply.elasticsearch.HTTPBulkLoader;
 import io.searchbox.client.JestClient;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -39,6 +40,6 @@ public class HTTPBulkLoaderFactory {
         config.getBulkFlushMaxActions(),
         config.getBulkFlushIntervalMS()
     );
-    return new HTTPBulkLoader(loaderConf, client, onFlush);
+    return new HTTPBulkLoader(loaderConf, client, Optional.of(onFlush));
   }
 }
