@@ -25,6 +25,7 @@ import com.quantiply.samza.serde.AvroSerdeFactory;
 import com.quantiply.samza.serde.JsonSerde;
 import com.quantiply.samza.serde.JsonSerdeFactory;
 import org.apache.samza.config.Config;
+import org.apache.samza.job.JobRunner;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
@@ -34,6 +35,7 @@ import org.apache.samza.task.TaskCoordinator;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -195,6 +197,21 @@ public class ESPushTask extends BaseTask {
         if (key.getEventTsUnixMs() == null) {
             key.setEventTsUnixMs(tsNowMs);
         }
+    }
+
+    /*
+    *    For testing in the IDE
+    */
+    public static void main(String [] args) {
+        String jobName = "shakespeare";
+        String rootDir = Paths.get(".").toAbsolutePath().normalize().toString();
+        String[] params = {
+                "--config-factory",
+                "org.apache.samza.config.factories.PropertiesConfigFactory",
+                "--config-path",
+                String.format("file://%s/samza-elasticsearch/src/main/config/%s.properties", rootDir, jobName)
+        };
+        JobRunner.main(params);
     }
 
 }
