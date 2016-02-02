@@ -1,0 +1,5 @@
+{"_id": "testIndex", "foo": "bar", "num": 99.99}
+{"_id": "testIndex", "foo": "bar2", "num": 100.0}
+{"_id": "testVC", "_version": 123, "_version_type": "external", "foo": "bar", "num": 43.98}
+{"_id": "testVC", "_version": 122, "_version_type": "external", "foo": "bar", "num": 44.98}
+{"_id": "testMappingEx", "foo": "bar", "num": "oh snap a string"}

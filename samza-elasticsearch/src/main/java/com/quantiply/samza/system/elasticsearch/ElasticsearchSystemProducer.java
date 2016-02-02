@@ -106,13 +106,18 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
   @Override
   public void start() {
+    LOGGER.info("Starting Elasticsearch writer thread");
     bulkLoader.start();
   }
 
   @Override
   public void stop() {
+    LOGGER.info("Stopping Elasticsearch system producer");
+    LOGGER.debug("Flushing any remaining actions");
     flushAll();
+    LOGGER.debug("Stopping the writer thread");
     bulkLoader.stop();
+    LOGGER.debug("Closing the connection");
     client.shutdownClient();
   }
 

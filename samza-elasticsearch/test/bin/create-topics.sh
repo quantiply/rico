@@ -5,6 +5,6 @@ ${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic s
 
 ${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic shakespeare --create --partitions 4 --replication-factor 1
 
-# ${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic avro.key.es.load --create --partitions 4 --replication-factor 1
+# ${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic avrokey--create --partitions 4 --replication-factor 1
 #
-# ${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic embedded.es.load --create --partitions 4 --replication-factor 1
+${DIR}/../deploy/confluent/bin/kafka-topics --zookeeper localhost:2181 --topic embedded --create --partitions 4 --replication-factor 1

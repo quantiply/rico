@@ -30,3 +30,10 @@ mvn package -Dmaven.test.skip=true && rm -rf test/deploy/samza && mkdir -p test/
              --from-beginning
 
 	./bin/start-job.sh shakespeare
+
+  #View embedded data
+	./deploy/confluent/bin/kafka-console-consumer --topic embedded \
+             --zookeeper localhost:2181 \
+             --from-beginning
+
+	./bin/start-job.sh embedded

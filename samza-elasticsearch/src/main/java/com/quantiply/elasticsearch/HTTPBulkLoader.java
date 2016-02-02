@@ -202,7 +202,7 @@ public class HTTPBulkLoader {
    * Signal writer thread to shutdown
    */
   public void stop() {
-    writerExecSvc.shutdown();
+    writerExecSvc.shutdownNow();
     try {
       writerExecSvc.awaitTermination(1, TimeUnit.MINUTES);
     } catch (InterruptedException e) {
@@ -270,8 +270,9 @@ public class HTTPBulkLoader {
 
   /**
    *
-   * Writer thread - makes all calls to Elasticsearch
+   * Writer thread - handles all communication with Elasticsearch
    *
+   * Error contract: dies on fatal error
    */
   protected class Writer implements Callable<Void> {
     protected final Config config;
@@ -309,7 +310,7 @@ public class HTTPBulkLoader {
         }
       }
       catch (InterruptedException e) {
-        logger.info("Elasticsearch writer thread received shutdown");
+        logger.debug("Elasticsearch writer thread shutting down by request");
         return null;
       }
       catch (Exception e) {
@@ -332,7 +333,9 @@ public class HTTPBulkLoader {
 
     protected void flush(TriggerType triggerType) throws IOException {
       if (requests.size() == 0) {
-        logger.trace("No records to flush");
+        if (logger.isTraceEnabled()) {
+          logger.trace("No records to flush for " + triggerType);
+        }
         lastFlushTsMs = System.currentTimeMillis();
         return;
       }
@@ -368,7 +371,7 @@ public class HTTPBulkLoader {
     }
 
     /**
-     * Responsible for informing main thread of any errors
+     * Informs main thread of any errors via Future and by dying
      */
     protected void handleFlushCmd(WriterCommand cmd) throws Exception {
       logger.trace("Received flush cmd");
