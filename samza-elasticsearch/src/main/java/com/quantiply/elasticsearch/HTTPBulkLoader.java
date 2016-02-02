@@ -129,8 +129,8 @@ public class HTTPBulkLoader {
    * so that it may be shared by multiple instances
    *
    * Error handling:
-   *   - connection errors are handled here and considered fatal
-   *   - API error are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
+   *   - connection/protocol errors are handled here and considered fatal
+   *   - API errors are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
    *   - currently no retry support
    */
   public HTTPBulkLoader(Config config, JestClient client, Optional<Consumer<BulkReport>> onFlushOpt) {
@@ -143,6 +143,8 @@ public class HTTPBulkLoader {
    * Convert request to JEST API and passes it to writer thread
    *
    * May block if internal buffer is full
+   *
+   * Error contract: will throw an Exception if a fatal errors occur in the writer thread
    */
   public void addAction(String source, ActionRequest req) throws Throwable {
 //    if (logger.isTraceEnabled()) {
@@ -156,16 +158,25 @@ public class HTTPBulkLoader {
   /**
    * Issue flush request to writer thread and block until complete
    *
-   * Error contract:
-   *    this method will throw an Exception if any non-ignorable errors occur in the writer thread
+   * Error contract: will throw an Exception if a fatal errors occur in the writer thread
    */
   public void flush() throws Throwable {
     WriterCommand flushCmd = WriterCommand.getFlushCmd();
     sendCmd(flushCmd);
     try {
-      //Wait on flush to complete
-      flushCmd.flushCompletedFuture.get();
-    } catch (InterruptedException e) {
+      //Wait on flush to complete - may block if writer is dead so we must periodically check
+      boolean waiting = true;
+      while (waiting) {
+        try {
+          flushCmd.flushCompletedFuture.get(100, TimeUnit.MILLISECONDS);
+          waiting = false;
+        }
+        catch (TimeoutException e) {
+          checkWriter();
+        }
+      }
+    }
+    catch (InterruptedException e) {
       /* If the main Samza thread is interrupted, it's likely a shutdown command
         Try for a clean shutdown by waiting a little longer on the flush
        */
@@ -174,7 +185,8 @@ public class HTTPBulkLoader {
       } catch (Exception retryEx) {
         throw new IOException("Error trying to flush to Elasticsearch on shutdown", e);
       }
-    } catch (ExecutionException e) {
+    }
+    catch (ExecutionException e) {
       throw new IOException("Error writing to Elasticsearch", e.getCause());
     }
   }
@@ -220,17 +232,21 @@ public class HTTPBulkLoader {
     return action;
   }
 
+  protected void checkWriter() throws ExecutionException, InterruptedException {
+    if (writerFuture.isDone() || writerFuture.isCancelled()) {
+      writerFuture.get();
+      throw new IllegalStateException("Elasticsearch writer has died");
+    }
+    else {
+      logger.trace("Timeout waiting on writer. Writer is still alive. Waiting some more...");
+    }
+  }
+
   protected void sendCmd(WriterCommand cmd) throws Throwable {
     try {
       //May block if queue is full so we must periodically check that writer is alive
       while (!writerCmdQueue.offer(cmd, 100, TimeUnit.MILLISECONDS)) {
-        if (writerFuture.isDone() || writerFuture.isCancelled()) {
-          writerFuture.get();
-          throw new IllegalStateException("Elasticsearch writer has died");
-        }
-        else {
-          logger.trace("Timeout trying to enqueue. Writer is still ok. Waiting some more...");
-        }
+        checkWriter();
       }
     }
     catch (ExecutionException e) {
