@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -84,6 +85,25 @@ public class ESPushTask extends BaseTask {
     }
 
     private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> msgExtractor) throws IOException {
+        Map<String, String> data = new HashMap<>();
+        data.put("hi", "mom");
+        ActionRequestKey key = ActionRequestKey.newBuilder()
+                .setId("123")
+                .setVersion(12345L)
+                .setVersionType(VersionType.EXTERNAL)
+                .build();
+        HTTPBulkLoader.ActionRequest req = new HTTPBulkLoader.ActionRequest(key, "testIndex", "testType", System.currentTimeMillis(), jsonSerde.toString(data));
+        collector.send(new OutgoingMessageEnvelope(esStream, req));
+//
+//        ActionRequestKey keyOld = ActionRequestKey.newBuilder()
+//                .setId("123")
+//                .setVersion(1234L)
+//                .setVersionType(VersionType.EXTERNAL)
+//                .build();
+//        HTTPBulkLoader.ActionRequest reqOld = new HTTPBulkLoader.ActionRequest(keyOld, "testIndex", "testType", System.currentTimeMillis(), jsonSerde.toString(data));
+//        collector.send(new OutgoingMessageEnvelope(esStream, reqOld));
+
+
         collector.send(msgExtractor.apply(envelope, spec));
     }
 

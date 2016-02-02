@@ -70,11 +70,37 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     this.metrics = metrics;
   }
 
+  /**
+   *
+   * Callback for ES metrics, runs in the writer thread
+   *
+   */
   public void onFlush(HTTPBulkLoader.BulkReport report) {
-    metrics.bulkSendSuccess.inc();
-    for (BulkResult.BulkResultItem item: report.bulkResult.getItems()) {
-      LOGGER.debug(item.toString());
-//      switch (item.operation)
+    LOGGER.debug("ON FLUSH");
+    try {
+      LOGGER.debug("Succeeded" + report.bulkResult.isSucceeded());
+      LOGGER.debug(report.bulkResult.getErrorMessage());
+      metrics.bulkSendSuccess.inc();
+      for (BulkResult.BulkResultItem item : report.bulkResult.getItems()) {
+        LOGGER.debug(String.format("op %s, type %s, status %s, id %s", item.operation, item.type, item.status, item.id));
+        switch (item.operation) {
+          case "index":
+            metrics.docsIndexed.inc();
+            break;
+          case "create":
+            metrics.docsCreated.inc();
+            break;
+          case "update":
+            metrics.docsUpdated.inc();
+            break;
+          case "delete":
+            metrics.docsDeleted.inc();
+          default:
+            break;
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("Error updating metrics", e);
     }
   }
 
@@ -99,7 +125,8 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   public void send(final String source, final OutgoingMessageEnvelope envelope) {
     try {
       bulkLoader.addAction(source, msgToAction.apply(envelope));
-    } catch (IOException e) {
+    }
+    catch (Throwable e) {
       String message = String.format("Error writing to Elasticsearch system %s.", systemName);
       LOGGER.error(message, e);
       throw new SamzaException(message, e);
@@ -120,7 +147,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
       bulkLoader.flush();
       LOGGER.info(String.format("Flushed Elasticsearch system: %s.", systemName));
     }
-    catch (Exception e) {
+    catch (Throwable e) {
       String message = String.format("Error writing to Elasticsearch system %s.", systemName);
       LOGGER.error(message, e);
       throw new SamzaException(message, e);

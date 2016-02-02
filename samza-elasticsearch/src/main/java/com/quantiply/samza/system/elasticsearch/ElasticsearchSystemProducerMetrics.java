@@ -5,8 +5,10 @@ import org.apache.samza.metrics.MetricsRegistry;
 
 public class ElasticsearchSystemProducerMetrics {
     public final Counter bulkSendSuccess;
-    public final Counter inserts;
-    public final Counter updates;
+    public final Counter docsCreated;
+    public final Counter docsIndexed;
+    public final Counter docsUpdated;
+    public final Counter docsDeleted;
     public final Counter conflicts;
     private final MetricsRegistry registry;
     private final String group;
@@ -18,8 +20,10 @@ public class ElasticsearchSystemProducerMetrics {
         this.systemName = systemName;
 
         bulkSendSuccess = newCounter("bulk-send-success");
-        inserts = newCounter("docs-inserted");
-        updates = newCounter("docs-updated");
+        docsCreated = newCounter("docs-created");
+        docsIndexed = newCounter("docs-indexed");
+        docsUpdated = newCounter("docs-updated");
+        docsDeleted = newCounter("docs-deleted");
         conflicts = newCounter("version-conflicts");
     }
 

@@ -90,7 +90,7 @@ public class HTTPBulkLoader {
     }
   }
 
-  protected static enum WriterCommandType { ADD_ACTION, FLUSH }
+  protected enum WriterCommandType { ADD_ACTION, FLUSH }
 
   protected static class WriterCommand {
 
@@ -99,7 +99,7 @@ public class HTTPBulkLoader {
     }
 
     public static WriterCommand getFlushCmd() {
-      return new WriterCommand(WriterCommandType.FLUSH, null, new CompletableFuture<Void>());
+      return new WriterCommand(WriterCommandType.FLUSH, null, new CompletableFuture<>());
     }
 
     public WriterCommand(WriterCommandType type, SourcedActionRequest request, CompletableFuture<Void> flushCompletedFuture) {
@@ -117,6 +117,8 @@ public class HTTPBulkLoader {
   protected final Writer writer;
   protected final ArrayBlockingQueue<WriterCommand> writerCmdQueue;
   protected final ExecutorService writerExecSvc;
+  protected Future<Void> writerFuture = null;
+  protected Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
   /**
    * Elasticsearch HTTP Bulk Loader
@@ -125,6 +127,11 @@ public class HTTPBulkLoader {
    *
    * JEST client's lifecycle is manage externally (i.e. must be closed elsewhere)
    * so that it may be shared by multiple instances
+   *
+   * Error handling:
+   *   - connection errors are handled here and considered fatal
+   *   - API error are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
+   *   - currently no retry support
    */
   public HTTPBulkLoader(Config config, JestClient client, Optional<Consumer<BulkReport>> onFlushOpt) {
     this.writerCmdQueue = new ArrayBlockingQueue<>(config.flushMaxActions);
@@ -137,7 +144,10 @@ public class HTTPBulkLoader {
    *
    * May block if internal buffer is full
    */
-  public void addAction(String source, ActionRequest req) throws IOException {
+  public void addAction(String source, ActionRequest req) throws Throwable {
+//    if (logger.isTraceEnabled()) {
+//      logger.trace(String.format("Add action: key %s, index %s/%s, doc %s", req.key, req.index, req.docType, req.document));
+//    }
     BulkableAction<DocumentResult> action = convertToJestAction(req);
     WriterCommand addCmd = WriterCommand.getAddCmd(new SourcedActionRequest(source, req, action));
     sendCmd(addCmd);
@@ -149,7 +159,7 @@ public class HTTPBulkLoader {
    * Error contract:
    *    this method will throw an Exception if any non-ignorable errors occur in the writer thread
    */
-  public void flush() throws IOException {
+  public void flush() throws Throwable {
     WriterCommand flushCmd = WriterCommand.getFlushCmd();
     sendCmd(flushCmd);
     try {
@@ -173,7 +183,7 @@ public class HTTPBulkLoader {
    * Start writer thread
    */
   public void start() {
-    writerExecSvc.submit(writer);
+    writerFuture = writerExecSvc.submit(writer);
   }
 
   /**
@@ -181,10 +191,15 @@ public class HTTPBulkLoader {
    */
   public void stop() {
     writerExecSvc.shutdown();
+    try {
+      writerExecSvc.awaitTermination(1, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      logger.info("Interrupted waiting for Elasticsearch writer shutdown");
+    }
   }
 
   protected BulkableAction<DocumentResult> convertToJestAction(ActionRequest req) {
-    BulkableAction<DocumentResult> action = null;
+    BulkableAction<DocumentResult> action;
     if (req.key.getAction().equals(Action.INDEX)) {
       Index.Builder builder = new Index.Builder(req.document)
               .id(req.key.getId().toString())
@@ -205,10 +220,22 @@ public class HTTPBulkLoader {
     return action;
   }
 
-  protected void sendCmd(WriterCommand cmd) throws IOException {
+  protected void sendCmd(WriterCommand cmd) throws Throwable {
     try {
-      //May block if queue is full
-      writerCmdQueue.put(cmd);
+      //May block if queue is full so we must periodically check that writer is alive
+      while (!writerCmdQueue.offer(cmd, 100, TimeUnit.MILLISECONDS)) {
+        if (writerFuture.isDone() || writerFuture.isCancelled()) {
+          writerFuture.get();
+          throw new IllegalStateException("Elasticsearch writer has died");
+        }
+        else {
+          logger.trace("Timeout trying to enqueue. Writer is still ok. Waiting some more...");
+        }
+      }
+    }
+    catch (ExecutionException e) {
+      logger.error("Elasticsearch writer died", e.getCause());
+      throw e.getCause();
     }
     catch (InterruptedException firstEx) {
       /* If the main Samza thread is interrupted, it's likely a shutdown command
@@ -230,13 +257,12 @@ public class HTTPBulkLoader {
    * Writer thread - makes all calls to Elasticsearch
    *
    */
-  protected class Writer implements Runnable {
+  protected class Writer implements Callable<Void> {
     protected final Config config;
     protected final JestClient client;
     protected final Optional<Consumer<BulkReport>> onFlushOpt;
     protected final BlockingQueue<WriterCommand> cmdQueue;
     protected long lastFlushTsMs;
-    protected Throwable error = null;
     protected final List<WriterCommand> requests;
     protected Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
@@ -249,7 +275,7 @@ public class HTTPBulkLoader {
     }
 
     @Override
-    public void run() {
+    public Void call() throws Exception {
       lastFlushTsMs = System.currentTimeMillis();
       while (true) try {
         WriterCommand cmd = poll();
@@ -260,10 +286,7 @@ public class HTTPBulkLoader {
           handleAddCmd(cmd);
         }
         else if (cmd.type.equals(WriterCommandType.FLUSH)) {
-          if (!handleFlushCmd(cmd)) {
-            logger.error("Elasticsearch writer thread shutting down after error");
-            return;
-          }
+          handleFlushCmd(cmd);
         }
         else {
           throw new IllegalStateException("Unknown cmd type: " + cmd.type);
@@ -271,11 +294,11 @@ public class HTTPBulkLoader {
       }
       catch (InterruptedException e) {
         logger.info("Elasticsearch writer thread received shutdown");
-        return;
+        return null;
       }
       catch (Exception e) {
         logger.error("Error writing to Elasticsearch", e);
-        error = e;
+        throw e;
       }
     }
 
@@ -293,6 +316,7 @@ public class HTTPBulkLoader {
 
     protected void flush(TriggerType triggerType) throws IOException {
       if (requests.size() == 0) {
+        logger.trace("No records to flush");
         lastFlushTsMs = System.currentTimeMillis();
         return;
       }
@@ -303,10 +327,12 @@ public class HTTPBulkLoader {
         sourcedReqs = requests.stream().map(cmd -> cmd.request).collect(Collectors.toList());
       }
 
+      if (logger.isTraceEnabled()) {
+        logger.trace(String.format("Flushing %s actions", requests.size()));
+      }
       BulkResult bulkResult = null;
       try {
         bulkResult = client.execute(getBulkRequest());
-        //TODO - check for any errors and set error variable
       } finally {
         requests.clear();
         lastFlushTsMs = System.currentTimeMillis();
@@ -327,27 +353,25 @@ public class HTTPBulkLoader {
 
     /**
      * Responsible for informing main thread of any errors
-     *
-     * @return returns true if flush was successful
      */
-    protected boolean handleFlushCmd(WriterCommand cmd) {
-      //If any errors have previously occurred, fail immediately!!!
-      if (error != null) {
-        cmd.flushCompletedFuture.completeExceptionally(error);
-        return false;
-      }
+    protected void handleFlushCmd(WriterCommand cmd) throws Exception {
+      logger.trace("Received flush cmd");
       try {
         flush(TriggerType.FLUSH_CMD);
-      } catch (Exception e) {
-        cmd.flushCompletedFuture.completeExceptionally(e);
-        return false;
+        cmd.flushCompletedFuture.complete(null);
       }
-      cmd.flushCompletedFuture.complete(null);
-      return true;
+      catch (Exception e) {
+        cmd.flushCompletedFuture.completeExceptionally(e);
+        throw e;
+      }
     }
 
     protected void handleAddCmd(WriterCommand cmd) throws IOException {
       requests.add(cmd);
+//      if (logger.isTraceEnabled()) {
+//        logger.trace(String.format("Received add: source %s, action %s, count %s",
+//                cmd.request.source, cmd.request.action.getBulkMethodName(), requests.size()));
+//      }
       if (requests.size() >= config.flushMaxActions) {
         flush(TriggerType.MAX_ACTIONS);
       }
