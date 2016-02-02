@@ -170,6 +170,19 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
     protected void updateSuccessMetrics(HTTPBulkLoader.BulkReport report) {
       metrics.bulkSendSuccess.inc();
+      metrics.batchSize.update(report.requests.size());
+      switch (report.triggerType) {
+        case MAX_ACTIONS:
+          metrics.triggerMaxActions.inc();
+          break;
+        case MAX_INTERVAL:
+          metrics.triggerMaxInterval.inc();
+          break;
+        case FLUSH_CMD:
+          metrics.triggerFlushCmd.inc();
+          break;
+      }
+
       for (BulkResult.BulkResultItem item : report.bulkResult.getItems()) {
         if (item.status == STATUS_CONFLICT) {
           metrics.conflicts.inc();
@@ -187,8 +200,6 @@ public class ElasticsearchSystemProducer implements SystemProducer {
               break;
             case "delete":
               metrics.docsDeleted.inc();
-            default:
-              break;
           }
         }
       }
