@@ -28,10 +28,11 @@ import org.apache.samza.system.SystemProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** A {@link SystemProducer} for Elasticsearch that builds on top of the {@link HTTPBulkLoader}
  *
@@ -49,13 +50,11 @@ import java.util.function.Function;
  *
  * */
 public class ElasticsearchSystemProducer implements SystemProducer {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSystemProducer.class);
+  private Logger LOGGER = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
   private final String systemName;
   private final HTTPBulkLoader bulkLoader;
   private final JestClient client;
-
-  private final ElasticsearchSystemProducerMetrics metrics;
   private final Function<OutgoingMessageEnvelope, HTTPBulkLoader.ActionRequest> msgToAction;
 
   public ElasticsearchSystemProducer(String systemName,
@@ -66,42 +65,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     this.systemName = systemName;
     this.client = client;
     this.msgToAction = msgToAction;
-    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client, this::onFlush);
-    this.metrics = metrics;
-  }
-
-  /**
-   *
-   * Callback for ES metrics, runs in the writer thread
-   *
-   */
-  public void onFlush(HTTPBulkLoader.BulkReport report) {
-    LOGGER.debug("ON FLUSH");
-    try {
-      LOGGER.debug("Succeeded" + report.bulkResult.isSucceeded());
-      LOGGER.debug(report.bulkResult.getErrorMessage());
-      metrics.bulkSendSuccess.inc();
-      for (BulkResult.BulkResultItem item : report.bulkResult.getItems()) {
-        LOGGER.debug(String.format("op %s, type %s, status %s, id %s", item.operation, item.type, item.status, item.id));
-        switch (item.operation) {
-          case "index":
-            metrics.docsIndexed.inc();
-            break;
-          case "create":
-            metrics.docsCreated.inc();
-            break;
-          case "update":
-            metrics.docsUpdated.inc();
-            break;
-          case "delete":
-            metrics.docsDeleted.inc();
-          default:
-            break;
-        }
-      }
-    } catch (Exception e) {
-      LOGGER.error("Error updating metrics", e);
-    }
+    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client, new FlushListener(metrics, systemName));
   }
 
   @Override
@@ -157,6 +121,79 @@ public class ElasticsearchSystemProducer implements SystemProducer {
       LOGGER.error(message, e);
       throw new SamzaException(message, e);
     }
+  }
+
+//  2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 201, id testIndex, error null
+//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 200, id testIndex, error null
+//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 201, id testVC, error null
+//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 409, id testVC, error {"type":"version_conflict_engine_exception","reason":"[test][testVC]: version conflict, current [123], provided [122]","shard":"2","index":"embedded"}
+//  2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 400, id testMappingEx, error {"type":"merge_mapping_exception","reason":"Merge fai
+
+  /**
+   *
+   * Callback for ES metrics, runs in the writer thread
+   *
+   * Throws exception for any non-ignorable errors - will stop the producer. Retries are
+   * accomplished by restarting the job
+   *
+   */
+  protected class FlushListener implements Consumer<HTTPBulkLoader.BulkReport> {
+    private Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
+    protected final int STATUS_CONFLICT = 409;
+    protected final ElasticsearchSystemProducerMetrics metrics;
+    protected final String systemName;
+
+    public FlushListener(ElasticsearchSystemProducerMetrics metrics, String systemName) {
+      this.metrics = metrics;
+      this.systemName = systemName;
+    }
+
+    @Override
+    public void accept(HTTPBulkLoader.BulkReport report) {
+      BulkResult result = report.bulkResult;
+      if (!result.isSucceeded()) {
+        if (result.getItems().size() == 0) {
+          throw new SamzaException("Elasticsearch API error: " + result.getErrorMessage());
+        }
+        //Ignore version conflicts
+        List<BulkResult.BulkResultItem> fatal = result.getFailedItems().stream().filter(item -> item.status != STATUS_CONFLICT).collect(Collectors.toList());
+            ;
+        if (fatal.size() > 0) {
+          fatal.forEach(item -> logger.error(String.format("Error: index %s/%s, id %s, status %s, error %s",
+              item.index, item.type, item.id, item.status, item.error)));
+          throw new SamzaException(String.format("Elasticsearch bulk result contained %s errors", fatal.size()));
+        }
+      }
+      logger.debug(String.format("Wrote %s actions to Elasticsearch system %s", result.getItems().size(), systemName));
+      updateSuccessMetrics(report);
+    }
+
+    protected void updateSuccessMetrics(HTTPBulkLoader.BulkReport report) {
+      metrics.bulkSendSuccess.inc();
+      for (BulkResult.BulkResultItem item : report.bulkResult.getItems()) {
+        if (item.status == STATUS_CONFLICT) {
+          metrics.conflicts.inc();
+        }
+        else {
+          switch (item.operation) {
+            case "index":
+              metrics.docsIndexed.inc();
+              break;
+            case "create":
+              metrics.docsCreated.inc();
+              break;
+            case "update":
+              metrics.docsUpdated.inc();
+              break;
+            case "delete":
+              metrics.docsDeleted.inc();
+            default:
+              break;
+          }
+        }
+      }
+    }
+
   }
 
 }

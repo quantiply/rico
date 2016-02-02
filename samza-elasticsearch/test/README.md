@@ -18,6 +18,7 @@ mvn package -Dmaven.test.skip=true && rm -rf test/deploy/samza && mkdir -p test/
 	#From here
 	curl -XPUT localhost:9200/_template/shakespeare -d@conf/elasticsearch/shakespeare_template.json
 	curl -XDELETE localhost:9200/shakespeare
+  curl -XDELETE localhost:9200/embedded
 
 	#Kakfa/Samza
 	rm -rf /tmp/kafka-logs/ && rm -rf /tmp/zookeeper/ && ./bin/grid start all

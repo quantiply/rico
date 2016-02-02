@@ -218,7 +218,7 @@ public class HTTPBulkLoader {
               .index(req.index)
               .type(req.docType);
       if (req.key.getVersionType() != null) {
-        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString());
+        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
       }
       if (req.key.getVersion() != null) {
         builder.setParameter(Parameters.VERSION, req.key.getVersion());
