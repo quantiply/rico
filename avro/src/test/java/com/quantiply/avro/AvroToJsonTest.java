@@ -2,6 +2,7 @@ package com.quantiply.avro;
 
 import java.util.Map;
 
+import com.quantiply.test.User;
 import org.apache.avro.util.Utf8;
 import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,5 +36,14 @@ public class AvroToJsonTest {
         assertEquals("hello", obj.get("bar"));
         String jsonStr = new String(jsonBytes, StandardCharsets.UTF_8);
         assertTrue(jsonStr.contains("\"bar\":\"hello\""));
+    }
+
+    @Test
+    public void testJsonToObject() throws Exception {
+        AvroToJson avroToJson = new AvroToJson();
+        User expectedUser = User.newBuilder().setAge(5).setName("Bumpkin").build();
+        String jsonStr = "{\"name\":\"Bumpkin\",\"age\":5}";
+        User user = avroToJson.jsonToObject(jsonStr.getBytes(StandardCharsets.UTF_8), User.class);
+        assertEquals(expectedUser, user);
     }
 }

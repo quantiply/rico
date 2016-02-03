@@ -84,6 +84,31 @@ public class ESPushTaskTest {
     }
 
     @Test
+    public void testDefaultDocIdWithJsonKeyConfig() throws Exception {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("rico.es.index.prefix", "test");
+        map.put("rico.es.index.date.zone", "Etc/UTC");
+        map.put("rico.es.index.date.format", ".yyyy");
+        map.put("rico.es.metadata.source", "key_json");
+        map.put("rico.es.doc.type", "test_type");
+        MapConfig config = new MapConfig(map);
+        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
+
+        ESPushTask task = new ESPushTask();
+        SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
+        String jsonStr = "{\"action\":\"INSERT\",\"id\":null,\"version\":5,\"partition_ts_unix_ms\":4,\"event_ts_unix_ms\":3,\"version_type\":\"INTERNAL\"}";
+        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", jsonStr.getBytes(StandardCharsets.UTF_8), "".getBytes(StandardCharsets.UTF_8));
+        OutgoingMessageEnvelope out = task.getJsonKeyOutMsg(in, esConfig);
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
+        assertEquals("fake-0-1234", req.key.getId().toString());
+        assertEquals(Action.INSERT, req.key.getAction());
+        assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
+        assertEquals(3L, req.key.getEventTsUnixMs().longValue());
+        assertEquals(VersionType.INTERNAL, req.key.getVersionType());
+        assertEquals(5L, req.key.getVersion().longValue());
+    }
+
+    @Test
     public void testDefaultDocIdWithEmbeddedConfig() throws Exception {
         Map<String, String> map = new HashMap<String, String>();
         map.put("rico.es.index.prefix", "test");

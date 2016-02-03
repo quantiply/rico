@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  */
 public class ESPushTaskConfig {
 
-    public enum MetadataSrc { KEY_DOC_ID, KEY_AVRO, EMBEDDED }
+    public enum MetadataSrc { KEY_DOC_ID, KEY_AVRO, KEY_JSON, EMBEDDED }
 
     public static class ESIndexSpec {
         public final MetadataSrc metadataSrc;

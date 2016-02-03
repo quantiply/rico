@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza.task;
 
+import com.quantiply.avro.AvroToJson;
 import com.quantiply.elasticsearch.HTTPBulkLoader;
 import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
@@ -24,6 +25,7 @@ import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import com.quantiply.samza.serde.JsonSerde;
 import com.quantiply.samza.serde.JsonSerdeFactory;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.Config;
 import org.apache.samza.job.JobRunner;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -52,6 +54,7 @@ public class ESPushTask extends BaseTask {
     protected SystemStream esStream = new SystemStream(ESPushTaskConfig.CFS_ES_SYSTEM_NAME, ESPushTaskConfig.CFG_ES_STREAM_NAME);
     protected AvroSerde avroSerde;
     protected JsonSerde jsonSerde;
+    protected final AvroToJson avroToJson = new AvroToJson();
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -90,6 +93,9 @@ public class ESPushTask extends BaseTask {
             case KEY_AVRO:
                 func = this::getAvroKeyOutMsg;
                 break;
+            case KEY_JSON:
+                func = this::getJsonKeyOutMsg;
+                break;
             case EMBEDDED:
                 func = this::getEmbeddedOutMsg;
                 break;
@@ -126,6 +132,23 @@ public class ESPushTask extends BaseTask {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         String document = new String((byte [])envelope.getMessage(), StandardCharsets.UTF_8);
         ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
+        setDefaults(key, spec, envelope, tsNowMs);
+        return getOutMsg(key, spec, tsNowMs, document);
+    }
+
+    protected OutgoingMessageEnvelope getJsonKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
+        return getJsonKeyOutMsg(envelope, spec, Optional.empty());
+    }
+
+    protected OutgoingMessageEnvelope getJsonKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec, Optional<Long> tsNowMsOpt) {
+        long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
+        String document = new String((byte [])envelope.getMessage(), StandardCharsets.UTF_8);
+        ActionRequestKey key;
+        try {
+            key = avroToJson.jsonToObject((byte[]) envelope.getKey(), ActionRequestKey.class);
+        } catch (IOException e) {
+            throw new SamzaException("Invalid JSON key input", e);
+        }
         setDefaults(key, spec, envelope, tsNowMs);
         return getOutMsg(key, spec, tsNowMs, document);
     }

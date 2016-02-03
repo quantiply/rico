@@ -48,4 +48,7 @@ public class AvroToJson {
         return objMapper.writeValueAsBytes(msg);
     }
 
+    public <T> T jsonToObject(byte[] bytes, Class<T> klaz) throws IOException {
+        return objMapper.readValue(bytes, klaz);
+    }
 }
