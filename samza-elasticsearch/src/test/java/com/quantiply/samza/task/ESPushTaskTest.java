@@ -49,7 +49,7 @@ public class ESPushTaskTest {
         ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", true);
         ESPushTask task = getEsPushTask();
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.CREATE)
+            .setAction(Action.INDEX)
             .setEventTsUnixMs(3L)
             .setPartitionTsUnixMs(4L)
             .setVersionType(VersionType.INTERNAL)
@@ -59,7 +59,7 @@ public class ESPushTaskTest {
         OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(""), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
-        assertEquals(Action.CREATE, req.key.getAction());
+        assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
         assertEquals(3L, req.key.getEventTsUnixMs().longValue());
         assertEquals(VersionType.INTERNAL, req.key.getVersionType());
@@ -107,6 +107,31 @@ public class ESPushTaskTest {
     }
 
     @Test
+    public void testDocMissing() throws Exception {
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", false);
+        ESPushTask task = getEsPushTask();
+
+        ActionRequestKey inKeyUpdate = ActionRequestKey.newBuilder()
+            .setAction(Action.UPDATE)
+            .setId("foo")
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKeyUpdate);
+
+        assertThatThrownBy(() -> task.getAvroKeyOutMsg(getInMsg(null), esConfig)).isInstanceOf(InvalidParameterException.class)
+            .hasMessageContaining("Document must be provided");
+
+        ActionRequestKey inKeyIndex = ActionRequestKey.newBuilder()
+            .setAction(Action.INDEX)
+            .setId("foo")
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKeyIndex);
+
+        assertThatThrownBy(() -> task.getAvroKeyOutMsg(getInMsg(null), esConfig)).isInstanceOf(InvalidParameterException.class)
+            .hasMessageContaining("Document must be provided");
+
+    }
+
+    @Test
     public void testWritesWithToStaticIndex() throws Exception {
         ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", false);
         ESPushTask task = getEsPushTask();
@@ -115,19 +140,19 @@ public class ESPushTaskTest {
             .setAction(Action.DELETE)
             .build();
         when(task.avroSerde.fromBytes(null)).thenReturn(inKeyMissingId);
-        assertThatThrownBy(() -> { task.getAvroKeyOutMsg(getInMsg(""), esConfig); }).isInstanceOf(InvalidParameterException.class)
+        assertThatThrownBy(() -> task.getAvroKeyOutMsg(getInMsg(""), esConfig)).isInstanceOf(InvalidParameterException.class)
             .hasMessageContaining("Document id is required");
 
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.UPDATE)
+            .setAction(Action.DELETE)
             .setId("blah")
             .build();
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
 
-        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(""), esConfig);
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(null), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("blah", req.key.getId().toString());
-        assertEquals(Action.UPDATE, req.key.getAction());
+        assertEquals(Action.DELETE, req.key.getAction());
         assertNull("Do not default partition time", req.key.getPartitionTsUnixMs());
         assertNull("Do not default event time", req.key.getEventTsUnixMs());
         assertNull("No version set", req.key.getVersion());
@@ -153,7 +178,9 @@ public class ESPushTaskTest {
     public void testDefaultDocIdWithEmbeddedConfig() throws Exception {
         ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("embedded", true);
         ESPushTask task = getEsPushTask();
-        when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
+        HashMap<String, Object> doc = new HashMap<>();
+        when(task.jsonSerde.fromBytes(null)).thenReturn(doc);
+        when(task.jsonSerde.toString(doc)).thenReturn("");
         long tsNowMs = 1453952662L;
         OutgoingMessageEnvelope out = task.getEmbeddedOutMsg(getInMsg(null), esConfig, Optional.of(tsNowMs));
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();

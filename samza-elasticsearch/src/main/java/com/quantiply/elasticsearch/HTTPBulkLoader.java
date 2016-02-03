@@ -17,12 +17,11 @@ package com.quantiply.elasticsearch;
 
 import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
+import io.searchbox.action.AbstractAction;
 import io.searchbox.action.BulkableAction;
+import io.searchbox.action.SingleResultAbstractDocumentTargetedAction;
 import io.searchbox.client.JestClient;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.BulkResult;
-import io.searchbox.core.DocumentResult;
-import io.searchbox.core.Index;
+import io.searchbox.core.*;
 import io.searchbox.params.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -214,24 +213,62 @@ public class HTTPBulkLoader {
 
   protected BulkableAction<DocumentResult> convertToJestAction(ActionRequest req) {
     BulkableAction<DocumentResult> action;
-    if (req.key.getAction().equals(Action.INDEX)) {
-      Index.Builder builder = new Index.Builder(req.document)
-              .id(req.key.getId().toString())
-              .index(req.index)
-              .type(req.docType);
-      if (req.key.getVersionType() != null) {
-        builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
-      }
-      if (req.key.getVersion() != null) {
-        builder.setParameter(Parameters.VERSION, req.key.getVersion());
-      }
-      action = builder.build();
-    }
-    else {
-      //TODO - finish me
-      throw new RuntimeException("Not implemented");
+    switch (req.key.getAction()) {
+      case INDEX:
+        action = getIndexAction(req);
+        break;
+      case UPDATE:
+        action = getUpdateAction(req);
+        break;
+      case DELETE:
+        action = getDeleteAction(req);
+        break;
+      default:
+        throw new IllegalStateException("Unknown action: " + req.key.getAction());
     }
     return action;
+  }
+
+  private BulkableAction<DocumentResult> getIndexAction(ActionRequest req) {
+    Index.Builder builder = new Index.Builder(req.document)
+        .id(req.key.getId().toString())
+        .index(req.index)
+        .type(req.docType);
+    if (req.key.getVersionType() != null) {
+      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
+    }
+    if (req.key.getVersion() != null) {
+      builder.setParameter(Parameters.VERSION, req.key.getVersion());
+    }
+    return builder.build();
+  }
+
+  private BulkableAction<DocumentResult> getUpdateAction(ActionRequest req) {
+    Update.Builder builder = new Update.Builder(req.document)
+        .id(req.key.getId().toString())
+        .index(req.index)
+        .type(req.docType);
+    if (req.key.getVersionType() != null) {
+      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
+    }
+    if (req.key.getVersion() != null) {
+      builder.setParameter(Parameters.VERSION, req.key.getVersion());
+    }
+    return builder.build();
+  }
+
+  private BulkableAction<DocumentResult> getDeleteAction(ActionRequest req) {
+    Delete.Builder builder = new Delete.Builder(req.document)
+        .id(req.key.getId().toString())
+        .index(req.index)
+        .type(req.docType);
+    if (req.key.getVersionType() != null) {
+      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
+    }
+    if (req.key.getVersion() != null) {
+      builder.setParameter(Parameters.VERSION, req.key.getVersion());
+    }
+    return builder.build();
   }
 
   protected void checkWriter() throws ExecutionException, InterruptedException {
