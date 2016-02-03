@@ -2,17 +2,19 @@ package com.quantiply.samza.system.elasticsearch;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
-import com.quantiply.samza.ConfigConst;
 import com.quantiply.samza.MetricAdaptor;
 import org.apache.samza.metrics.Counter;
 import org.apache.samza.metrics.MetricsRegistry;
 
 public class ElasticsearchSystemProducerMetrics {
     public final Counter bulkSendSuccess;
-    public final Histogram batchSize;
+    public final Histogram bulkSendBatchSize;
+    public final Histogram bulkSendWaitMs;
     public final Counter triggerFlushCmd;
     public final Counter triggerMaxActions;
     public final Counter triggerMaxInterval;
+    public final Histogram lagFromReceiveMs;
+    public final Histogram lagFromOriginMs;
     public final Counter docsCreated;
     public final Counter docsIndexed;
     public final Counter docsUpdated;
@@ -30,10 +32,13 @@ public class ElasticsearchSystemProducerMetrics {
         MetricAdaptor adaptor = new MetricAdaptor(new MetricRegistry(), registry, group);
         
         bulkSendSuccess = newCounter("bulk-send-success");
-        batchSize = newHistogram(adaptor, "bulk-send-batch-size");
+        bulkSendBatchSize = newHistogram(adaptor, "bulk-send-batch-size");
+        bulkSendWaitMs = newHistogram(adaptor, "bulk-send-wait-ms");
         triggerFlushCmd = newCounter("bulk-send-trigger-flush-cmd");
         triggerMaxActions = newCounter("bulk-send-trigger-max-actions");
         triggerMaxInterval = newCounter("bulk-send-trigger-max-interval");
+        lagFromReceiveMs = newHistogram(adaptor, "lag-from-receive-ms");
+        lagFromOriginMs = newHistogram(adaptor, "lag-from-origin-ms");
         docsCreated = newCounter("docs-created");
         docsIndexed = newCounter("docs-indexed");
         docsUpdated = newCounter("docs-updated");

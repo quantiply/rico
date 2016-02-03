@@ -52,11 +52,13 @@ public class HTTPBulkLoader {
   public static class BulkReport {
     public final BulkResult bulkResult;
     public final TriggerType triggerType;
+    public final long esWaitMs;
     public final List<SourcedActionRequest> requests;
 
-    public BulkReport(BulkResult bulkResult, TriggerType triggerType, List<SourcedActionRequest> requests) {
+    public BulkReport(BulkResult bulkResult, TriggerType triggerType, long esWaitMs, List<SourcedActionRequest> requests) {
       this.bulkResult = bulkResult;
       this.triggerType = triggerType;
+      this.esWaitMs = esWaitMs;
       this.requests = requests;
     }
   }
@@ -350,15 +352,18 @@ public class HTTPBulkLoader {
         logger.trace(String.format("Flushing %s actions", requests.size()));
       }
       BulkResult bulkResult = null;
+      long esWaitMs = 0;
       try {
+        long esStartMs = System.currentTimeMillis();
         bulkResult = client.execute(getBulkRequest());
+        esWaitMs = System.currentTimeMillis() - esStartMs;
       } finally {
         requests.clear();
         lastFlushTsMs = System.currentTimeMillis();
       }
       //Callback flush listener
       if (onFlushOpt.isPresent()) {
-        onFlushOpt.get().accept(new BulkReport(bulkResult, triggerType, sourcedReqs));
+        onFlushOpt.get().accept(new BulkReport(bulkResult, triggerType, esWaitMs, sourcedReqs));
       }
     }
 

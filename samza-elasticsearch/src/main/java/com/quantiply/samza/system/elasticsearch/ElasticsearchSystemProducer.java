@@ -28,11 +28,11 @@ import org.apache.samza.system.SystemProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /** A {@link SystemProducer} for Elasticsearch that builds on top of the {@link HTTPBulkLoader}
  *
@@ -150,6 +150,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
     @Override
     public void accept(HTTPBulkLoader.BulkReport report) {
+      long tsNowMs = System.currentTimeMillis();
       BulkResult result = report.bulkResult;
       if (!result.isSucceeded()) {
         if (result.getItems().size() == 0) {
@@ -165,12 +166,13 @@ public class ElasticsearchSystemProducer implements SystemProducer {
         }
       }
       logger.debug(String.format("Wrote %s actions to Elasticsearch system %s", result.getItems().size(), systemName));
-      updateSuccessMetrics(report);
+      updateSuccessMetrics(report, tsNowMs);
     }
 
-    protected void updateSuccessMetrics(HTTPBulkLoader.BulkReport report) {
+    protected void updateSuccessMetrics(HTTPBulkLoader.BulkReport report, long tsNowMs) {
       metrics.bulkSendSuccess.inc();
-      metrics.batchSize.update(report.requests.size());
+      metrics.bulkSendBatchSize.update(report.requests.size());
+      metrics.bulkSendWaitMs.update(report.esWaitMs);
       switch (report.triggerType) {
         case MAX_ACTIONS:
           metrics.triggerMaxActions.inc();
@@ -183,7 +185,9 @@ public class ElasticsearchSystemProducer implements SystemProducer {
           break;
       }
 
-      for (BulkResult.BulkResultItem item : report.bulkResult.getItems()) {
+      int i = 0;
+      for (Iterator<BulkResult.BulkResultItem> it = report.bulkResult.getItems().iterator(); it.hasNext(); i++) {
+        BulkResult.BulkResultItem item = it.next();
         if (item.status == STATUS_CONFLICT) {
           metrics.conflicts.inc();
         }
@@ -201,6 +205,11 @@ public class ElasticsearchSystemProducer implements SystemProducer {
             case "delete":
               metrics.docsDeleted.inc();
           }
+        }
+        metrics.lagFromReceiveMs.update(tsNowMs - report.requests.get(i).request.receivedTsMs);
+        Long eventTsMs = report.requests.get(i).request.key.getEventTsUnixMs();
+        if (eventTsMs != null) {
+          metrics.lagFromOriginMs.update(tsNowMs - eventTsMs);
         }
       }
     }
