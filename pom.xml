@@ -181,6 +181,12 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 <version>1.10.19</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>3.3.0</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

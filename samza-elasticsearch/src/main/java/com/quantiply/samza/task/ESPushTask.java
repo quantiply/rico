@@ -38,6 +38,7 @@ import org.apache.samza.task.TaskCoordinator;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -120,7 +121,7 @@ public class ESPushTask extends BaseTask {
             .setId(id)
             .setAction(Action.INDEX)
             .build();
-        setDefaults(key, spec, envelope, tsNowMs);
+        validateMetadata(key, spec, envelope, tsNowMs);
         return getOutMsg(key, spec, tsNowMs, document);
     }
 
@@ -132,7 +133,7 @@ public class ESPushTask extends BaseTask {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         String document = new String((byte [])envelope.getMessage(), StandardCharsets.UTF_8);
         ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
-        setDefaults(key, spec, envelope, tsNowMs);
+        validateMetadata(key, spec, envelope, tsNowMs);
         return getOutMsg(key, spec, tsNowMs, document);
     }
 
@@ -149,7 +150,7 @@ public class ESPushTask extends BaseTask {
         } catch (IOException e) {
             throw new SamzaException("Invalid JSON key input", e);
         }
-        setDefaults(key, spec, envelope, tsNowMs);
+        validateMetadata(key, spec, envelope, tsNowMs);
         return getOutMsg(key, spec, tsNowMs, document);
     }
 
@@ -181,7 +182,7 @@ public class ESPushTask extends BaseTask {
             document.remove("@timestamp");
         }
         ActionRequestKey key = keyBuilder.build();
-        setDefaults(key, spec, envelope, tsNowMs);
+        validateMetadata(key, spec, envelope, tsNowMs);
         return getOutMsg(key, spec, tsNowMs, jsonSerde.toString(document));
     }
 
@@ -199,13 +200,21 @@ public class ESPushTask extends BaseTask {
         return spec.indexNamePrefix;
     }
 
-    private void setDefaults(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs) {
-        if (key.getAction().equals(Action.INDEX) || key.getAction().equals(Action.INSERT)) {
+    private void validateMetadata(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs) {
+        if (key.getAction().equals(Action.INDEX) || key.getAction().equals(Action.CREATE)) {
             if (key.getId() == null) {
                 key.setId(getMessageIdFromSource(envelope));
             }
             if (key.getPartitionTsUnixMs() == null && key.getAction() != Action.DELETE && key.getAction() != Action.UPDATE) {
                 key.setPartitionTsUnixMs(tsNowMs);
+            }
+        }
+        else if (key.getAction().equals(Action.UPDATE) || key.getAction().equals(Action.DELETE)) {
+            if (key.getId() == null) {
+                throw new InvalidParameterException("Document id is required for UPDATE and DELETE actions");
+            }
+            if (spec.indexNameDateFormat.isPresent() && key.getPartitionTsUnixMs() == null) {
+                throw new InvalidParameterException("Partition timestamp is required for UPDATE and DELETE actions on time-partitioned indexes");
             }
         }
         if (key.getVersionType() == null) {

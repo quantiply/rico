@@ -9,7 +9,7 @@
       "type": {
         "type": "enum",
         "name": "Action",
-        "symbols" : ["INDEX", "INSERT", "UPDATE", "DELETE"]
+        "symbols" : ["INDEX", "CREATE", "UPDATE", "DELETE"]
       },
       "default": "INDEX",
       "doc": "Action to perform"

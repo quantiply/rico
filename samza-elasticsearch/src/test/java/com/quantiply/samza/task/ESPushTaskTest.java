@@ -12,8 +12,10 @@ import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStreamPartition;
 import org.junit.Test;
+import static org.assertj.core.api.Assertions.*;
 
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,22 +27,14 @@ import static org.mockito.Mockito.when;
 
 public class ESPushTaskTest {
 
+    protected static final SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
+
     @Test
     public void testDefaultDocIdWithKeyConfig() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.index.prefix", "test");
-        map.put("rico.es.index.date.zone", "Etc/UTC");
-        map.put("rico.es.index.date.format", ".yyyy");
-        map.put("rico.es.metadata.source", "key_doc_id");
-        map.put("rico.es.doc.type", "test_type");
-        MapConfig config = new MapConfig(map);
-        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
-
-        ESPushTask task = new ESPushTask();
-        SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, "".getBytes(StandardCharsets.UTF_8));
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_doc_id", true);
+        ESPushTask task = getEsPushTask();
         long tsNowMs = 1453952662L;
-        OutgoingMessageEnvelope out = task.getSimpleOutMsg(in, esConfig, Optional.of(tsNowMs));
+        OutgoingMessageEnvelope out = task.getSimpleOutMsg(getInMsg(""), esConfig, Optional.of(tsNowMs));
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
@@ -52,31 +46,20 @@ public class ESPushTaskTest {
 
     @Test
     public void testDefaultDocIdWithAvroKeyConfig() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.index.prefix", "test");
-        map.put("rico.es.index.date.zone", "Etc/UTC");
-        map.put("rico.es.index.date.format", ".yyyy");
-        map.put("rico.es.metadata.source", "key_avro");
-        map.put("rico.es.doc.type", "test_type");
-        MapConfig config = new MapConfig(map);
-        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
-
-        ESPushTask task = new ESPushTask();
-        SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", true);
+        ESPushTask task = getEsPushTask();
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.INSERT)
+            .setAction(Action.CREATE)
             .setEventTsUnixMs(3L)
             .setPartitionTsUnixMs(4L)
             .setVersionType(VersionType.INTERNAL)
             .setVersion(5L)
             .build();
-        task.avroSerde = mock(AvroSerde.class);
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, "".getBytes(StandardCharsets.UTF_8));
-        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(in, esConfig);
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(""), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
-        assertEquals(Action.INSERT, req.key.getAction());
+        assertEquals(Action.CREATE, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
         assertEquals(3L, req.key.getEventTsUnixMs().longValue());
         assertEquals(VersionType.INTERNAL, req.key.getVersionType());
@@ -84,24 +67,82 @@ public class ESPushTaskTest {
     }
 
     @Test
-    public void testDefaultDocIdWithJsonKeyConfig() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.index.prefix", "test");
-        map.put("rico.es.index.date.zone", "Etc/UTC");
-        map.put("rico.es.index.date.format", ".yyyy");
-        map.put("rico.es.metadata.source", "key_json");
-        map.put("rico.es.doc.type", "test_type");
-        MapConfig config = new MapConfig(map);
-        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
+    public void testWritesWithPartitionedIndexes() throws Exception {
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", true);
+        ESPushTask task = getEsPushTask();
 
-        ESPushTask task = new ESPushTask();
-        SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
-        String jsonStr = "{\"action\":\"INSERT\",\"id\":null,\"version\":5,\"partition_ts_unix_ms\":4,\"event_ts_unix_ms\":3,\"version_type\":\"INTERNAL\"}";
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", jsonStr.getBytes(StandardCharsets.UTF_8), "".getBytes(StandardCharsets.UTF_8));
-        OutgoingMessageEnvelope out = task.getJsonKeyOutMsg(in, esConfig);
+        ActionRequestKey inKeyMissingId = ActionRequestKey.newBuilder()
+            .setAction(Action.UPDATE)
+            .setPartitionTsUnixMs(99L)
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKeyMissingId);
+
+        assertThatThrownBy(() -> { task.getAvroKeyOutMsg(getInMsg(""), esConfig); }).isInstanceOf(InvalidParameterException.class)
+            .hasMessageContaining("Document id is required");
+
+        ActionRequestKey inKeyMissingTs = ActionRequestKey.newBuilder()
+            .setAction(Action.DELETE)
+            .setId("foo")
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKeyMissingTs);
+
+        assertThatThrownBy(() -> { task.getAvroKeyOutMsg(getInMsg(""), esConfig); }).isInstanceOf(InvalidParameterException.class)
+            .hasMessageContaining("Partition timestamp is required");
+
+        ActionRequestKey inKey = ActionRequestKey.newBuilder()
+            .setAction(Action.DELETE)
+            .setId("foo")
+            .setPartitionTsUnixMs(99L)
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
+
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(""), esConfig);
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
+        assertEquals("foo", req.key.getId().toString());
+        assertEquals(Action.DELETE, req.key.getAction());
+        assertEquals(99L, req.key.getPartitionTsUnixMs().longValue());
+        assertNull("Do not default event time", req.key.getEventTsUnixMs());
+        assertNull("No version set", req.key.getVersion());
+        assertNull("No version type set", req.key.getVersionType());
+    }
+
+    @Test
+    public void testWritesWithToStaticIndex() throws Exception {
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", false);
+        ESPushTask task = getEsPushTask();
+
+        ActionRequestKey inKeyMissingId = ActionRequestKey.newBuilder()
+            .setAction(Action.DELETE)
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKeyMissingId);
+        assertThatThrownBy(() -> { task.getAvroKeyOutMsg(getInMsg(""), esConfig); }).isInstanceOf(InvalidParameterException.class)
+            .hasMessageContaining("Document id is required");
+
+        ActionRequestKey inKey = ActionRequestKey.newBuilder()
+            .setAction(Action.UPDATE)
+            .setId("blah")
+            .build();
+        when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
+
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(""), esConfig);
+        HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
+        assertEquals("blah", req.key.getId().toString());
+        assertEquals(Action.UPDATE, req.key.getAction());
+        assertNull("Do not default partition time", req.key.getPartitionTsUnixMs());
+        assertNull("Do not default event time", req.key.getEventTsUnixMs());
+        assertNull("No version set", req.key.getVersion());
+        assertNull("No version type set", req.key.getVersionType());
+    }
+
+    @Test
+    public void testDefaultDocIdWithJsonKeyConfig() throws Exception {
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_json", true);
+        ESPushTask task = getEsPushTask();
+        String jsonStr = "{\"action\":\"INDEX\",\"id\":null,\"version\":5,\"partition_ts_unix_ms\":4,\"event_ts_unix_ms\":3,\"version_type\":\"INTERNAL\"}";
+        OutgoingMessageEnvelope out = task.getJsonKeyOutMsg(getInMsg(jsonStr, ""), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
-        assertEquals(Action.INSERT, req.key.getAction());
+        assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
         assertEquals(3L, req.key.getEventTsUnixMs().longValue());
         assertEquals(VersionType.INTERNAL, req.key.getVersionType());
@@ -110,22 +151,11 @@ public class ESPushTaskTest {
 
     @Test
     public void testDefaultDocIdWithEmbeddedConfig() throws Exception {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("rico.es.index.prefix", "test");
-        map.put("rico.es.index.date.zone", "Etc/UTC");
-        map.put("rico.es.index.date.format", ".yyyy");
-        map.put("rico.es.metadata.source", "embedded");
-        map.put("rico.es.doc.type", "test_type");
-        MapConfig config = new MapConfig(map);
-        ESPushTaskConfig.ESIndexSpec esConfig = ESPushTaskConfig.getDefaultConfig(config);
-
-        ESPushTask task = new ESPushTask();
-        SystemStreamPartition ssp = new SystemStreamPartition("fake", "fake", new Partition(0));
-        IncomingMessageEnvelope in = new IncomingMessageEnvelope(ssp, "1234", null, null);
-        task.jsonSerde = mock(JsonSerde.class);
+        ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("embedded", true);
+        ESPushTask task = getEsPushTask();
         when(task.jsonSerde.fromBytes(null)).thenReturn(new HashMap<String, Object>());
         long tsNowMs = 1453952662L;
-        OutgoingMessageEnvelope out = task.getEmbeddedOutMsg(in, esConfig, Optional.of(tsNowMs));
+        OutgoingMessageEnvelope out = task.getEmbeddedOutMsg(getInMsg(null), esConfig, Optional.of(tsNowMs));
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
@@ -133,5 +163,42 @@ public class ESPushTaskTest {
         assertNull("Do not default event time", req.key.getEventTsUnixMs());
         assertNull("Version not set", req.key.getVersion());
         assertNull("Version type not set", req.key.getVersionType());
+    }
+
+
+    private ESPushTask getEsPushTask() {
+        ESPushTask task = new ESPushTask();
+        task.avroSerde = mock(AvroSerde.class);
+        task.jsonSerde = mock(JsonSerde.class);
+        return task;
+    }
+
+    private ESPushTaskConfig.ESIndexSpec getEsIndexSpec(String src, boolean partitionByTime) {
+        Map<String, String> map = new HashMap<>();
+        map.put("rico.es.index.prefix", "test");
+        if (partitionByTime) {
+            map.put("rico.es.index.date.zone", "Etc/UTC");
+            map.put("rico.es.index.date.format", ".yyyy");
+        }
+        map.put("rico.es.metadata.source", src);
+        map.put("rico.es.doc.type", "test_type");
+        MapConfig config = new MapConfig(map);
+        return ESPushTaskConfig.getDefaultConfig(config);
+    }
+
+    private IncomingMessageEnvelope getInMsg(String doc) {
+        return getInMsg(null, doc);
+    }
+
+    private IncomingMessageEnvelope getInMsg(String key, String doc) {
+        byte [] keyBytes = null;
+        if (key != null) {
+            keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        }
+        byte [] docBytes = null;
+        if (doc != null) {
+            docBytes = doc.getBytes(StandardCharsets.UTF_8);
+        }
+        return new IncomingMessageEnvelope(ssp, "1234", keyBytes, docBytes);
     }
 }
