@@ -27,11 +27,10 @@ public class ElasticsearchSystemProducerMetrics {
         this.registry = registry;
         this.systemName = systemName;
 
-        //TODO - fix naming here
-        MetricAdaptor adaptor = new MetricAdaptor(new MetricRegistry(), registry, ConfigConst.METRICS_GROUP_NAME);
+        MetricAdaptor adaptor = new MetricAdaptor(new MetricRegistry(), registry, group);
         
         bulkSendSuccess = newCounter("bulk-send-success");
-        batchSize = adaptor.histogram("bulk-send-batch-size");
+        batchSize = newHistogram(adaptor, "bulk-send-batch-size");
         triggerFlushCmd = newCounter("bulk-send-trigger-flush-cmd");
         triggerMaxActions = newCounter("bulk-send-trigger-max-actions");
         triggerMaxInterval = newCounter("bulk-send-trigger-max-interval");
@@ -40,6 +39,10 @@ public class ElasticsearchSystemProducerMetrics {
         docsUpdated = newCounter("docs-updated");
         docsDeleted = newCounter("docs-deleted");
         conflicts = newCounter("version-conflicts");
+    }
+
+    private Histogram newHistogram(MetricAdaptor adaptor, String name) {
+        return adaptor.histogram((systemName + "-" + name).toLowerCase());
     }
 
     private Counter newCounter(String name) {
