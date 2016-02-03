@@ -114,10 +114,10 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   public void flushAll() {
     try {
       bulkLoader.flush();
-      LOGGER.info(String.format("Flushed Elasticsearch system: %s.", systemName));
+      LOGGER.info(String.format("Flushed Elasticsearch system %s", systemName));
     }
     catch (Throwable e) {
-      String message = String.format("Error writing to Elasticsearch system %s.", systemName);
+      String message = String.format("Error writing to Elasticsearch system %s", systemName);
       LOGGER.error(message, e);
       throw new SamzaException(message, e);
     }
