@@ -123,12 +123,6 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     }
   }
 
-//  2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 201, id testIndex, error null
-//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 200, id testIndex, error null
-//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 201, id testVC, error null
-//      2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 409, id testVC, error {"type":"version_conflict_engine_exception","reason":"[test][testVC]: version conflict, current [123], provided [122]","shard":"2","index":"embedded"}
-//  2016-02-01 23:19:11 ElasticsearchSystemProducer [DEBUG] task[] ssp[] offset[] op index, index embedded/test, status 400, id testMappingEx, error {"type":"merge_mapping_exception","reason":"Merge fai
-
   /**
    *
    * Callback for ES metrics, runs in the writer thread
@@ -158,7 +152,6 @@ public class ElasticsearchSystemProducer implements SystemProducer {
         }
         //Ignore version conflicts
         List<BulkResult.BulkResultItem> fatal = result.getFailedItems().stream().filter(item -> item.status != STATUS_CONFLICT).collect(Collectors.toList());
-            ;
         if (fatal.size() > 0) {
           fatal.forEach(item -> logger.error(String.format("Error: index %s/%s, id %s, status %s, error %s",
               item.index, item.type, item.id, item.status, item.error)));

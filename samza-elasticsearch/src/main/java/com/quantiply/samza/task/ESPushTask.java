@@ -204,7 +204,7 @@ public class ESPushTask extends BaseTask {
     *    For testing in the IDE
     */
     public static void main(String [] args) {
-        String jobName = "embedded";
+        String jobName = "shakespeare";
         String rootDir = Paths.get(".").toAbsolutePath().normalize().toString();
         String[] params = {
                 "--config-factory",
