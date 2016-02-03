@@ -45,7 +45,7 @@ public class ESPushTaskTest {
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());
-        assertEquals(tsNowMs, req.key.getEventTsUnixMs().longValue());
+        assertNull("Do not default event time", req.key.getEventTsUnixMs());
         assertNull("Version not set", req.key.getVersion());
         assertNull("Version type not set", req.key.getVersionType());
     }
@@ -105,7 +105,7 @@ public class ESPushTaskTest {
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(tsNowMs, req.key.getPartitionTsUnixMs().longValue());
-        assertEquals(tsNowMs, req.key.getEventTsUnixMs().longValue());
+        assertNull("Do not default event time", req.key.getEventTsUnixMs());
         assertNull("Version not set", req.key.getVersion());
         assertNull("Version type not set", req.key.getVersionType());
     }
