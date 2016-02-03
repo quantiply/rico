@@ -195,9 +195,6 @@ public class ESPushTask extends BaseTask {
         if (key.getVersionType() == null) {
             key.setVersionType(spec.defaultVersionType.orElse(null));
         }
-        if (key.getEventTsUnixMs() == null) {
-            key.setEventTsUnixMs(tsNowMs);
-        }
     }
 
     /*
