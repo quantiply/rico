@@ -39,7 +39,6 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -53,8 +52,6 @@ public class ESPushTask extends BaseTask {
     protected SystemStream esStream = new SystemStream(ESPushTaskConfig.CFS_ES_SYSTEM_NAME, ESPushTaskConfig.CFG_ES_STREAM_NAME);
     protected AvroSerde avroSerde;
     protected JsonSerde jsonSerde;
-    protected HTTPBulkLoader esLoader;
-    protected TaskCoordinator taskCoordinator;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -64,9 +61,7 @@ public class ESPushTask extends BaseTask {
         }
         boolean isStreamConfig = ESPushTaskConfig.isStreamConfig(config);
         if (isStreamConfig) {
-            ESPushTaskConfig.getStreamMap(config).forEach((stream, esIndexSpec) -> {
-                registerHandler(stream, getHandler(config, esIndexSpec));
-            });
+            ESPushTaskConfig.getStreamMap(config).forEach((stream, esIndexSpec) -> registerHandler(stream, getHandler(config, esIndexSpec)));
         }
         else {
             registerDefaultHandler(getHandler(config, ESPushTaskConfig.getDefaultConfig(config)));
@@ -79,9 +74,7 @@ public class ESPushTask extends BaseTask {
             avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         }
         BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> msgExtractor = getOutMsgExtractor(esIndexSpec);
-        return (envelope, collector, coordinator) -> {
-            handleMsg(envelope, collector, coordinator, esIndexSpec, msgExtractor);
-        };
+        return (envelope, collector, coordinator) -> handleMsg(envelope, collector, coordinator, esIndexSpec, msgExtractor);
     }
 
     private void handleMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, ESPushTaskConfig.ESIndexSpec spec, BiFunction<IncomingMessageEnvelope, ESPushTaskConfig.ESIndexSpec, OutgoingMessageEnvelope> msgExtractor) throws IOException {

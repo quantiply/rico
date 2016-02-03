@@ -79,7 +79,7 @@ public class ESPushTaskConfig {
     }
 
     public static ESIndexSpec getDefaultConfig(Config config) {
-        MetadataSrc metadataSrc = getMetadataSrc("default", getDefaultMetadataStrParam(config), config);
+        MetadataSrc metadataSrc = getMetadataSrc("default", getDefaultMetadataStrParam(config));
         String indexNamePrefix = getDefaultConfigParam(config, CFG_ES_DEFAULT_INDEX_PREFIX, null);
         Optional<String> indexNameDateFormat = Optional.ofNullable(config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT));
         ZoneId indexNameDateZone = ZoneId.of(getDefaultDateZoneStr(config));
@@ -105,7 +105,7 @@ public class ESPushTaskConfig {
 
     private static ESIndexSpec getStreamConfig(String stream, Config config) {
         String metadataSrcStr = getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_DOC_METADATA_SRC, getDefaultMetadataStrParam(config));
-        MetadataSrc metadataSrc = getMetadataSrc(stream, metadataSrcStr, config);
+        MetadataSrc metadataSrc = getMetadataSrc(stream, metadataSrcStr);
         String indexNamePrefix = getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_PREFIX, config.get(CFG_ES_DEFAULT_INDEX_PREFIX));
         Optional<String> indexNameDateFormat = Optional.ofNullable(getOptionalStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_FORMAT, config.get(CFG_ES_DEFAULT_INDEX_DATE_FORMAT)));
         ZoneId indexNameDateZone = ZoneId.of(getRequiredStreamConfigParam(stream, config, CFG_ES_STREAM_INDEX_DATE_ZONE, getDefaultDateZoneStr(config)));
@@ -138,7 +138,7 @@ public class ESPushTaskConfig {
         return defaultVersionType;
     }
 
-    private static MetadataSrc getMetadataSrc(String stream, String metadataSrcStrParam, Config config) {
+    private static MetadataSrc getMetadataSrc(String stream, String metadataSrcStrParam) {
         String metadataSrcStr = metadataSrcStrParam.toLowerCase();
         if (!METADATA_SRC_OPTIONS.contains(metadataSrcStr)) {
             throw new ConfigException(String.format("Bad value for metadata src param %s stream: %s.  Options are: %s",
