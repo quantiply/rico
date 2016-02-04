@@ -132,7 +132,7 @@ public class HTTPBulkLoader {
    * Error handling:
    *   - connection/protocol errors are handled here and considered fatal
    *   - API errors are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
-   *   - currently no retry support
+   *   - No internal retry support - restart the process to retry
    */
   public HTTPBulkLoader(Config config, JestClient client, Optional<Consumer<BulkReport>> onFlushOpt) {
     this.writerCmdQueue = new ArrayBlockingQueue<>(config.flushMaxActions);
@@ -142,7 +142,7 @@ public class HTTPBulkLoader {
   }
 
   /**
-   * Convert request to JEST API and passes it to writer thread
+   * Converts request to JEST API and passes it to writer thread
    *
    * May block if internal buffer is full
    *
@@ -275,7 +275,7 @@ public class HTTPBulkLoader {
   protected void checkWriter() throws ExecutionException, InterruptedException {
     if (writerFuture.isDone() || writerFuture.isCancelled()) {
       logger.error("Elasticsearch writer has died");
-      writerFuture.get();
+      writerFuture.get(); //We expect this to throw an exception
       throw new IllegalStateException("Elasticsearch writer has died");
     }
     else {
@@ -311,9 +311,11 @@ public class HTTPBulkLoader {
 
   /**
    *
-   * Writer thread - handles all communication with Elasticsearch
+   * Writer thread callable - handles all communication with Elasticsearch
    *
-   * Error contract: dies on fatal error
+   * Error contract: callable finishes on fatal error with exception. On the next
+   * operation (addAction or flush) the client thread will detect the problem
+   * and throw exception.
    */
   protected class Writer implements Callable<Void> {
     protected final Config config;
