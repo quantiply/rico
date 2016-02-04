@@ -23,6 +23,7 @@ import com.quantiply.elasticsearch.HTTPBulkLoader;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.Config;
 import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.system.*;
@@ -64,8 +65,17 @@ public class ElasticsearchSystemFactory implements SystemFactory {
   protected static JestClient getClient(ElasticsearchConfig config) {
     String elasticUrl = String.format("http://%s:%s", config.getHTTPHost(), config.getHTTPPort());
     JestClientFactory jestFactory = new JestClientFactory();
-    //Using a single connection (not a pool, multiThreaded == false) b/c flushes are sequential and blocking
-    jestFactory.setHttpClientConfig(new HttpClientConfig.Builder(elasticUrl).multiThreaded(false).build());
+    //Using a single connection (not a pool, multiThreaded == false) we have a single writer thread per system producer
+    HttpClientConfig.Builder httpClientBuilder = new HttpClientConfig.Builder(elasticUrl).multiThreaded(false);
+    if (config.getAuthType().equals(ElasticsearchConfig.AuthType.BASIC)) {
+      String user = config.getBasicAuthUser();
+      String password = config.getBasicAuthPassword();
+      if (user == null || password == null) {
+        throw new SamzaException("Please specify a user and password for HTTP basic auth");
+      }
+      httpClientBuilder.defaultCredentials(user, password);
+    }
+    jestFactory.setHttpClientConfig(httpClientBuilder.build());
     return jestFactory.getObject();
   }
 

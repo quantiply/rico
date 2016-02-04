@@ -33,6 +33,8 @@ import java.util.Optional;
  */
 public class ElasticsearchConfig extends MapConfig {
 
+  public enum AuthType { NONE, BASIC }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfig.class);
 
   public static final String CONFIG_KEY_FLUSH_MAX_ACTIONS = "flush.max.actions";
@@ -40,6 +42,9 @@ public class ElasticsearchConfig extends MapConfig {
 
   public static final String CONFIG_KEY_HTTP_HOST = "http.host";
   public static final String CONFIG_KEY_HTTP_PORT = "http.port";
+  public static final String CONFIG_KEY_HTTP_AUTH_TYPE = "http.auth.type";
+  public static final String CONFIG_KEY_HTTP_AUTH_BASIC_USER = "http.auth.basic.user";
+  public static final String CONFIG_KEY_HTTP_AUTH_BASIC_PASSWORD = "http.auth.basic.password";
 
   public ElasticsearchConfig(String name, Config config) {
     super(config.subset("systems." + name + "."));
@@ -53,6 +58,19 @@ public class ElasticsearchConfig extends MapConfig {
 
   public int getHTTPPort() {
     return getInt(CONFIG_KEY_HTTP_PORT, 9200);
+  }
+
+  public AuthType getAuthType() {
+    String authStr = get(CONFIG_KEY_HTTP_AUTH_TYPE, "none").toUpperCase();
+    return AuthType.valueOf(authStr);
+  }
+
+  public String getBasicAuthUser() {
+    return get(CONFIG_KEY_HTTP_AUTH_BASIC_USER);
+  }
+
+  public String getBasicAuthPassword() {
+    return get(CONFIG_KEY_HTTP_AUTH_BASIC_PASSWORD);
   }
 
   public int getBulkFlushMaxActions() {
