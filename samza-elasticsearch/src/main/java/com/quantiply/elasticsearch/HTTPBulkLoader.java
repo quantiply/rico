@@ -189,7 +189,7 @@ public class HTTPBulkLoader {
       }
     }
     catch (ExecutionException e) {
-      throw new IOException("Error writing to Elasticsearch", e.getCause());
+      throw e.getCause();
     }
   }
 
@@ -274,6 +274,7 @@ public class HTTPBulkLoader {
 
   protected void checkWriter() throws ExecutionException, InterruptedException {
     if (writerFuture.isDone() || writerFuture.isCancelled()) {
+      logger.error("Elasticsearch writer has died");
       writerFuture.get();
       throw new IllegalStateException("Elasticsearch writer has died");
     }
@@ -333,29 +334,44 @@ public class HTTPBulkLoader {
 
     @Override
     public Void call() throws Exception {
-      lastFlushTsMs = System.currentTimeMillis();
-      while (true) try {
-        WriterCommand cmd = poll();
-        if (cmd == null) {
-          flush(TriggerType.MAX_INTERVAL);
-        }
-        else if (cmd.type.equals(WriterCommandType.ADD_ACTION)) {
-          handleAddCmd(cmd);
-        }
-        else if (cmd.type.equals(WriterCommandType.FLUSH)) {
-          handleFlushCmd(cmd);
-        }
-        else {
-          throw new IllegalStateException("Unknown cmd type: " + cmd.type);
-        }
-      }
-      catch (InterruptedException e) {
-        logger.debug("Elasticsearch writer thread shutting down by request");
-        return null;
+      logger.info("ES writer started");
+      try {
+        doCall();
       }
       catch (Exception e) {
-        logger.error("Error writing to Elasticsearch", e);
+        logger.error("ES writer dying...");
         throw e;
+      }
+      logger.info("ES writer is ending");
+      return null;
+    }
+
+    public void doCall() throws Exception {
+      lastFlushTsMs = System.currentTimeMillis();
+      while (true) {
+        try {
+          WriterCommand cmd = poll();
+          if (cmd == null) {
+            flush(TriggerType.MAX_INTERVAL);
+          }
+          else if (cmd.type.equals(WriterCommandType.ADD_ACTION)) {
+            handleAddCmd(cmd);
+          }
+          else if (cmd.type.equals(WriterCommandType.FLUSH)) {
+            handleFlushCmd(cmd);
+          }
+          else {
+            throw new IllegalStateException("Unknown cmd type: " + cmd.type);
+          }
+        }
+        catch (InterruptedException e) {
+          logger.debug("Elasticsearch writer thread shutting down by request");
+          return;
+        }
+        catch (Exception e) {
+          logger.error("Error writing to Elasticsearch", e);
+          throw e;
+        }
       }
     }
 
