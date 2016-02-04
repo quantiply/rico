@@ -143,19 +143,20 @@ public class ESPushTaskTest {
             .hasMessageContaining("Document id is required");
 
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.DELETE)
+            .setAction(Action.UPDATE)
             .setId("blah")
             .build();
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
 
-        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg(null), esConfig);
+        OutgoingMessageEnvelope out = task.getAvroKeyOutMsg(getInMsg("{}"), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("blah", req.key.getId().toString());
-        assertEquals(Action.DELETE, req.key.getAction());
+        assertEquals(Action.UPDATE, req.key.getAction());
         assertNull("Do not default partition time", req.key.getPartitionTsUnixMs());
         assertNull("Do not default event time", req.key.getEventTsUnixMs());
         assertNull("No version set", req.key.getVersion());
         assertNull("No version type set", req.key.getVersionType());
+        assertEquals("{\"doc\":{}}", req.document);
     }
 
     @Test

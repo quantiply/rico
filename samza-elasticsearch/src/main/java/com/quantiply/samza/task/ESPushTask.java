@@ -121,8 +121,7 @@ public class ESPushTask extends BaseTask {
             .setId(id)
             .setAction(Action.INDEX)
             .build();
-        validateInput(key, spec, envelope, tsNowMs, document);
-        return getOutMsg(key, spec, tsNowMs, document);
+        return getOutMsg(envelope, key, spec, tsNowMs, document);
     }
 
     protected OutgoingMessageEnvelope getAvroKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
@@ -133,8 +132,7 @@ public class ESPushTask extends BaseTask {
         long tsNowMs = tsNowMsOpt.orElse(System.currentTimeMillis());
         String document = getDocumentAsString(envelope);
         ActionRequestKey key = (ActionRequestKey) avroSerde.fromBytes((byte[]) envelope.getKey());
-        validateInput(key, spec, envelope, tsNowMs, document);
-        return getOutMsg(key, spec, tsNowMs, document);
+        return getOutMsg(envelope, key, spec, tsNowMs, document);
     }
 
     protected OutgoingMessageEnvelope getJsonKeyOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
@@ -150,8 +148,7 @@ public class ESPushTask extends BaseTask {
         } catch (IOException e) {
             throw new SamzaException("Invalid JSON key input", e);
         }
-        validateInput(key, spec, envelope, tsNowMs, document);
-        return getOutMsg(key, spec, tsNowMs, document);
+        return getOutMsg(envelope, key, spec, tsNowMs, document);
     }
 
     protected OutgoingMessageEnvelope getEmbeddedOutMsg(IncomingMessageEnvelope envelope, ESPushTaskConfig.ESIndexSpec spec) {
@@ -183,8 +180,7 @@ public class ESPushTask extends BaseTask {
         }
         ActionRequestKey key = keyBuilder.build();
         String docStr = jsonSerde.toString(document);
-        validateInput(key, spec, envelope, tsNowMs, docStr);
-        return getOutMsg(key, spec, tsNowMs, docStr);
+        return getOutMsg(envelope, key, spec, tsNowMs, getDocForUpdate(key, docStr));
     }
 
     private String getDocumentAsString(IncomingMessageEnvelope envelope) {
@@ -195,8 +191,9 @@ public class ESPushTask extends BaseTask {
         return document;
     }
 
-    private OutgoingMessageEnvelope getOutMsg(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, long tsNowMs, String document) {
-        return new OutgoingMessageEnvelope(esStream, new HTTPBulkLoader.ActionRequest(key, getIndex(spec, key), spec.docType, tsNowMs, document));
+    private OutgoingMessageEnvelope getOutMsg(IncomingMessageEnvelope envelope, ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, long tsNowMs, String document) {
+        validateInput(key, spec, envelope, tsNowMs, document);
+        return new OutgoingMessageEnvelope(esStream, new HTTPBulkLoader.ActionRequest(key, getIndex(spec, key), spec.docType, tsNowMs, getDocForUpdate(key, document)));
     }
 
     private String getIndex(ESPushTaskConfig.ESIndexSpec spec, ActionRequestKey requestKey) {
@@ -235,6 +232,13 @@ public class ESPushTask extends BaseTask {
         if (!key.getAction().equals(Action.DELETE) && document == null) {
             throw new InvalidParameterException("Document must be provided for action: " + key.getAction());
         }
+    }
+
+    private String getDocForUpdate(ActionRequestKey key, String documentIn) {
+        if (key.getAction().equals(Action.UPDATE)) {
+            return "{\"doc\":" + documentIn + "}";
+        }
+        return documentIn;
     }
 
     /*
