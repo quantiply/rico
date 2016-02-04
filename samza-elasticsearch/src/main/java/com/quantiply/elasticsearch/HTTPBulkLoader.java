@@ -130,7 +130,9 @@ public class HTTPBulkLoader {
    * so that it may be shared by multiple instances
    *
    * Error handling:
-   *   - connection/protocol errors are handled here and considered fatal
+   *   - connection/protocol errors are handled here and considered fatal - they are detected on blocking operations
+   *      - addAction (when cmd queue is full)
+   *      - flush
    *   - API errors are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
    *   - No internal retry support - restart the process to retry
    */
@@ -314,7 +316,7 @@ public class HTTPBulkLoader {
    * Writer thread callable - handles all communication with Elasticsearch
    *
    * Error contract: callable finishes on fatal error with exception. On the next
-   * operation (addAction or flush) the client thread will detect the problem
+   * blocking operation (addAction with full queue or flush) the client thread will detect the problem
    * and throw exception.
    */
   protected class Writer implements Callable<Void> {
