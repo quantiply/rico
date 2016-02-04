@@ -210,6 +210,9 @@ public class ESPushTask extends BaseTask {
     }
 
     private void validateInput(ActionRequestKey key, ESPushTaskConfig.ESIndexSpec spec, IncomingMessageEnvelope envelope, long tsNowMs, String document) {
+        if (key.getAction() == null) {
+            key.setAction(Action.INDEX);
+        }
         if (key.getAction().equals(Action.INDEX)) {
             if (key.getId() == null) {
                 key.setId(getMessageIdFromSource(envelope));
@@ -238,7 +241,7 @@ public class ESPushTask extends BaseTask {
     *    For testing in the IDE
     */
     public static void main(String [] args) {
-        String jobName = "shakespeare";
+        String jobName = "jsonkey";
         String rootDir = Paths.get(".").toAbsolutePath().normalize().toString();
         String[] params = {
                 "--config-factory",

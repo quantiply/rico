@@ -1,0 +1,10 @@
+{"id": "test-index-default-action"}	{"foo": "bar", "num": 99.99}
+{"id": "test-index-default-action"}	{"foo": "bar2", "num": 100.00}
+{"id": "test-index-explicit-action", "action": "index"}	{"foo": "bar", "num": 1.0}
+{"id": "test-index-with-version", "version": 123, "version_type": "external"}	{"foo": "bar", "num": 2.0}
+{"id": "test-index-with-version", "version": 122, "version_type": "external"}	{"foo": "ignore", "num": 2.5}
+{"id": "test-update-missing", "action": "update"}	{"foo": "missing"}
+{"id": "test-update-partial", "action": "index"}	{"foo": "update me", "num": 99.99}
+{"id": "test-update-partial", "action": "update"}	{"foo": "updated"}
+{"id": "test-delete", "action": "index"}	{"foo": "delete me", "num": 99.99}
+{"id": "test-delete", "action": "delete"}	{}

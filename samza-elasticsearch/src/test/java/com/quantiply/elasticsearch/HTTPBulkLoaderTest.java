@@ -84,7 +84,7 @@ public class HTTPBulkLoaderTest {
 
 
   private HTTPBulkLoader getBulkLoader() {
-    HTTPBulkLoader.Config config = new HTTPBulkLoader.Config(20, Optional.empty());
+    HTTPBulkLoader.Config config = new HTTPBulkLoader.Config("Test", 20, Optional.empty());
     JestClient client = mock(JestClient.class);
     return new HTTPBulkLoader(config, client, Optional.empty());
   }

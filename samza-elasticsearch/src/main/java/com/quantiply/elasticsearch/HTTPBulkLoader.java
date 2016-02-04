@@ -15,11 +15,9 @@
  */
 package com.quantiply.elasticsearch;
 
-import com.quantiply.rico.elasticsearch.Action;
+import com.google.gson.Gson;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
-import io.searchbox.action.AbstractAction;
 import io.searchbox.action.BulkableAction;
-import io.searchbox.action.SingleResultAbstractDocumentTargetedAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.*;
 import io.searchbox.params.Parameters;
@@ -37,10 +35,12 @@ import java.util.stream.Collectors;
 public class HTTPBulkLoader {
 
   public static class Config {
+    public final String name;
     public final int flushMaxActions;
     public final Optional<Integer> flushMaxIntervalMs;
 
-    public Config(int flushMaxActions, Optional<Integer> flushMaxIntervalMs) {
+    public Config(String name, int flushMaxActions, Optional<Integer> flushMaxIntervalMs) {
+      this.name = name;
       this.flushMaxActions = flushMaxActions;
       this.flushMaxIntervalMs = flushMaxIntervalMs;
     }
@@ -136,7 +136,8 @@ public class HTTPBulkLoader {
    */
   public HTTPBulkLoader(Config config, JestClient client, Optional<Consumer<BulkReport>> onFlushOpt) {
     this.writerCmdQueue = new ArrayBlockingQueue<>(config.flushMaxActions);
-    this.writerExecSvc = Executors.newFixedThreadPool(1);
+    final String name = config.name;
+    this.writerExecSvc = Executors.newFixedThreadPool(1, r -> new Thread(r, name + " Elasticsearch Writer"));
     this.writer = new Writer(config, client, writerCmdQueue, onFlushOpt);
   }
 
@@ -392,7 +393,12 @@ public class HTTPBulkLoader {
       long esWaitMs = 0;
       try {
         long esStartMs = System.currentTimeMillis();
-        bulkResult = client.execute(getBulkRequest());
+        Bulk bulkRequest = getBulkRequest();
+        if (logger.isTraceEnabled()) {
+          String bulkStr = bulkRequest.getData(new Gson());
+          logger.trace(bulkStr);
+        }
+        bulkResult = client.execute(bulkRequest);
         esWaitMs = System.currentTimeMillis() - esStartMs;
       } finally {
         requests.clear();

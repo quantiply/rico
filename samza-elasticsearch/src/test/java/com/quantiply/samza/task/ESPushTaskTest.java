@@ -49,7 +49,6 @@ public class ESPushTaskTest {
         ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_avro", true);
         ESPushTask task = getEsPushTask();
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
-            .setAction(Action.INDEX)
             .setEventTsUnixMs(3L)
             .setPartitionTsUnixMs(4L)
             .setVersionType(VersionType.INTERNAL)

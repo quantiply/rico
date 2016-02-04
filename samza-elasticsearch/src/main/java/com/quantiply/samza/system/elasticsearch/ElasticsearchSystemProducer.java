@@ -65,7 +65,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
     this.systemName = systemName;
     this.client = client;
     this.msgToAction = msgToAction;
-    this.bulkLoader = bulkLoaderFactory.getBulkLoader(client, new FlushListener(metrics, systemName));
+    this.bulkLoader = bulkLoaderFactory.getBulkLoader(systemName, client, new FlushListener(metrics, systemName));
   }
 
   @Override

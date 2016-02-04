@@ -35,9 +35,9 @@ public class HTTPBulkLoaderFactory {
     this.config = config;
   }
 
-  public HTTPBulkLoader getBulkLoader(JestClient client, Consumer<HTTPBulkLoader.BulkReport> onFlush) {
+  public HTTPBulkLoader getBulkLoader(String systemName, JestClient client, Consumer<HTTPBulkLoader.BulkReport> onFlush) {
     HTTPBulkLoader.Config loaderConf = new HTTPBulkLoader.Config(
-        config.getBulkFlushMaxActions(),
+        systemName, config.getBulkFlushMaxActions(),
         config.getBulkFlushIntervalMS()
     );
     return new HTTPBulkLoader(loaderConf, client, Optional.of(onFlush));
