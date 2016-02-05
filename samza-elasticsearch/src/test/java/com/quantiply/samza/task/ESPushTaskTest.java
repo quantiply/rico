@@ -51,7 +51,7 @@ public class ESPushTaskTest {
         ActionRequestKey inKey = ActionRequestKey.newBuilder()
             .setEventTsUnixMs(3L)
             .setPartitionTsUnixMs(4L)
-            .setVersionType(VersionType.INTERNAL)
+            .setVersionType(VersionType.EXTERNAL)
             .setVersion(5L)
             .build();
         when(task.avroSerde.fromBytes(null)).thenReturn(inKey);
@@ -61,7 +61,7 @@ public class ESPushTaskTest {
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
         assertEquals(3L, req.key.getEventTsUnixMs().longValue());
-        assertEquals(VersionType.INTERNAL, req.key.getVersionType());
+        assertEquals(VersionType.EXTERNAL, req.key.getVersionType());
         assertEquals(5L, req.key.getVersion().longValue());
     }
 
@@ -163,14 +163,14 @@ public class ESPushTaskTest {
     public void testDefaultDocIdWithJsonKeyConfig() throws Exception {
         ESPushTaskConfig.ESIndexSpec esConfig = getEsIndexSpec("key_json", true);
         ESPushTask task = getEsPushTask();
-        String jsonStr = "{\"action\":\"INDEX\",\"id\":null,\"version\":5,\"partition_ts_unix_ms\":4,\"event_ts_unix_ms\":3,\"version_type\":\"INTERNAL\"}";
+        String jsonStr = "{\"action\":\"INDEX\",\"id\":null,\"version\":5,\"partition_ts_unix_ms\":4,\"event_ts_unix_ms\":3,\"version_type\":\"force\"}";
         OutgoingMessageEnvelope out = task.getJsonKeyOutMsg(getInMsg(jsonStr, ""), esConfig);
         HTTPBulkLoader.ActionRequest req = (HTTPBulkLoader.ActionRequest) out.getMessage();
         assertEquals("fake-0-1234", req.key.getId().toString());
         assertEquals(Action.INDEX, req.key.getAction());
         assertEquals(4L, req.key.getPartitionTsUnixMs().longValue());
         assertEquals(3L, req.key.getEventTsUnixMs().longValue());
-        assertEquals(VersionType.INTERNAL, req.key.getVersionType());
+        assertEquals(VersionType.FORCE, req.key.getVersionType());
         assertEquals(5L, req.key.getVersion().longValue());
     }
 

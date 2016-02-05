@@ -15,6 +15,7 @@
  */
 package com.quantiply.samza.task;
 
+import com.quantiply.rico.elasticsearch.VersionType;
 import org.apache.samza.config.ConfigException;
 import org.apache.samza.config.MapConfig;
 import org.junit.Test;
@@ -77,7 +78,7 @@ public class ESPushTaskConfigTest {
         map.put("rico.es.stream.server_stats.metadata.source", "embedded");
         map.put("rico.es.stream.server_stats.index.date.format", ".yyyy-MM");
         map.put("rico.es.stream.server_stats.index.date.zone", "America/New_York");
-        map.put("rico.es.stream.server_stats.version.type.default", "external_gte");
+        map.put("rico.es.stream.server_stats.version.type.default", "force");
 
         map.put("rico.es.stream.rep_latency.index.prefix", "db_rep_latency_index");
         map.put("rico.es.stream.rep_latency.doc.type", "db_rep_latency_type");
@@ -96,7 +97,7 @@ public class ESPushTaskConfigTest {
         assertEquals("America/New_York", serverStatsConfig.indexNameDateZone.getId());
         assertEquals("db_server_stats_type", serverStatsConfig.docType);
         assertTrue(serverStatsConfig.defaultVersionType.isPresent());
-        assertEquals(com.quantiply.rico.elasticsearch.VersionType.EXTERNAL_GTE, serverStatsConfig.defaultVersionType.get());
+        assertEquals(VersionType.FORCE, serverStatsConfig.defaultVersionType.get());
 
         assertEquals(ESPushTaskConfig.MetadataSrc.KEY_AVRO, repLatencyConfig.metadataSrc);
         assertEquals("db_rep_latency_index", repLatencyConfig.indexNamePrefix);

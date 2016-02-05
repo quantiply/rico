@@ -30,10 +30,10 @@
       "name": "version_type",
       "type": [
           "null",
-          { 
+          {
               "type": "enum",
               "name": "VersionType",
-              "symbols" : ["INTERNAL", "EXTERNAL", "EXTERNAL_GTE", "FORCE"]
+              "symbols" : ["EXTERNAL", "FORCE"]
           }
       ],
       "default": null,
