@@ -8,7 +8,7 @@
 ./bin/grid install all
 
 #From parent dir
-mvn package -Dmaven.test.skip=true && rm -rf test/deploy/samza && mkdir -p test/deploy/samza && tar -xvf ./target/rico-samza-elasticsearch-1.0.1-SNAPSHOT-dist.tar.gz -C test/deploy/samza
+mvn package -Dmaven.test.skip=true && rm -rf test/deploy/samza && mkdir -p test/deploy/samza && tar -xvf ./target/rico-samza-elasticsearch-1.0.1-dist.tar.gz -C test/deploy/samza
 ```
 
 ## Deployment
