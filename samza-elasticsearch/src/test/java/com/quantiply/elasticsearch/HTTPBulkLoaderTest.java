@@ -17,6 +17,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,6 +133,29 @@ public class HTTPBulkLoaderTest {
     assertThatThrownBy(loader::flush).isInstanceOf(RuntimeException.class)
             .hasMessageContaining("TEST");
   }
+
+  @Test
+  public void testWriterMaxActions() throws Throwable {
+    int maxActions = 10;
+    HTTPBulkLoader.Config config = new HTTPBulkLoader.Config("Test", maxActions, Optional.empty());
+    JestClient client = mock(JestClient.class);
+    AtomicInteger numFlushes = new AtomicInteger(0);
+    HTTPBulkLoader loader = new HTTPBulkLoader(config, client, Optional.of(bulkReport -> numFlushes.incrementAndGet()));
+
+    loader.start();
+    IntStream.range(0, 10).forEach(i -> {
+      try {
+        loader.addAction("test", getRequest());
+      } catch (Throwable throwable) {}
+    });
+    //Missing one action until we hit max - no flushes should have happened yet
+    assertEquals(0, numFlushes.get());
+    loader.addAction("test", getRequest());
+    //Next add should trigger flush
+    await().atMost(150, TimeUnit.MILLISECONDS).until(() -> numFlushes.get() == 1);
+    loader.stop();
+  }
+
 
   @Test
   public void testWriterMaxInterval() throws Throwable {
