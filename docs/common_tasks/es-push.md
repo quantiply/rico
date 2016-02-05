@@ -1,16 +1,16 @@
 #ESPushTask
 
-A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The index names can be templatized so that data is partitioned by time. This task connects to the Elasticsearch cluster as a transport client and uses the bulk API.
+A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The index names can be templatized so that data is partitioned by time. This task uses the Elasticsearch HTTP bulk API.
 
 ## Suitability
-* **Throughput** - Throughput depends on many factors including the index mapping but we've seen at least 10k documents/second per container (JVM) in production. You can deploy as few or a many containers as you need up to the max number of partitions in the input Kafka topics.
+* **Throughput** - Throughput depends on many factors including the index mapping but we've seen at least 30k documents/second per container (JVM) in production. You can deploy as few or a many containers as you need up to the max number of partitions in the input Kafka topics.
 * **Delivery** - Samza guarantees at least once delivery by periodically checkpointing it's offsets in Kafka.  On recovery or restart, the job will continue from the previous checkpoint and may duplicate messages.  These can be detected and dealt with by including [metadata](#document-metadata).
 * **Message Order** - You can guarantee message order by partitioning the Kafka topic in a meaningful way (say by user or account).  Messages in each partition are processed in order by Samza and the Elasticsearch bulk API guarantees sequential processing. You can also specify external version ids in the metadata that Elasticsearch can use to discard out-of-order writes.
 * **Time-based partitioning** - You can define a pattern to use for the index name such that the job will periodically create new indexes (e.g. daily, weekly, quarterly, etc.).  If you include a timestamp in the [document metadata](#document-metadata), you will get deterministic, idempotent partitioning.
 * **Error handling** - the Samza job will fail if it encounters an unexpected error while indexing.  When running Samza on YARN, it will automatically restart the job eight times by default.  If you want it to try to auto-recover indefinitely, you can set [yarn.container.retry.count](yarn-container-retry-count)=-1.
 
 ## Elasticsearch System Producer Status
-The [Elasticsearch System Producer](https://issues.apache.org/jira/browse/SAMZA-654) with [metrics](https://issues.apache.org/jira/browse/SAMZA-733) is commited to the Apache Samza project but not released yet as of Sept 2015. It is included in this repository for now until Samza 0.10 is released. 
+There is an [Elasticsearch System Producer](https://samza.apache.org/learn/documentation/0.10/jobs/configuration-table.html#elasticsearch) that's part of the Apache Samza project as of version 0.10. It uses the native (transport) protocol and which is tied to specify versions of Elasticsearch.  This task uses it's own [HTTP-based system producer](https://github.com/quantiply/rico/blob/master/samza-elasticsearch/src/main/java/com/quantiply/samza/system/elasticsearch/ElasticsearchSystemProducer.java).
 
 ## Document Metadata
 
@@ -18,32 +18,29 @@ There are three ways to specify document metadata
 
 ### Kafka Key As Document Id
 
-If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the bytes directly to Elasticsearch for maximum throughput. If you do not specify a document id, a default id will be constructed based on the Kafka topic, partition, and offset.  This guarantees idempotent inserts within a give Elasticsearch index. However, if you partition indexes by time, you can still get duplicates across partitions unless you also provide a timestamp.
+If you don't need additional metdata for the document beyond an id, you can set the document id (serialized as a UTF-8 string) as the key in the Kafka message.  This is preferred to embedding it in the message because the push task does not need to parse the message content.  It can forward the content directly to Elasticsearch for maximum throughput. If you do not specify a document id, a default id will be constructed based on the Kafka topic, partition, and offset.  This guarantees idempotent inserts within a give Elasticsearch index. However, if you partition indexes by time, you can still get duplicates across partitions unless you also provide a timestamp.
 
-### Kafka Key As Avro
+### Kafka Key As Avro or JSON
 
-If you need to specify additional metadata while leaving the document untouched (either for throughput or clean design), you can provide an Avro message as the Kafka key. If you use Avro, then you must deploy the [Confluent Schema Registry](http://docs.confluent.io/1.0/schema-registry/docs/index.html) to store the Avro schemas.
+If you need to updates or deletes or specify additional metadata while leaving the document untouched (either for throughput or clean design), you can provide an Avro or JSON message as the Kafka key. If you use Avro, then you must deploy the [Confluent Schema Registry](http://docs.confluent.io/1.0/schema-registry/docs/index.html) to store the Avro schemas.
 
-The fields in the Avro message (all of them optional) are:
+The fields in the Avro or JSON message (all of them optional) are:
 
-* `id` - document id. If not set, it constructs a key based on Kafka topic, partition, and offset.
+* `action` - INDEX, UPDATE, DELETE.  Defaults to INDEX.
+*  `id` - document id. If not set, it constructs a key based on Kafka topic, partition, and offset.
 * `version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
-* `version_type` - INTERNAL, EXTERNAL, EXTERNAL_GTE, FORCE
-* `timestamp` - document [timestamp](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html)
-* `timestamp_unix_ms` - timestamp (milliseconds since epoch) to choose the correct index for the message.
-* `ttl` - document [ttl](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-ttl)
+* `version_type` - EXTERNAL, FORCE
+* `partition_ts_unix_ms` - timestamp (milliseconds since epoch) to choose the correct index for the message. Must be set for updates and deletes.  If not set for inserts, we use the import time (non-deterministic, non-idempotent) for indexes partitioned by time.
+* `event_ts_unix_ms` - timestamp (milliseconds since epoch)used to compute latency metric from event origin time, if given.
 
 ### Embedded Metadata
 
-Encoding metadata as Avro is the most effecient method but not the most convenient.  The third alternative is to embed metadata into the JSON message itself.  The job will remove these special fields before indexing the document in Elasticsearch.
+Encoding metadata as Avro or JSON is the most effecient method but not alwasy the most convenient.  The third alternative is to embed metadata into the JSON message itself.  The job will remove these special fields before indexing the document in Elasticsearch.
 
 * `@timestamp` - timestamp (milliseconds since epoch) to choose the correct index for the message.
 * `_id` - document id. If not set, it constructs a key based on Kafka topic, partition, and offset.
 * `_version` - document [version](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-versioning)
-* `_version_type` - internal, external, external_gte, force
-* `_timestamp` - document [timestamp](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-timestamp-field.html)
-* `_ttl` - document [ttl](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-ttl)
-
+* `_version_type` - external, force
 
 ## Time-based Partitioning
 
