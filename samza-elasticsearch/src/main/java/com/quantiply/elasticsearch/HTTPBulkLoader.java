@@ -15,7 +15,9 @@
  */
 package com.quantiply.elasticsearch;
 
+import com.google.common.collect.Ordering;
 import com.google.gson.Gson;
+import com.quantiply.rico.elasticsearch.Action;
 import com.quantiply.rico.elasticsearch.ActionRequestKey;
 import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
@@ -25,9 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -320,6 +320,34 @@ public class HTTPBulkLoader {
    * and throw exception.
    */
   protected class Writer implements Callable<Void> {
+
+    protected class DocumentUniqueId {
+      public final String index;
+      public final String docType;
+      public final String id;
+
+      public DocumentUniqueId(String index, String docType, String id) {
+        this.index = index;
+        this.docType = docType;
+        this.id = id;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DocumentUniqueId esId = (DocumentUniqueId) o;
+        return Objects.equals(index, esId.index) &&
+            Objects.equals(docType, esId.docType) &&
+            Objects.equals(id, esId.id);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(index, docType, id);
+      }
+    }
+
     protected final Config config;
     protected final JestClient client;
     protected final Optional<Consumer<BulkReport>> onFlushOpt;
@@ -428,6 +456,30 @@ public class HTTPBulkLoader {
       if (onFlushOpt.isPresent()) {
         onFlushOpt.get().accept(new BulkReport(bulkResult, triggerType, esWaitMs, sourcedReqs));
       }
+    }
+
+    protected void coallesceUpdates() {
+      Map<Boolean, List<WriterCommand>> groups = requests.stream().collect(Collectors.partitioningBy(cmd -> cmd.request.request.key.getAction().equals(Action.UPDATE)));
+      List<WriterCommand> updates = groups.get(true);
+      List<WriterCommand> nonUpdates = groups.get(true);
+
+      //Group by index/type/id
+      Map<DocumentUniqueId, List<WriterCommand>> ids = updates.stream().collect(Collectors.groupingBy(this::getDocId));
+      ids.forEach((docId, cmds) -> {
+        //Stable sort by version
+        cmds.stream()
+            .sorted((cmd1, cmd2) -> {
+              Long v1 = cmd1.request.request.key.getVersion();
+              Long v2 = cmd2.request.request.key.getVersion();
+              return Ordering.from(Long::compare).nullsFirst().compare(v1, v2);
+            });
+//        .reduce();
+      });
+    }
+
+    protected DocumentUniqueId getDocId(WriterCommand cmd) {
+      BulkableAction<DocumentResult> action = cmd.request.action;
+      return new DocumentUniqueId(action.getIndex(), action.getType(), action.getId());
     }
 
     protected Bulk getBulkRequest() {
