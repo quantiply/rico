@@ -1,6 +1,6 @@
 #ESPushTask
 
-A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The index names can be templatized so that data is partitioned by time. This task uses the Elasticsearch HTTP bulk API.
+A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It can read from one or more Kafka topics and map them to Elasticsearch indexes and doc types. The index names can be templatized so that data is partitioned by time. This task uses the [Elasticsearch HTTP bulk API](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html).
 
 ## Suitability
 * **Throughput** - Throughput depends on many factors including the index mapping but we've seen at least 30k documents/second per container (JVM) in production. You can deploy as few or a many containers as you need up to the max number of partitions in the input Kafka topics.
@@ -9,8 +9,8 @@ A reusable task for pulling data from Kafka and pushing to Elasticsearch.  It ca
 * **Time-based partitioning** - You can define a pattern to use for the index name such that the job will periodically create new indexes (e.g. daily, weekly, quarterly, etc.).  If you include a timestamp in the [document metadata](#document-metadata), you will get deterministic, idempotent partitioning.
 * **Error handling** - the Samza job will fail if it encounters an unexpected error while indexing.  When running Samza on YARN, it will automatically restart the job eight times by default.  If you want it to try to auto-recover indefinitely, you can set [yarn.container.retry.count](yarn-container-retry-count)=-1.
 
-## Elasticsearch System Producer Status
-There is an [Elasticsearch System Producer](https://samza.apache.org/learn/documentation/0.10/jobs/configuration-table.html#elasticsearch) that's part of the Apache Samza project as of version 0.10. It uses the native (transport) protocol and which is tied to specify versions of Elasticsearch.  This task uses it's own [HTTP-based system producer](https://github.com/quantiply/rico/blob/master/samza-elasticsearch/src/main/java/com/quantiply/samza/system/elasticsearch/ElasticsearchSystemProducer.java).
+## Elasticsearch System Producer
+There is an [Elasticsearch System Producer](https://samza.apache.org/learn/documentation/0.10/jobs/configuration-table.html#elasticsearch) that's part of the Apache Samza project as of version 0.10. It uses the native (transport) protocol and which is tied to a specific version of Elasticsearch.  In order to support multiple versions of Elasticsearch, this task uses it's own [HTTP-based system producer](https://github.com/quantiply/rico/blob/master/samza-elasticsearch/src/main/java/com/quantiply/samza/system/elasticsearch/ElasticsearchSystemProducer.java). HTTP is also the [preferred protocol recommended by Elastic](https://www.elastic.co/guide/en/logstash/current/plugins-outputs-elasticsearch.html) moving foward.
 
 ## Document Metadata
 
@@ -22,7 +22,7 @@ If you don't need additional metdata for the document beyond an id, you can set 
 
 ### Kafka Key As Avro or JSON
 
-If you need to updates or deletes or specify additional metadata while leaving the document untouched (either for throughput or clean design), you can provide an Avro or JSON message as the Kafka key. If you use Avro, then you must deploy the [Confluent Schema Registry](http://docs.confluent.io/1.0/schema-registry/docs/index.html) to store the Avro schemas.
+If you need to updates or deletes or need to specify additional metadata while leaving the document untouched (either for throughput or clean design), you can provide an Avro or JSON message as the Kafka key. If you use Avro, the schema is [here](https://github.com/quantiply/rico/blob/master/core/src/main/avro/ActionRequestKey.avsc) and you must deploy the [Confluent Schema Registry](http://docs.confluent.io/1.0/schema-registry/docs/index.html) to store the Avro schemas.
 
 The fields in the Avro or JSON message (all of them optional) are:
 
@@ -44,7 +44,7 @@ Encoding metadata as Avro or JSON is the most effecient method but not alwasy th
 
 ## Time-based Partitioning
 
-If you provide a document id and timestamp as metadata, you are guaranteed that a single copy of the document with end up in the correct index.  However, if you do not provide a timestamp, the job will use the current wall clock time for partitioning and you may end up with documents in the "wrong" index as well as duplicates across partitions.  Documents may end up in the "wrong" index if they arrive late and get imported after the wall clock has moved on to a new index.  Documents may be written to two indexes if a batch index request is re-tried after a partial failure or after the Samza job is restarted.
+If you provide a document id and timestamp as metadata, you are guaranteed that a single copy of the document will end up in the correct index.  However, if you do not provide a timestamp, the job will use the current wall clock time for partitioning and you may end up with documents in the "wrong" index as well as duplicates across partitions.  Documents may end up in the "wrong" index if they arrive late and get imported after the wall clock has moved on to a new index.  Documents may be written to two indexes if a batch index request is re-tried after a partial failure or after the Samza job is restarted.
 
 ## Configuration
 
@@ -59,7 +59,6 @@ We'll start with a few examples.  This job reads from a single topic, expects th
 	rico.es.doc.type=log
 
 ### Using JSON key for metadata
-    rico.schema.registry.url=http://localhost:8081
     rico.es.index.date.format=.yyyy-MM
     rico.es.index.date.zone=Etc/UTC
     rico.es.doc.type=log
@@ -93,11 +92,9 @@ In this example, the job will pull from two topics and index them in daily index
 	rico.es.stream.apache.index.prefix=apache_logs
 	rico.es.stream.apache.index.prefix=tomcat_logs
 	
-### Samza Options
+### Samza Task + System Configuration
 
-This task expects the byte serde to be set for all keys and messages read from Kafka. See the example configuration below for the required value of `systems.es.index.request.factory`.
-
-For more details on the Elasticsearch system producer config, it's available [here](https://github.com/apache/samza/blob/master/docs/learn/documentation/versioned/jobs/configuration-table.html#L666-L712) until Samza 0.10 is released.
+This task expects the byte serde to be set for all keys and messages read from Kafka. The Elasticsearch system producer options are detailed below.
 
 ```
 task.class=com.quantiply.samza.task.ESPushTask
@@ -114,11 +111,11 @@ systems.es.flush.interval.ms=500
 systems.es.flush.max.actions=1000
 ```
 
-### Configuration
+### Configuration Reference
 
 #### Task Parameters
 
-Option  | Values
+Parameter  | Values
 ------------- | -------------
 `rico.schema.registry.url`|Url for the Confluent Schema Registry if using Avro
 `rico.es.index.prefix`| Prefix for the Elasticsearch index name; it gets lowercased and combined with the date format (Elasticsearch requires lower case index names).
@@ -136,7 +133,7 @@ Option  | Values
 
 #### System Parameters
 
-Option  | Values
+Parameter  | Values
 ------------- | -------------
 `system.<*>.samza.factory`|`com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory`
 `system.<*>.http.host`| Elasticsearch host name
@@ -151,7 +148,7 @@ Option  | Values
 Elasticsearch System Producer metrics will be included in your Samza container metrics.  Here's an example.
 
 ```
-    "com.quantiply.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
+ "com.quantiply.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
       "es-bulk-send-wait-ms": {
         "75thPercentile": 35,
         "98thPercentile": 58,
