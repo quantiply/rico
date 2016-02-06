@@ -148,36 +148,50 @@ Parameter  | Values
 Elasticsearch System Producer metrics will be included in your Samza container metrics.  Here's an example.
 
 ```
- "com.quantiply.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
+"com.quantiply.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
       "es-bulk-send-wait-ms": {
-        "75thPercentile": 35,
-        "98thPercentile": 58,
-        "min": 21,
-        "median": 28,
-        "95thPercentile": 49,
-        "99thPercentile": 72,
-        "max": 209,
-        "mean": 31.48396552511989,
-        "999thPercentile": 181,
+        "75thPercentile": 164,
+        "98thPercentile": 164,
+        "min": 8,
+        "median": 8,
+        "95thPercentile": 164,
+        "99thPercentile": 164,
+        "max": 164,
+        "mean": 85.41501096850321,
+        "999thPercentile": 164,
         "type": "histogram",
-        "stdDev": 12.848864565540332
+        "stdDev": 77.99780630141484
       },
-      "es-docs-updated": 0,
-      "es-docs-created": 0,
+      "es-bulk-send-trigger-max-actions": 1,
       "es-lag-from-receive-ms": {
-        "75thPercentile": 66,
-        "98thPercentile": 106,
-        "min": 40,
-        "median": 54,
-        "95thPercentile": 91,
-        "99thPercentile": 142,
-        "max": 1067,
-        "mean": 61.19071362009049,
-        "999thPercentile": 1067,
+        "75thPercentile": 675,
+        "98thPercentile": 677,
+        "min": 167,
+        "median": 173,
+        "95thPercentile": 677,
+        "99thPercentile": 677,
+        "max": 677,
+        "mean": 306.81746184974213,
+        "999thPercentile": 677,
         "type": "histogram",
-        "stdDev": 40.219517285244955
+        "stdDev": 220.75271582756383
       },
-      "es-docs-indexed": 1113960,
+      "es-bulk-send-trigger-flush-cmd": 0,
+      "es-inserts": 7,
+      "es-updates": 12,
+      "es-bulk-send-batch-size": {
+        "75thPercentile": 20,
+        "98thPercentile": 20,
+        "min": 7,
+        "median": 7,
+        "95thPercentile": 20,
+        "99thPercentile": 20,
+        "max": 20,
+        "mean": 13.451250914041934,
+        "999thPercentile": 20,
+        "type": "histogram",
+        "stdDev": 6.49981719178457
+      },
       "es-bulk-send-trigger-max-interval": 1,
       "es-lag-from-origin-ms": {
         "75thPercentile": 0,
@@ -192,24 +206,9 @@ Elasticsearch System Producer metrics will be included in your Samza container m
         "type": "histogram",
         "stdDev": 0
       },
-      "es-docs-deleted": 0,
-      "es-version-conflicts": 0,
-      "es-bulk-send-trigger-max-actions": 1113,
-      "es-bulk-send-trigger-flush-cmd": 0,
-      "es-bulk-send-batch-size": {
-        "75thPercentile": 1000,
-        "98thPercentile": 1000,
-        "min": 960,
-        "median": 1000,
-        "95thPercentile": 1000,
-        "99thPercentile": 1000,
-        "max": 1000,
-        "mean": 999.9496016343502,
-        "999thPercentile": 1000,
-        "type": "histogram",
-        "stdDev": 1.418941376819364
-      },
-      "es-bulk-send-success": 1114
+      "es-bulk-send-success": 2,
+      "es-version-conflicts": 5,
+      "es-deletes": 3
     },
 ```
 
