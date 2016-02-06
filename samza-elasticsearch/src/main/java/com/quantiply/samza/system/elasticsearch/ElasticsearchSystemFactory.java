@@ -28,6 +28,8 @@ import org.apache.samza.config.Config;
 import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.system.*;
 
+import java.util.function.Function;
+
 /**
  * A {@link SystemFactory} for Elasticsearch.
  *
@@ -36,6 +38,8 @@ import org.apache.samza.system.*;
  * <p>
  */
 public class ElasticsearchSystemFactory implements SystemFactory {
+
+  public final static Function<OutgoingMessageEnvelope,HTTPBulkLoader.ActionRequest> MSG_TO_ACTION = env -> (HTTPBulkLoader.ActionRequest)env.getMessage();
 
   @Override
   public SystemConsumer getConsumer(String name, Config config, MetricsRegistry metricsRegistry) {
@@ -48,7 +52,7 @@ public class ElasticsearchSystemFactory implements SystemFactory {
     return new ElasticsearchSystemProducer(name,
                                            getBulkLoaderFactory(elasticsearchConfig),
                                            getClient(elasticsearchConfig),
-                                           env -> (HTTPBulkLoader.ActionRequest)env.getMessage(),
+                                           MSG_TO_ACTION,
                                            new ElasticsearchSystemProducerMetrics(name, metricsRegistry));
   }
 

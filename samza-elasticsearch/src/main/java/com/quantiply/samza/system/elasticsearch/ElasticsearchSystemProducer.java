@@ -25,6 +25,8 @@ import io.searchbox.core.BulkResult;
 import org.apache.samza.SamzaException;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemProducer;
+import org.apache.samza.util.Clock;
+import org.apache.samza.util.SystemClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,9 +88,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   }
 
   @Override
-  public void register(final String source) {
-    //TODO - create metrics per source??
-  }
+  public void register(final String source) {}
 
   @Override
   public void send(final String source, final OutgoingMessageEnvelope envelope) {
@@ -131,20 +131,27 @@ public class ElasticsearchSystemProducer implements SystemProducer {
    * accomplished by restarting the job
    *
    */
-  protected class FlushListener implements Consumer<HTTPBulkLoader.BulkReport> {
+  protected static class FlushListener implements Consumer<HTTPBulkLoader.BulkReport> {
     private Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
     protected final int STATUS_CONFLICT = 409;
+    protected final int STATUS_INDEX_DOC_INSERTED = 201;
     protected final ElasticsearchSystemProducerMetrics metrics;
     protected final String systemName;
+    protected final Clock clock;
 
     public FlushListener(ElasticsearchSystemProducerMetrics metrics, String systemName) {
+      this(metrics, systemName, new SystemClock());
+    }
+
+    public FlushListener(ElasticsearchSystemProducerMetrics metrics, String systemName, Clock clock) {
       this.metrics = metrics;
       this.systemName = systemName;
+      this.clock = clock;
     }
 
     @Override
     public void accept(HTTPBulkLoader.BulkReport report) {
-      long tsNowMs = System.currentTimeMillis();
+      long tsNowMs = clock.currentTimeMillis();
       BulkResult result = report.bulkResult;
       if (!result.isSucceeded()) {
         if (result.getItems().size() == 0) {
@@ -187,16 +194,21 @@ public class ElasticsearchSystemProducer implements SystemProducer {
         else {
           switch (item.operation) {
             case "index":
-              metrics.docsIndexed.inc();
+              if (item.status == STATUS_INDEX_DOC_INSERTED) {
+                metrics.inserts.inc();
+              }
+              else {
+                metrics.updates.inc();
+              }
               break;
             case "create":
-              metrics.docsCreated.inc();
+              metrics.inserts.inc();
               break;
             case "update":
-              metrics.docsUpdated.inc();
+              metrics.updates.inc();
               break;
             case "delete":
-              metrics.docsDeleted.inc();
+              metrics.deletes.inc();
           }
         }
         metrics.lagFromReceiveMs.update(tsNowMs - report.requests.get(i).request.receivedTsMs);

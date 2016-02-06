@@ -15,10 +15,9 @@ public class ElasticsearchSystemProducerMetrics {
     public final Counter triggerMaxInterval;
     public final Histogram lagFromReceiveMs;
     public final Histogram lagFromOriginMs;
-    public final Counter docsCreated;
-    public final Counter docsIndexed;
-    public final Counter docsUpdated;
-    public final Counter docsDeleted;
+    public final Counter inserts;
+    public final Counter updates;
+    public final Counter deletes;
     public final Counter conflicts;
     private final MetricsRegistry registry;
     private final String group;
@@ -39,10 +38,9 @@ public class ElasticsearchSystemProducerMetrics {
         triggerMaxInterval = newCounter("bulk-send-trigger-max-interval");
         lagFromReceiveMs = newHistogram(adaptor, "lag-from-receive-ms");
         lagFromOriginMs = newHistogram(adaptor, "lag-from-origin-ms");
-        docsCreated = newCounter("docs-created");
-        docsIndexed = newCounter("docs-indexed");
-        docsUpdated = newCounter("docs-updated");
-        docsDeleted = newCounter("docs-deleted");
+        inserts = newCounter("inserts");
+        updates = newCounter("updates");
+        deletes = newCounter("deletes");
         conflicts = newCounter("version-conflicts");
     }
 
