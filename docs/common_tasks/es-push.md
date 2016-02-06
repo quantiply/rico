@@ -58,6 +58,13 @@ We'll start with a few examples.  This job reads from a single topic, expects th
 	rico.es.index.date.zone=Etc/UTC
 	rico.es.doc.type=log
 
+### Using JSON key for metadata
+    rico.schema.registry.url=http://localhost:8081
+    rico.es.index.date.format=.yyyy-MM
+    rico.es.index.date.zone=Etc/UTC
+    rico.es.doc.type=log
+    rico.es.metadata.source=key_json
+
 ### Using Avro key for metadata
     rico.schema.registry.url=http://localhost:8081
     rico.es.index.date.format=.yyyy-MM
@@ -100,17 +107,16 @@ serializers.registry.byte.class=org.apache.samza.serializers.ByteSerdeFactory
 systems.kafka.samza.key.serde=byte
 systems.kafka.samza.msg.serde=byte
 
-systems.es.samza.factory=org.apache.samza.system.elasticsearch.ElasticsearchSystemFactory
-systems.es.client.factory=org.apache.samza.system.elasticsearch.client.TransportClientFactory
-systems.es.index.request.factory=com.quantiply.samza.elasticsearch.IndexRequestFromKey
-systems.es.client.transport.host=localhost
-systems.es.client.transport.port=9300
-systems.es.bulk.flush.interval.ms=100
-systems.es.bulk.flush.max.actions=10000
-systems.es.bulk.flush.max.size.mb=10
+systems.es.samza.factory=com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory
+systems.es.http.host=localhost
+systems.es.http.port=9200
+systems.es.flush.interval.ms=500
+systems.es.flush.max.actions=1000
 ```
 
-### Options
+### Configuration
+
+#### Task Parameters
 
 Option  | Values
 ------------- | -------------
@@ -121,24 +127,93 @@ Option  | Values
 `rico.es.stream.<stream_name>.index.date.format`  | Same as above but for an individual stream
 `rico.es.index.date.zone`| Timezone to use for the index date format.  Must be a valid [ZoneId name](https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html). Defaults to system timezone.
 `rico.es.stream.<stream_name>.index.date.zone`  | Same as above but for an individual stream
-`rico.es.metadata.source`| Method for specifying metadata.  Valid values are `key_doc_id`, `key_avro`, and `embedded`.  Defaults to `key_doc_id`.
+`rico.es.metadata.source`| Method for specifying metadata.  Valid values are `key_doc_id`, `key_json`, `key_avro`, and `embedded`.  Defaults to `key_doc_id`.
 `rico.es.stream.<stream_name>.metadata.source`  | Same as above but for an individual stream
-`rico.es.version.type.default`  | If this parameter is set, the job will use the value as the version_type for all documents which do not have version_type set in the metadata.  Value values are `internal`, `external`, `external_gte`, and `force`.
+`rico.es.version.type.default`  | If this parameter is set, the job will use the value as the version_type for all documents which do not have version_type set in the metadata.  Value values are `external` and `force`.
 `rico.es.stream.<stream_name>.version.type.default`  | Same as above but for an individual stream
 `rico.es.doc.type`| Elasticsearch doc type
 `rico.es.stream.<stream_name>.doc.type`  | Same as above but for an individual stream
+
+#### System Parameters
+
+Option  | Values
+------------- | -------------
+`system.<*>.samza.factory`|`com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory`
+`system.<*>.http.host`| Elasticsearch host name
+`system.<*>.http.port`| Elasticsearch port for HTTP API
+`system.<*>.http.port`| Elasticsearch port for HTTP API
+`system.<*>.http.auth.type`| HTTP authentication type: `none` or `basic`.  Defaults to `none`
+`system.<*>.http.auth.basic.user`| HTTP basic auth user
+`system.<*>.http.auth.basic.password`| HTTP basic auth password
 
 ## Operations
 ### Metrics
 Elasticsearch System Producer metrics will be included in your Samza container metrics.  Here's an example.
 
 ```
-"org.apache.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
-            "es-docs-updated": 157,
-            "es-bulk-send-success": 105179,
-            "es-docs-inserted": 588822,
-            "es-version-conflicts": 0
-},
+    "com.quantiply.samza.system.elasticsearch.ElasticsearchSystemProducerMetrics": {
+      "es-bulk-send-wait-ms": {
+        "75thPercentile": 35,
+        "98thPercentile": 58,
+        "min": 21,
+        "median": 28,
+        "95thPercentile": 49,
+        "99thPercentile": 72,
+        "max": 209,
+        "mean": 31.48396552511989,
+        "999thPercentile": 181,
+        "type": "histogram",
+        "stdDev": 12.848864565540332
+      },
+      "es-docs-updated": 0,
+      "es-docs-created": 0,
+      "es-lag-from-receive-ms": {
+        "75thPercentile": 66,
+        "98thPercentile": 106,
+        "min": 40,
+        "median": 54,
+        "95thPercentile": 91,
+        "99thPercentile": 142,
+        "max": 1067,
+        "mean": 61.19071362009049,
+        "999thPercentile": 1067,
+        "type": "histogram",
+        "stdDev": 40.219517285244955
+      },
+      "es-docs-indexed": 1113960,
+      "es-bulk-send-trigger-max-interval": 1,
+      "es-lag-from-origin-ms": {
+        "75thPercentile": 0,
+        "98thPercentile": 0,
+        "min": 0,
+        "median": 0,
+        "95thPercentile": 0,
+        "99thPercentile": 0,
+        "max": 0,
+        "mean": 0,
+        "999thPercentile": 0,
+        "type": "histogram",
+        "stdDev": 0
+      },
+      "es-docs-deleted": 0,
+      "es-version-conflicts": 0,
+      "es-bulk-send-trigger-max-actions": 1113,
+      "es-bulk-send-trigger-flush-cmd": 0,
+      "es-bulk-send-batch-size": {
+        "75thPercentile": 1000,
+        "98thPercentile": 1000,
+        "min": 960,
+        "median": 1000,
+        "95thPercentile": 1000,
+        "99thPercentile": 1000,
+        "max": 1000,
+        "mean": 999.9496016343502,
+        "999thPercentile": 1000,
+        "type": "histogram",
+        "stdDev": 1.418941376819364
+      },
+      "es-bulk-send-success": 1114
+    },
 ```
 
 If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges with this form:
@@ -148,8 +223,3 @@ If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send the
 ### Recovering from poison pills
 
 If you get a bad record in an input Kafka topic and it causes a MappingException when you try to index it, you'll need to move the job past the bad record(s).  You can use the [Samza checkpoint tool](manipulating-checkpoints-manually) to manually move the checkpoint ahead.  Or, when the job is stopped, you can delete the checkpoint topic and make sure when you start it that it picks up from the latest offset by setting `systems.kafka.samza.offset.default=upcoming`.
-
-##TODO
-* Support for deletes (requires changes to system producer)
-* Support for partial updates
-* Add metric for tracking latency from message origin time (if provided in the metadata) to the time when index request is acknowledged.  This would provide a metric for complete end-to-end pipeline latency.  Also requires changes to the system producer in the Samza project.
