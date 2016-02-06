@@ -28,6 +28,8 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <properties>
         <jest.version>2.0.0</jest.version>
+        <httpcomponents.version>4.4.4</httpcomponents.version>
+        <guava.version>18.0</guava.version>
     </properties>
 
     <dependencies>
@@ -44,6 +46,18 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>jest</artifactId>
             <version>${jest.version}</version>
         </dependency>
+        <!-- rhoover: explicitly setting these to override YARN -->
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
+          <version>${httpcomponents.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <version>${guava.version}</version>
+        </dependency>
+        <!-- end YARN override -->
         <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-api</artifactId>
