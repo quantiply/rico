@@ -156,7 +156,6 @@ public class HTTPBulkLoaderTest {
     loader.stop();
   }
 
-
   @Test
   public void testWriterMaxInterval() throws Throwable {
     int maxIntervalMs = 150;
@@ -170,8 +169,33 @@ public class HTTPBulkLoaderTest {
     //Will not flush on max interval if no docs were added
     assertEquals(0, numFlushes.get());
     loader.addAction("test", getRequest());
-    //Not that there's a record it should have flushed
+    //Now that there's a record it should have flushed
     await().atMost(maxIntervalMs, TimeUnit.MILLISECONDS).until(() -> numFlushes.get() == 1);
+    loader.stop();
+  }
+
+  @Test
+  public void testWriterMaxIntervalFlushResets() throws Throwable {
+    int maxIntervalMs = 1000;
+    HTTPBulkLoader.Config config = new HTTPBulkLoader.Config("Test", 10, Optional.of(maxIntervalMs));
+    JestClient client = mock(JestClient.class);
+    AtomicInteger numFlushes = new AtomicInteger(0);
+    HTTPBulkLoader loader = new HTTPBulkLoader(config, client, Optional.of(bulkReport -> numFlushes.incrementAndGet()));
+
+    loader.start();
+    loader.addAction("test", getRequest());
+    assertEquals(0, numFlushes.get());
+    Thread.sleep(maxIntervalMs/2 + 1);
+    assertEquals(0, numFlushes.get());
+    //Manually flushing - should reset interval timer
+    loader.flush();
+    loader.addAction("test", getRequest());
+    assertEquals(1, numFlushes.get());
+    Thread.sleep(maxIntervalMs/2 + 1);
+    //Original time interval has expired - there should still only be a single flush (the manual one)
+    assertEquals(1, numFlushes.get());
+    //Now that there's a record it should have flushed
+    await().atMost(maxIntervalMs, TimeUnit.MILLISECONDS).until(() -> numFlushes.get() == 2);
     loader.stop();
   }
 

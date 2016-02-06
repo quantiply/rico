@@ -64,7 +64,7 @@ public class ElasticsearchConfigTest {
 
     ElasticsearchConfig config = configForProperty("systems.es.flush.interval.ms", "500");
     assertEquals(500, config.getBulkFlushIntervalMS().get().intValue());
-    
+
     assertThatThrownBy(configForProperty("systems.es.flush.interval.ms", "junk")::getBulkFlushIntervalMS).isInstanceOf(NumberFormatException.class);
 
     assertThatThrownBy(configForProperty("systems.es.flush.interval.ms", "-1")::getBulkFlushIntervalMS).isInstanceOf(ConfigException.class)
