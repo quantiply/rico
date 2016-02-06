@@ -135,13 +135,13 @@ Parameter  | Values
 
 Parameter  | Values
 ------------- | -------------
-`system.<*>.samza.factory`|`com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory`
-`system.<*>.http.host`| Elasticsearch host name
-`system.<*>.http.port`| Elasticsearch port for HTTP API
-`system.<*>.http.port`| Elasticsearch port for HTTP API
-`system.<*>.http.auth.type`| HTTP authentication type: `none` or `basic`.  Defaults to `none`
-`system.<*>.http.auth.basic.user`| HTTP basic auth user
-`system.<*>.http.auth.basic.password`| HTTP basic auth password
+`system.<system_name>.samza.factory`|`com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory`
+`system.<system_name>.http.host`| Elasticsearch host name
+`system.<system_name>.http.port`| Elasticsearch port for HTTP API
+`system.<system_name>.http.port`| Elasticsearch port for HTTP API
+`system.<system_name>.http.auth.type`| HTTP authentication type: `none` or `basic`.  Defaults to `none`
+`system.<system_name>.http.auth.basic.user`| HTTP basic auth user
+`system.<system_name>.http.auth.basic.password`| HTTP basic auth password
 
 ## Operations
 ### Metrics
