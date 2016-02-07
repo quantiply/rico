@@ -21,6 +21,9 @@ import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.*;
 import io.searchbox.params.Parameters;
+import org.apache.samza.system.IncomingMessageEnvelope;
+import org.apache.samza.task.MessageCollector;
+import org.apache.samza.task.TaskCoordinator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.function.*;
 import java.util.stream.Collectors;
 
 public class HTTPBulkLoader {
@@ -232,46 +235,41 @@ public class HTTPBulkLoader {
     return action;
   }
 
-  private BulkableAction<DocumentResult> getIndexAction(ActionRequest req) {
-    Index.Builder builder = new Index.Builder(req.document)
-        .id(req.key.getId().toString())
-        .index(req.index)
-        .type(req.docType);
+  /*
+   * Using functional interfaces to work around JEST builders not having
+   * an accessible common ancestor
+   */
+  private BulkableAction<DocumentResult> getAction(ActionRequest req,
+                                                   Consumer<String> id,
+                                                   Consumer<String> index,
+                                                   Consumer<String> type,
+                                                   BiConsumer<String,Object> setParameter,
+                                                   Supplier<BulkableAction<DocumentResult>> build) {
+    id.accept(req.key.getId().toString());
+    index.accept(req.index);
+    type.accept(req.docType);
     if (req.key.getVersionType() != null) {
-      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
+      setParameter.accept(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
     }
     if (req.key.getVersion() != null) {
-      builder.setParameter(Parameters.VERSION, req.key.getVersion());
+      setParameter.accept(Parameters.VERSION, req.key.getVersion());
     }
-    return builder.build();
+    return build.get();
+  }
+
+  private BulkableAction<DocumentResult> getIndexAction(ActionRequest req) {
+    Index.Builder b = new Index.Builder(req.document);
+    return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }
 
   private BulkableAction<DocumentResult> getUpdateAction(ActionRequest req) {
-    Update.Builder builder = new Update.Builder(req.document)
-        .id(req.key.getId().toString())
-        .index(req.index)
-        .type(req.docType);
-    if (req.key.getVersionType() != null) {
-      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
-    }
-    if (req.key.getVersion() != null) {
-      builder.setParameter(Parameters.VERSION, req.key.getVersion());
-    }
-    return builder.build();
+    Update.Builder b = new Update.Builder(req.document);
+    return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }
 
   private BulkableAction<DocumentResult> getDeleteAction(ActionRequest req) {
-    Delete.Builder builder = new Delete.Builder(req.document)
-        .id(req.key.getId().toString())
-        .index(req.index)
-        .type(req.docType);
-    if (req.key.getVersionType() != null) {
-      builder.setParameter(Parameters.VERSION_TYPE, req.key.getVersionType().toString().toLowerCase());
-    }
-    if (req.key.getVersion() != null) {
-      builder.setParameter(Parameters.VERSION, req.key.getVersion());
-    }
-    return builder.build();
+    Delete.Builder b = new Delete.Builder(req.document);
+    return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }
 
   protected void checkWriter() throws ExecutionException, InterruptedException {
