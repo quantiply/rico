@@ -36,7 +36,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6</version>
     <packaging>pom</packaging>
 
     <name>Quantiply Rico Parent</name>
@@ -134,7 +134,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <dependency>
                 <groupId>com.quantiply.samza</groupId>
                 <artifactId>coda-metrics</artifactId>
-                <version>1.4</version>
+                <version>1.5</version>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
