@@ -238,7 +238,7 @@ public class HTTPBulkLoader {
    * Using functional interfaces to work around JEST builders not having
    * an accessible common ancestor
    */
-  private BulkableAction<DocumentResult> getAction(ActionRequest req,
+  protected BulkableAction<DocumentResult> getAction(ActionRequest req,
                                                    Consumer<String> id,
                                                    Consumer<String> index,
                                                    Consumer<String> type,
@@ -256,17 +256,17 @@ public class HTTPBulkLoader {
     return build.get();
   }
 
-  private BulkableAction<DocumentResult> getIndexAction(ActionRequest req) {
+  protected BulkableAction<DocumentResult> getIndexAction(ActionRequest req) {
     Index.Builder b = new Index.Builder(req.document);
     return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }
 
-  private BulkableAction<DocumentResult> getUpdateAction(ActionRequest req) {
+  protected BulkableAction<DocumentResult> getUpdateAction(ActionRequest req) {
     Update.Builder b = new Update.Builder(req.document);
     return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }
 
-  private BulkableAction<DocumentResult> getDeleteAction(ActionRequest req) {
+  protected BulkableAction<DocumentResult> getDeleteAction(ActionRequest req) {
     Delete.Builder b = new Delete.Builder(req.document);
     return getAction(req, b::id, b::index, b::type, b::setParameter, b::build);
   }

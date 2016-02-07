@@ -2,7 +2,7 @@
 
 Rico is an collection of common tasks and utils on top of Apache Samza.
 
-## What can do for me?
+## What can it do for you?
 
 * It has a base class which you can extend that takes care of [a lot of boilerplate and common job concerns](https://github.com/quantiply/rico/blob/master/docs/base_task/purpose.md).
 * Reusable tasks
@@ -13,7 +13,7 @@ Rico is an collection of common tasks and utils on top of Apache Samza.
 * HTTP-based [Elasticsearch System Producer](https://github.com/quantiply/rico/blob/master/samza-elasticsearch/src/main/java/com/quantiply/samza/system/elasticsearch/ElasticsearchSystemProducer.java)
 * [Dropwizard metrics integration](https://github.com/quantiply/samza-coda-metrics)
 
-## How to get it?
+## How do you get it?
 
 ### Maven 3
 
