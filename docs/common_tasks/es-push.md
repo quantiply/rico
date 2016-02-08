@@ -78,20 +78,20 @@ In this example, the job will pull from two topics and index them in daily index
 	#Map Kafka topics to stream names: apache and tomcat
 	rico.streams.apache=web.apache.log
 	rico.streams.tomcat=app.tomcat.log
-	
+
 	#ES defaults
 	rico.es.index.date.format=.yyyy-MM-dd
 	rico.es.index.date.zone=Etc/UTC
 	rico.es.doc.type=log
 	rico.es.metadata.source=embedded
-	
+
 	#List all streams to index in ES
 	rico.es.streams=apache,tomcat
-	
+
 	#Override defaults as needed for each stream
 	rico.es.stream.apache.index.prefix=apache_logs
 	rico.es.stream.apache.index.prefix=tomcat_logs
-	
+
 ### Samza Task + System Configuration
 
 This task expects the byte serde to be set for all keys and messages read from Kafka. The Elasticsearch system producer options are detailed below.
@@ -105,8 +105,7 @@ systems.kafka.samza.key.serde=byte
 systems.kafka.samza.msg.serde=byte
 
 systems.es.samza.factory=com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory
-systems.es.http.host=localhost
-systems.es.http.port=9200
+systems.es.http.url=http://localhost:9200
 systems.es.flush.interval.ms=500
 systems.es.flush.max.actions=1000
 ```
@@ -136,9 +135,7 @@ Parameter  | Values
 Parameter  | Values
 ------------- | -------------
 `system.<system_name>.samza.factory`|`com.quantiply.samza.system.elasticsearch.ElasticsearchSystemFactory`
-`system.<system_name>.http.host`| Elasticsearch host name
-`system.<system_name>.http.port`| Elasticsearch port for HTTP API
-`system.<system_name>.http.port`| Elasticsearch port for HTTP API
+`system.<system_name>.http.url`| Elasticsearch HTTP endpoint URL.  Defaults to `http://localhost:9200`
 `system.<system_name>.http.auth.type`| HTTP authentication type: `none` or `basic`.  Defaults to `none`
 `system.<system_name>.http.auth.basic.user`| HTTP basic auth user
 `system.<system_name>.http.auth.basic.password`| HTTP basic auth password
@@ -214,7 +211,7 @@ Elasticsearch System Producer metrics will be included in your Samza container m
 
 If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges with this form:
 
-`<prefix>.samza.<job-name>.<job-id>.container.<container-name>.es.producer.<metric>` 
+`<prefix>.samza.<job-name>.<job-id>.container.<container-name>.es.producer.<metric>`
 
 ### Recovering from poison pills
 
