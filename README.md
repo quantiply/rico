@@ -44,7 +44,7 @@ Add the S3 Maven Repository
 Add dependencies
 
 	 <properties>
-	   <rico.version>1.0.5</rico.version>
+	   <rico.version>1.0.7</rico.version>
 	 </properties>
 
     <dependency>
