@@ -40,8 +40,7 @@ public class ElasticsearchConfig extends MapConfig {
   public static final String CONFIG_KEY_FLUSH_MAX_ACTIONS = "flush.max.actions";
   public static final String CONFIG_KEY_FLUSH_INTERVALS_MS = "flush.interval.ms";
 
-  public static final String CONFIG_KEY_HTTP_HOST = "http.host";
-  public static final String CONFIG_KEY_HTTP_PORT = "http.port";
+  public static final String CONFIG_KEY_HTTP_URL = "http.url";
   public static final String CONFIG_KEY_HTTP_AUTH_TYPE = "http.auth.type";
   public static final String CONFIG_KEY_HTTP_AUTH_BASIC_USER = "http.auth.basic.user";
   public static final String CONFIG_KEY_HTTP_AUTH_BASIC_PASSWORD = "http.auth.basic.password";
@@ -52,12 +51,8 @@ public class ElasticsearchConfig extends MapConfig {
     logAllSettings(this);
   }
 
-  public String getHTTPHost() {
-    return get(CONFIG_KEY_HTTP_HOST, "localhost");
-  }
-
-  public int getHTTPPort() {
-    return getInt(CONFIG_KEY_HTTP_PORT, 9200);
+  public String getHTTPURL() {
+    return get(CONFIG_KEY_HTTP_URL, "http://localhost:9200");
   }
 
   public AuthType getAuthType() {

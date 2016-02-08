@@ -67,10 +67,9 @@ public class ElasticsearchSystemFactory implements SystemFactory {
   }
 
   protected static JestClient getClient(ElasticsearchConfig config) {
-    String elasticUrl = String.format("http://%s:%s", config.getHTTPHost(), config.getHTTPPort());
     JestClientFactory jestFactory = new JestClientFactory();
     //Using a single connection (not a pool, multiThreaded == false) we have a single writer thread per system producer
-    HttpClientConfig.Builder httpClientBuilder = new HttpClientConfig.Builder(elasticUrl).multiThreaded(false);
+    HttpClientConfig.Builder httpClientBuilder = new HttpClientConfig.Builder(config.getHTTPURL()).multiThreaded(false);
     if (config.getAuthType().equals(ElasticsearchConfig.AuthType.BASIC)) {
       String user = config.getBasicAuthUser();
       String password = config.getBasicAuthPassword();

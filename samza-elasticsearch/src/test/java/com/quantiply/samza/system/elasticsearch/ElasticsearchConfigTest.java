@@ -23,17 +23,10 @@ public class ElasticsearchConfigTest {
   }
 
   @Test
-  public void testHTTPHost() throws Exception {
-    assertEquals("localhost", EMPTY_CONFIG.getHTTPHost());
-    ElasticsearchConfig config = configForProperty("systems.es.http.host", "example.org");
-    assertEquals("example.org", config.getHTTPHost());
-  }
-
-  @Test
-  public void testHTTPPort() throws Exception {
-    ElasticsearchConfig config = configForProperty("systems.es.http.port", "99200");
-    assertEquals(99200, config.getHTTPPort());
-    assertEquals(9200, EMPTY_CONFIG.getHTTPPort());
+  public void testHTTPURL() throws Exception {
+    assertEquals("http://localhost:9200", EMPTY_CONFIG.getHTTPURL());
+    ElasticsearchConfig config = configForProperty("systems.es.http.url", "http://example.org:9000");
+    assertEquals("http://example.org:9000", config.getHTTPURL());
   }
 
   @Test
