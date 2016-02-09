@@ -211,7 +211,7 @@ Elasticsearch System Producer metrics will be included in your Samza container m
 
 If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges with this form:
 
-`<prefix>.samza.<job-name>.<job-id>.container.<container-name>.es.producer.<metric>`
+`<prefix>.samza.<job-name>.<job-id>.container.<container-name>.eshttp.producer.<metric>`
 
 ### Recovering from poison pills
 
