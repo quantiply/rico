@@ -69,10 +69,11 @@ public class ElasticsearchSystemFactory implements SystemFactory {
   protected static JestClient getClient(ElasticsearchConfig config) {
     JestClientFactory jestFactory = new JestClientFactory();
     HttpClientConfig.Builder httpClientBuilder = new HttpClientConfig.Builder(config.getHTTPURL());
-    //Using a single connection (not a pool, multiThreaded == false) we have a single writer thread per system producer
-    httpClientBuilder.multiThreaded(false);
+    //Although we have a single writer thread per system producer, we set multiThreaded as true so that Jest
+    //will used a pooled connection manager which re-establishes connections after they go stale
+    httpClientBuilder.multiThreaded(true);
     httpClientBuilder.connTimeout(config.getConnectTimeoutMs());
-    httpClientBuilder.readTimeout(config.getInactivityTimeoutMs());
+    httpClientBuilder.readTimeout(config.getReadTimeoutMs());
     if (config.getAuthType().equals(ElasticsearchConfig.AuthType.BASIC)) {
       String user = config.getBasicAuthUser();
       String password = config.getBasicAuthPassword();
