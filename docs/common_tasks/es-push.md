@@ -139,6 +139,8 @@ Parameter  | Values
 `system.<system_name>.http.auth.type`| HTTP authentication type: `none` or `basic`.  Defaults to `none`
 `system.<system_name>.http.auth.basic.user`| HTTP basic auth user
 `system.<system_name>.http.auth.basic.password`| HTTP basic auth password
+`system.<system_name>.http.connect.timeout.ms`| [Max time in ms to wait for connection](https://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/org/apache/http/client/config/RequestConfig.html#getConnectTimeout()).  Defaults to 60000
+`system.<system_name>.http.read.timeout.ms`| [Max time in ms to wait between packets when reading response](https://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/org/apache/http/client/config/RequestConfig.html#getSocketTimeout()). Defaults to 60000
 
 ## Operations
 ### Metrics
@@ -212,6 +214,10 @@ Elasticsearch System Producer metrics will be included in your Samza container m
 If you use [rico-metrics](https://github.com/Quantiply/rico-metrics) to send these to statsd, they will be sent as gauges with this form:
 
 `<prefix>.samza.<job-name>.<job-id>.container.<container-name>.eshttp.producer.<metric>`
+
+### Connection Errors
+
+If the HTTP connection goes stale due to inactivity, the pooling connection manager will reestablish a new connection.
 
 ### Recovering from poison pills
 
