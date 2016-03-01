@@ -80,7 +80,10 @@ public class ElasticsearchSystemProducer implements SystemProducer {
   public void stop() {
     LOGGER.info("Stopping Elasticsearch system producer");
     LOGGER.debug("Flushing any remaining actions");
-    flushAll();
+    try {
+      flushAll();
+    }
+    catch (Throwable e) {}
     LOGGER.debug("Stopping the writer thread");
     bulkLoader.stop();
     LOGGER.debug("Closing the connection");
