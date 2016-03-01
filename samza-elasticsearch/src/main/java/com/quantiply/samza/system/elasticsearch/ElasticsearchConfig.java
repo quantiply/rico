@@ -44,6 +44,8 @@ public class ElasticsearchConfig extends MapConfig {
   public static final String CONFIG_KEY_HTTP_AUTH_TYPE = "http.auth.type";
   public static final String CONFIG_KEY_HTTP_AUTH_BASIC_USER = "http.auth.basic.user";
   public static final String CONFIG_KEY_HTTP_AUTH_BASIC_PASSWORD = "http.auth.basic.password";
+  public static final String CONFIG_KEY_HTTP_CONNECT_TIMEOUT_MS = "http.connect.timeout.ms";
+  public static final String CONFIG_KEY_HTTP_INACTIVITY_TIMEOUT_MS = "http.inactivity.timeout.ms";
 
   public ElasticsearchConfig(String name, Config config) {
     super(config.subset("systems." + name + "."));
@@ -66,6 +68,14 @@ public class ElasticsearchConfig extends MapConfig {
 
   public String getBasicAuthPassword() {
     return get(CONFIG_KEY_HTTP_AUTH_BASIC_PASSWORD);
+  }
+
+  public int getConnectTimeoutMs() {
+    return getInt(CONFIG_KEY_HTTP_CONNECT_TIMEOUT_MS, 60000);
+  }
+
+  public int getInactivityTimeoutMs() {
+    return getInt(CONFIG_KEY_HTTP_INACTIVITY_TIMEOUT_MS, 60000);
   }
 
   public int getBulkFlushMaxActions() {

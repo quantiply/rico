@@ -30,6 +30,18 @@ public class ElasticsearchConfigTest {
   }
 
   @Test
+  public void testTimeoutParams() throws Exception {
+    assertEquals(60000, EMPTY_CONFIG.getConnectTimeoutMs());
+    assertEquals(60000, EMPTY_CONFIG.getInactivityTimeoutMs());
+
+    ElasticsearchConfig connectConfig = configForProperty("systems.es.http.connect.timeout.ms", "1000");
+    assertEquals(1000, connectConfig.getConnectTimeoutMs());
+
+    ElasticsearchConfig inactivityConfig = configForProperty("systems.es.http.inactivity.timeout.ms", "500");
+    assertEquals(500, inactivityConfig.getInactivityTimeoutMs());
+  }
+
+  @Test
   public void testAuthParams() throws Exception {
     assertEquals(ElasticsearchConfig.AuthType.NONE, EMPTY_CONFIG.getAuthType());
 
