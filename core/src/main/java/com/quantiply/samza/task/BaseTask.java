@@ -269,18 +269,48 @@ public abstract class BaseTask implements InitableTask, StreamTask, ClosableTask
 
     protected GenericData.Record getCamusHeaders(GenericRecord eventHeaders, Schema headerSchema, long tsNow) {
         GenericRecordBuilder builder = new GenericRecordBuilder(headerSchema);
-        if (headerSchema.getField("created") != null && !builder.has("created")) {
+        if (headerSchema.getField("created") != null) {
             builder.set("created", tsNow);
         }
-        copyAvroField(eventHeaders, headerSchema, builder, "timestamp");
+        copyCamusTimestamp(eventHeaders, headerSchema, builder);
         copyAvroField(eventHeaders, headerSchema, builder, "id");
         return builder.build();
     }
 
-    private void copyAvroField(GenericRecord src, Schema dstSchema, GenericRecordBuilder dstBuilder, String field) {
+    private boolean copyCamusTimestamp(GenericRecord src, Schema dstSchema, GenericRecordBuilder dstBuilder) {
+        String tsField = "time";
+        String oldTsField = "timestamp";
+
+        //Camus expects a field called header.time
+        if (copyAvroField(src, dstSchema, dstBuilder, tsField)) {
+            return true;
+        }
+
+        //For backward compatability with old rico versions (<= 1.0.8) where we called it header.timestamp
+        Object timestamp = src.get(oldTsField);
+        if (timestamp == null) {
+            timestamp = src.get(tsField);
+        }
+
+        if (timestamp != null) {
+            if (dstSchema.getField(oldTsField) != null) {
+                dstBuilder.set(oldTsField, timestamp);
+                return true;
+            }
+            if (dstSchema.getField(tsField) != null) {
+                dstBuilder.set(tsField, timestamp);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean copyAvroField(GenericRecord src, Schema dstSchema, GenericRecordBuilder dstBuilder, String field) {
         if (dstSchema.getField(field) != null && !dstBuilder.has(field) && src.getSchema().getField(field) != null) {
             dstBuilder.set(field, src.get(field));
+            return true;
         }
+        return false;
     }
 
     protected int getNumPartitionsForSystemStream(SystemStream systemStream) {
