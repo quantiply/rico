@@ -1,0 +1,90 @@
+{
+  "dataSources" : {
+    "pageviews2" : {
+      "spec" : {
+        "dataSchema" : {
+          "dataSource" : "pageviews2",
+          "parser" : {
+            "type" : "string",
+            "parseSpec" : {
+              "timestampSpec" : {
+                "column" : "timestamp",
+                "format" : "auto"
+              },
+              "dimensionsSpec" : {
+                "dimensions" : [
+                  "user",
+                  "page_title",
+                  "page_category",
+                  "page_referrer",
+                  "geo_country",
+                  "geo_state",
+                  "ip_isp",
+                  "ip_domain",
+                  "ip_netspeed",
+                  "browser",
+                  "os",
+                  "device",
+                  "segment"
+                ]
+              },
+              "format" : "json"
+            }
+          },
+          "granularitySpec" : {
+            "type" : "uniform",
+            "segmentGranularity" : "hour",
+            "queryGranularity" : "none"
+          },
+          "metricsSpec":  [
+            {
+              "name": "count",
+              "type": "count"
+            },
+            {
+              "name": "duration_sum",
+              "type": "doubleSum",
+              "fieldName": "loadtime"
+            },
+            {
+              "name": "user_hll",
+              "type": "cardinality",
+              "byRow": false,
+              "fieldNames": [
+                "user"
+              ]
+            },
+            {
+              "name": "session_hll",
+              "type": "cardinality",
+              "byRow": false,
+              "fieldNames": [
+                "cookieId"
+              ]
+            }
+          ]
+        },
+        "ioConfig" : {
+          "type" : "realtime"
+        },
+        "tuningConfig" : {
+          "type" : "realtime",
+          "maxRowsInMemory" : "100000",
+          "intermediatePersistPeriod" : "PT10M",
+          "windowPeriod" : "PT10M"
+        }
+      },
+      "properties" : {
+        "task.partitions" : "1",
+        "task.replicants" : "1"
+      }
+    }
+  },
+  "properties" : {
+    "zookeeper.connect" : "localhost",
+    "druid.discovery.curator.path" : "/druid/discovery",
+    "druid.selectors.indexing.serviceName" : "druid/overlord",
+    "http.port" : "8200",
+    "http.threads" : "8"
+  }
+}
