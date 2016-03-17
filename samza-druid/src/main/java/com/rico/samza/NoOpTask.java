@@ -29,7 +29,7 @@ public class NoOpTask implements StreamTask {
                 "--config-factory",
                 "org.apache.samza.config.factories.PropertiesConfigFactory",
                 "--config-path",
-                String.format("file://%s/src/main/config/%s.properties", rootDir, "tranquility")
+                String.format("file://%s/samza-druid/src/main/config/%s.properties", rootDir, "tranquility")
         };
         JobRunner.main(params);
 
