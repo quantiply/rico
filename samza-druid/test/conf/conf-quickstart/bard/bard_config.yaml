@@ -1,0 +1,31 @@
+# The port on which the Bard server will listen on.
+port: 9095
+
+# A Druid broker node that can serve data (only used if you have Druid based data source)
+brokerHost: localhost:8082
+
+# Print logs to stdout, defaults to true.
+enableStdoutLog: true
+
+# Enable file logging, defaults to true.
+enableFileLog: false
+
+# Location for Bard log files, defaults to '/var/log/bard'
+logDir: var/sv/bard-logs
+
+# Max number of worker processes.
+# - If omitted or set to 0, disable node.js clustering.
+# - Set as 'auto' to spawn (number of CPUs - 1) workers.
+# - Default is 0.
+maxWorkers: 0
+
+# Use SegmentMetadataQuery for introspection, rather than Broker GET routes.
+useSegmentMetadata: true
+
+# Background introspection frequency (in ms)
+# - Set to '0' to disable background introspection.
+sourceListRefreshInterval: 0
+
+# Foreground introspection
+# Checks for new dataSources every time Pivot is loaded (default: false)
+sourceListRefreshOnLoad: true

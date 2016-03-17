@@ -1,9 +1,9 @@
 {
   "dataSources" : {
-    "pageviews3" : {
+    "metrics-kafka" : {
       "spec" : {
         "dataSchema" : {
-          "dataSource" : "pageviews3",
+          "dataSource" : "metrics-kafka",
           "parser" : {
             "type" : "string",
             "parseSpec" : {
@@ -12,20 +12,10 @@
                 "format" : "auto"
               },
               "dimensionsSpec" : {
-                "dimensions" : [
-                  "user",
-                  "page_title",
-                  "page_category",
-                  "page_referrer",
-                  "geo_country",
-                  "geo_state",
-                  "ip_isp",
-                  "ip_domain",
-                  "ip_netspeed",
-                  "browser",
-                  "os",
-                  "device",
-                  "segment"
+                "dimensions" : [],
+                "dimensionExclusions" : [
+                  "timestamp",
+                  "value"
                 ]
               },
               "format" : "json"
@@ -36,31 +26,25 @@
             "segmentGranularity" : "hour",
             "queryGranularity" : "none"
           },
-          "metricsSpec":  [
+          "metricsSpec" : [
             {
-              "name": "count",
-              "type": "count"
+              "type" : "count",
+              "name" : "count"
             },
             {
-              "name": "duration_sum",
-              "type": "doubleSum",
-              "fieldName": "loadtime"
+              "name" : "value_sum",
+              "type" : "doubleSum",
+              "fieldName" : "value"
             },
             {
-              "name": "user_hll",
-              "type": "cardinality",
-              "byRow": false,
-              "fieldNames": [
-                "user"
-              ]
+              "fieldName" : "value",
+              "name" : "value_min",
+              "type" : "doubleMin"
             },
             {
-              "name": "session_hll",
-              "type": "cardinality",
-              "byRow": false,
-              "fieldNames": [
-                "cookieId"
-              ]
+              "type" : "doubleMax",
+              "name" : "value_max",
+              "fieldName" : "value"
             }
           ]
         },
@@ -76,7 +60,8 @@
       },
       "properties" : {
         "task.partitions" : "1",
-        "task.replicants" : "1"
+        "task.replicants" : "1",
+        "topicPattern" : "metrics"
       }
     }
   },
@@ -84,7 +69,9 @@
     "zookeeper.connect" : "localhost",
     "druid.discovery.curator.path" : "/druid/discovery",
     "druid.selectors.indexing.serviceName" : "druid/overlord",
-    "http.port" : "8200",
-    "http.threads" : "8"
+    "commit.periodMillis" : "15000",
+    "consumer.numThreads" : "2",
+    "kafka.zookeeper.connect" : "localhost",
+    "kafka.group.id" : "tranquility-kafka"
   }
 }

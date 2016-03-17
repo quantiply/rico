@@ -64,7 +64,7 @@ public class DruidLoader implements BeamFactory
 
         final InputStream configStream = DruidLoader.class.getClassLoader().getResourceAsStream("server.json");
         final TranquilityConfig<PropertiesBasedConfig> cfg = TranquilityConfig.read(configStream);
-        final DataSourceConfig<PropertiesBasedConfig> wikipediaConfig = cfg.getDataSource("pageviews2");
+        final DataSourceConfig<PropertiesBasedConfig> wikipediaConfig = cfg.getDataSource("pageviews3");
         Beam<Map<String, Object>> beam = DruidBeams.fromConfig(wikipediaConfig).buildBeam();
         return beam;
     }
