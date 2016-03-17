@@ -34,6 +34,10 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <dependencies>
         <dependency>
+            <groupId>com.quantiply.rico</groupId>
+            <artifactId>rico-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-jaxrs</artifactId>
             <version>1.9.13</version>
