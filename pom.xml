@@ -200,6 +200,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <module>cmd-line-runner</module>
         <module>jython</module>
         <module>samza-elasticsearch</module>
+        <module>samza-druid</module>
     </modules>
 
     <build>
