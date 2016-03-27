@@ -35,7 +35,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>1.0.10-SNAPSHOT</version>
+    <version>1.0.10</version>
     <packaging>pom</packaging>
 
     <name>Quantiply Rico Parent</name>
@@ -212,13 +212,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 <source>${maven.compiler.source}</source>
                 <target>${maven.compiler.target}</target>
                 <encoding>${project.build.sourceEncoding}</encoding>
-              </configuration>
-            </plugin>
-            <plugin>
-              <artifactId>maven-release-plugin</artifactId>
-              <version>2.4.1</version>
-              <configuration>
-                <autoVersionSubmodules>true</autoVersionSubmodules>
               </configuration>
             </plugin>
             <!--
