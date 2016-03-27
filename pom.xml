@@ -49,19 +49,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     </scm>
 
     <repositories>
-       <!-- <repository>
-           <id>aws-release</id>
-           <name>AWS S3 Release Repository</name>
-           <url>https://s3.amazonaws.com/artifacts.quantezza.com/release</url>
-       </repository>
-       <repository>
-           <id>aws-snapshot</id>
-           <name>AWS S3 Snapshot Repository</name>
-           <url>https://s3.amazonaws.com/artifacts.quantezza.com/snapshot</url>
-           <snapshots>
-               <enabled>true</enabled>
-           </snapshots>
-       </repository> -->
         <repository>
             <id>central</id>
             <name>Maven Central</name>
@@ -86,22 +73,9 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
       <repository>
         <id>bintray-quantiply-quantiply</id>
         <name>quantiply-quantiply</name>
-        <url>https://api.bintray.com/maven/quantiply/quantiply/rico/;publish=1</url>
+        <url>https://api.bintray.com/maven/quantiply/quantiply/rico</url>
       </repository>
     </distributionManagement>
-
-    <!-- <distributionManagement>
-        <repository>
-            <id>aws-release</id>
-            <name>AWS Release Repository</name>
-            <url>s3://artifacts.quantezza.com/release</url>
-        </repository>
-        <snapshotRepository>
-            <id>aws-snapshot</id>
-            <name>AWS Snapshot Repository</name>
-            <url>s3://artifacts.quantezza.com/snapshot</url>
-        </snapshotRepository>
-    </distributionManagement> -->
 
     <dependencyManagement>
         <dependencies>
@@ -229,13 +203,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     </modules>
 
     <build>
-        <!-- <extensions>
-            <extension>
-                <groupId>org.kuali.maven.wagons</groupId>
-                <artifactId>maven-s3-wagon</artifactId>
-                <version>1.2.1</version>
-            </extension>
-        </extensions> -->
         <plugins>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
