@@ -14,8 +14,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <prerequisites>
@@ -36,14 +35,21 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>1.0.10</version>
+    <version>1.0.10-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Quantiply Rico Parent</name>
     <description>Streaming Enrichment Platform</description>
 
+    <scm>
+      <connection>scm:git:https://github.com/quantiply/rico.git</connection>
+      <developerConnection>scm:git:git@github.com:quantiply/rico.git</developerConnection>
+      <url>https://github.com/quantiply/rico</url>
+      <tag>HEAD</tag>
+    </scm>
+
     <repositories>
-       <repository>
+       <!-- <repository>
            <id>aws-release</id>
            <name>AWS S3 Release Repository</name>
            <url>https://s3.amazonaws.com/artifacts.quantezza.com/release</url>
@@ -55,7 +61,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
            <snapshots>
                <enabled>true</enabled>
            </snapshots>
-       </repository>
+       </repository> -->
         <repository>
             <id>central</id>
             <name>Maven Central</name>
@@ -64,9 +70,27 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <repository>
+           <id>bintray</id>
+           <url>http://dl.bintray.com/quantiply/quantiply</url>
+           <releases>
+             <enabled>true</enabled>
+           </releases>
+           <snapshots>
+             <enabled>false</enabled>
+           </snapshots>
+         </repository>
     </repositories>
 
     <distributionManagement>
+      <repository>
+        <id>bintray-quantiply-quantiply</id>
+        <name>quantiply-quantiply</name>
+        <url>https://api.bintray.com/maven/quantiply/quantiply/rico/;publish=1</url>
+      </repository>
+    </distributionManagement>
+
+    <!-- <distributionManagement>
         <repository>
             <id>aws-release</id>
             <name>AWS Release Repository</name>
@@ -77,7 +101,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <name>AWS Snapshot Repository</name>
             <url>s3://artifacts.quantezza.com/snapshot</url>
         </snapshotRepository>
-    </distributionManagement>
+    </distributionManagement> -->
 
     <dependencyManagement>
         <dependencies>
@@ -205,13 +229,13 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     </modules>
 
     <build>
-        <extensions>
+        <!-- <extensions>
             <extension>
                 <groupId>org.kuali.maven.wagons</groupId>
                 <artifactId>maven-s3-wagon</artifactId>
                 <version>1.2.1</version>
             </extension>
-        </extensions>
+        </extensions> -->
         <plugins>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
@@ -221,6 +245,13 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 <source>${maven.compiler.source}</source>
                 <target>${maven.compiler.target}</target>
                 <encoding>${project.build.sourceEncoding}</encoding>
+              </configuration>
+            </plugin>
+            <plugin>
+              <artifactId>maven-release-plugin</artifactId>
+              <version>2.4.1</version>
+              <configuration>
+                <autoVersionSubmodules>true</autoVersionSubmodules>
               </configuration>
             </plugin>
             <!--
