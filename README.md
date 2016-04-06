@@ -19,7 +19,7 @@ Rico is an collection of common tasks and utils on top of Apache Samza.
 
 #Building With Maven 3
 
-Add the Maven Repository
+Add the Quantiply Maven Repository
 
 	 <repositories>
       <repository>
