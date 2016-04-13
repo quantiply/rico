@@ -1,7 +1,5 @@
 package com.quantiply.rico.samza.system.druid;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.common.logger.Logger;
 import com.metamx.tranquility.beam.Beam;
 import com.metamx.tranquility.config.DataSourceConfig;
@@ -16,10 +14,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.samza.config.Config;
 import org.apache.samza.system.SystemStream;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
 
 public class JSONBeamFactory implements BeamFactory
 {

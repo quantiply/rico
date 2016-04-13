@@ -21,4 +21,6 @@ dist
 *.swo
 .vagrant
 *~
+*.ipr
+*.iws
 
