@@ -8,7 +8,6 @@ import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
 import org.apache.samza.task.MessageCollector;
-import org.apache.samza.task.StreamTask;
 import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
 
@@ -16,7 +15,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 /***
- * A Noop task for pushing data to druid using tranquility.
+ * A generic task for pushing data to druid via tranquility.
  */
 public class DruidPushTask extends BaseTask {
 
