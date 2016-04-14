@@ -62,6 +62,16 @@ public class AvroToJson {
         objMapper.registerModule(module);
     }
 
+    public AvroToJson() {
+        this(null);
+    }
+
+    public AvroToJson(AvroToJSONCustomizer customizer) {
+        if (customizer != null) {
+            customizer.customize(objMapper);
+        }
+    }
+
     public byte[] objectToJson(Object msg) throws Exception {
         return objMapper.writeValueAsBytes(msg);
     }

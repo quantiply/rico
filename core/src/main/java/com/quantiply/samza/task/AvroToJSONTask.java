@@ -15,6 +15,8 @@
  */
 package com.quantiply.samza.task;
 
+import com.quantiply.avro.AvroToJSONCustomizer;
+import com.quantiply.avro.AvroToJSONCustomizerFactory;
 import com.quantiply.avro.AvroToJson;
 import com.quantiply.samza.MetricAdaptor;
 import com.quantiply.samza.metrics.EventStreamMetrics;
@@ -23,6 +25,7 @@ import com.quantiply.samza.serde.AvroSerde;
 import com.quantiply.samza.serde.AvroSerdeFactory;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.samza.config.Config;
+import org.apache.samza.config.ConfigException;
 import org.apache.samza.system.IncomingMessageEnvelope;
 import org.apache.samza.system.OutgoingMessageEnvelope;
 import org.apache.samza.system.SystemStream;
@@ -39,22 +42,41 @@ import org.apache.samza.task.TaskCoordinator;
   - to fetch the schema from Confluent schema registry
   - the input and output topics are configured to use ByteSerde
   - the output topic name to be specified with the "rico.streams.out" property
-  - if you want lag metrics, the Avro message should have a "header" fields with "created" and "timestamp" child fields.
+  - if you want lag metrics, the Avro message should have a "header" fields with "created" and "time" child fields.
 
   Caveats:
    - It currently assumes lowercase with underscore for naming JSON fields.  This could be configurable later
 
  */
 public class AvroToJSONTask extends BaseTask {
+    public final static String CFG_CUSTOMIZER_FACTORY = "rico.avro.to.json.customizer.factory";
     private AvroSerde avroSerde;
     private SystemStream outStream;
-    private final AvroToJson avroToJson = new AvroToJson();
+    private AvroToJson avroToJson;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
         registerDefaultHandler(this::processMsg, new EventStreamMetricsFactory());
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         outStream = getSystemStream("out");
+        avroToJson = getAvroToJson(config);
+    }
+
+    protected AvroToJson getAvroToJson(Config config) {
+        String factoryClass = config.get(CFG_CUSTOMIZER_FACTORY);
+        if (factoryClass == null) {
+            return new AvroToJson();
+        }
+        try {
+            Class<AvroToJSONCustomizerFactory> klass = (Class<AvroToJSONCustomizerFactory>)Class.forName(factoryClass.trim());
+            return new AvroToJson(klass.newInstance().getCustomizer());
+        } catch (ClassNotFoundException e) {
+            throw new ConfigException("Customizer factory class not found: " + factoryClass);
+        } catch (InstantiationException e) {
+            throw new ConfigException("Could not instantiate customizer factory class: " + factoryClass);
+        } catch (IllegalAccessException e) {
+            throw new ConfigException("Could not access customizer factory class: " + factoryClass);
+        }
     }
 
     protected void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator, EventStreamMetrics metrics) throws Exception {
