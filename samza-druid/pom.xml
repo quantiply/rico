@@ -211,6 +211,8 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                     <target>1.8</target>
                 </configuration>
             </plugin>
+            <!-- Uncomment this section to test against YARN.-->
+            <!--
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.3</version>
@@ -229,6 +231,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                     </execution>
                 </executions>
             </plugin>
+            -->
         </plugins>
     </build>
 </project>
