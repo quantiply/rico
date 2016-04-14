@@ -54,6 +54,7 @@ install_all() {
   $DIR/grid install zookeeper
   $DIR/grid install yarn
   $DIR/grid install kafka
+  $DIR/grid install imply
 }
 
 install_zookeeper() {
@@ -115,9 +116,10 @@ start_all() {
 
 start_imply() {
   if [ -f $DEPLOY_ROOT_DIR/$SYSTEM/bin/supervise ]; then
-    cd $DEPLOY_ROOT_DIR/$SYSTEM
-    bin/supervise -c conf/supervise/quickstart.conf
-    cd - > /dev/null
+    mkdir -p $DEPLOY_ROOT_DIR/$SYSTEM/logs
+    pushd $DEPLOY_ROOT_DIR/$SYSTEM > /dev/null
+    nohup bin/supervise -c conf/supervise/quickstart.conf > logs/imply.log 2>&1 &
+    popd > /dev/null
   else
     echo 'Imply is not installed. Run: bin/grid install imply'
   fi
@@ -154,9 +156,14 @@ start_kafka() {
 }
 
 stop_all() {
+  $DIR/grid stop imply
   $DIR/grid stop kafka
   $DIR/grid stop yarn
   $DIR/grid stop zookeeper
+}
+
+stop_imply() {
+  ps ax | grep -i 'quickstart.conf' | grep -v grep | awk '{print $1}' | xargs kill -SIGTERM
 }
 
 stop_zookeeper() {
@@ -199,9 +206,9 @@ elif (test -z "$COMMAND" && test -z "$SYSTEM") \
   echo
   echo "  $ grid"
   echo "  $ grid bootstrap"
-  echo "  $ grid install [yarn|kafka|zookeeper|all]"
-  echo "  $ grid start [yarn|kafka|zookeeper|all]"
-  echo "  $ grid stop [yarn|kafka|zookeeper|all]"
+  echo "  $ grid install [yarn|kafka|zookeeper|imply|all]"
+  echo "  $ grid start [yarn|kafka|zookeeper|imply|all]"
+  echo "  $ grid stop [yarn|kafka|zookeeper|imply|all]"
   echo
   exit 1
 else
