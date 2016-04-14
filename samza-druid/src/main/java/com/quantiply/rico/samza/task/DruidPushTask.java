@@ -12,7 +12,6 @@ import org.apache.samza.task.TaskContext;
 import org.apache.samza.task.TaskCoordinator;
 
 import java.nio.file.Paths;
-import java.util.Map;
 
 /***
  * A generic task for pushing data to druid via tranquility.
@@ -28,8 +27,7 @@ public class DruidPushTask extends BaseTask {
     }
 
     private void processMsg(IncomingMessageEnvelope envelope, MessageCollector collector, TaskCoordinator coordinator) throws Exception {
-        Map<String, Object> outgoingMap = (Map<String, Object>) envelope.getMessage();
-        collector.send(new OutgoingMessageEnvelope(systemStreamOut, outgoingMap));
+        collector.send(new OutgoingMessageEnvelope(systemStreamOut, envelope.getMessage()));
     }
 
     /* For testing in the IDE.*/
