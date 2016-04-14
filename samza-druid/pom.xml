@@ -140,6 +140,11 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>tranquility-samza_2.10</artifactId>
             <version>0.7.4</version>
         </dependency>
+        <dependency>
+            <groupId>io.druid.extensions</groupId>
+            <artifactId>druid-histogram</artifactId>
+            <version>0.8.2</version>
+        </dependency>
 
         <!--The following deps are required because maven assembly plugin doesn't seem to respect the excludes above.-->
         <dependency>
@@ -168,7 +173,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>zookeeper</artifactId>
             <version>3.4.6</version>
         </dependency>
-
     </dependencies>
 
     <repositories>
