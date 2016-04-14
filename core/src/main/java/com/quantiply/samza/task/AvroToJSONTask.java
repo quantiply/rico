@@ -44,6 +44,10 @@ import org.apache.samza.task.TaskCoordinator;
   - the output topic name to be specified with the "rico.streams.out" property
   - if you want lag metrics, the Avro message should have a "header" fields with "created" and "time" child fields.
 
+  This task:
+  - Preserves message keys
+  - Preserves partitioning
+
   Caveats:
    - It currently assumes lowercase with underscore for naming JSON fields.  This could be configurable later
 
@@ -53,6 +57,7 @@ public class AvroToJSONTask extends BaseTask {
     private AvroSerde avroSerde;
     private SystemStream outStream;
     private AvroToJson avroToJson;
+    private int numOutPartitions;
 
     @Override
     protected void _init(Config config, TaskContext context, MetricAdaptor metricAdaptor) throws Exception {
@@ -60,6 +65,7 @@ public class AvroToJSONTask extends BaseTask {
         avroSerde = new AvroSerdeFactory().getSerde("avro", config);
         outStream = getSystemStream("out");
         avroToJson = getAvroToJson(config);
+        numOutPartitions = getNumPartitionsForSystemStream(outStream);
     }
 
     protected AvroToJson getAvroToJson(Config config) {
@@ -83,15 +89,9 @@ public class AvroToJSONTask extends BaseTask {
         SpecificRecord inMsg = (SpecificRecord) avroSerde.fromBytes((byte[]) envelope.getMessage());
         updateLagMetricsForCamusRecord(inMsg, System.currentTimeMillis(), metrics);
         byte[] outMsg = avroToJson.objectToJson(inMsg);
-        OutgoingMessageEnvelope outEnv;
-        if (envelope.getKey() == null) {
-            outEnv = new OutgoingMessageEnvelope(outStream, outMsg);
-        }
-        else {
-            outEnv = new OutgoingMessageEnvelope(outStream, outMsg,
-                    envelope.getSystemStreamPartition().getPartition().getPartitionId(),
+        OutgoingMessageEnvelope outEnv = new OutgoingMessageEnvelope(outStream, outMsg,
+                    envelope.getSystemStreamPartition().getPartition().getPartitionId() % numOutPartitions,
                     envelope.getKey());
-        }
         collector.send(outEnv);
     }
 
