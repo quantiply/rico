@@ -20,7 +20,7 @@ public class JSONBeamFactory implements BeamFactory
 {
 
     private static final Logger log = new Logger(JSONBeamFactory.class);
-    public static String TRANQUILITY_CONFIG_FILE = "server.json";
+    public static String TRANQUILITY_CONFIG_FILE = "druid-datasources.json";
 
     @Override
     public Beam makeBeam(SystemStream stream, Config config) {
@@ -29,12 +29,6 @@ public class JSONBeamFactory implements BeamFactory
         String zkConnect = getOrDie("druid.zookeeper.connect", config);
         String discoveryPath = getOrDie("druid.discovery.curator.path", config);
         String overlordSelector = getOrDie("druid.selectors.indexing.serviceName", config);
-
-        System.out.println("****************");
-        System.out.println("****************" + datasource);
-        System.out.println("****************" + discoveryPath);
-        System.out.println("****************" + overlordSelector);
-
 
         InputStream configStream = JSONBeamFactory.class.getClassLoader().getResourceAsStream(TRANQUILITY_CONFIG_FILE);
         TranquilityConfig<PropertiesBasedConfig> tranquilityConfig = TranquilityConfig.read(configStream);

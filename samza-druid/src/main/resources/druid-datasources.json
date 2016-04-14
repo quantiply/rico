@@ -78,6 +78,53 @@
         "task.partitions" : "1",
         "task.replicants" : "1"
       }
+    },
+    "svc_perf" : {
+      "spec" : {
+        "dataSchema" : {
+          "dataSource" : "svc_perf",
+          "parser" : {
+            "type" : "string",
+            "parseSpec" : {
+              "format" : "json",
+              "timestampSpec" : {
+                "column" : "start_timestamp_unix",
+                "format" : "posix"
+              },
+              "dimensionsSpec" : {
+                "dimensions": ["node", "easi", "svc_name", "datacenter", "svc_type", "workgroup", "svr_binary", "net_domain", "app_name", "db_logical_name", "db_logical_svr", "db_physical_name", "db_physical_svr", "db_domain"],
+                "dimensionExclusions" : [
+                ],
+                "spatialDimensions" : []
+              }
+            }
+          },
+          "metricsSpec" : [
+            { "type" : "count", "name" : "calls" },
+            { "type": "doubleSum", "name": "sum_duration_ms", "fieldName": "duration_ms" },
+            { "type" : "approxHistogram", "name" : "perf_hist", "fieldName" : "duration_ms", "lowerLimit" : 0.0, "upperLimit" : 100000, "resolution" : 200},
+            { "type": "max", "name": "max_duration_ms", "fieldName": "duration_ms" }
+          ],
+          "granularitySpec" : {
+            "type" : "uniform",
+            "segmentGranularity" : "HOUR",
+            "queryGranularity" : "MINUTE"
+          }
+        },
+        "ioConfig" : {
+          "type" : "realtime"
+        },
+        "tuningConfig" : {
+          "type" : "realtime",
+          "maxRowsInMemory" : "100000",
+          "intermediatePersistPeriod" : "PT10M",
+          "windowPeriod" : "PT10M"
+        }
+      },
+      "properties" : {
+        "task.partitions" : "1",
+        "task.replicants" : "1"
+      }
     }
   },
   "properties" : {
