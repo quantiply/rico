@@ -17,9 +17,9 @@ public class AvroToJson {
     private final ObjectMapper objMapper;
 
     @JsonIgnoreType
-    abstract class IgnoreTypeMixIn { }
+    public static abstract class IgnoreTypeMixIn { }
 
-    public class Utf8Serializer extends JsonSerializer<Utf8> {
+    public static class Utf8Serializer extends JsonSerializer<Utf8> {
         @Override
         public void serialize(Utf8 value, JsonGenerator jgen, SerializerProvider provider)
                 throws IOException {
