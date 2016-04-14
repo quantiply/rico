@@ -32,7 +32,7 @@ Add the Quantiply Maven Repository
 Add dependencies
 
 	 <properties>
-	   <rico.version>1.0.11</rico.version>
+	   <rico.version>1.0.12</rico.version>
 	 </properties>
 
     <dependency>
