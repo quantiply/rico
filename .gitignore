@@ -23,4 +23,6 @@ dist
 *~
 *.ipr
 *.iws
+*svc_perf.properties
+*-svc_perf.json
 
