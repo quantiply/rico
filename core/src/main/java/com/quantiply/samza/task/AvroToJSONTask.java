@@ -89,9 +89,11 @@ public class AvroToJSONTask extends BaseTask {
         SpecificRecord inMsg = (SpecificRecord) avroSerde.fromBytes((byte[]) envelope.getMessage());
         updateLagMetricsForCamusRecord(inMsg, System.currentTimeMillis(), metrics);
         byte[] outMsg = avroToJson.objectToJson(inMsg);
-        OutgoingMessageEnvelope outEnv = new OutgoingMessageEnvelope(outStream, outMsg,
-                    envelope.getSystemStreamPartition().getPartition().getPartitionId() % numOutPartitions,
-                    envelope.getKey());
+        OutgoingMessageEnvelope outEnv = new OutgoingMessageEnvelope(
+                outStream,
+                envelope.getSystemStreamPartition().getPartition().getPartitionId() % numOutPartitions,
+                envelope.getKey(),
+                outMsg);
         collector.send(outEnv);
     }
 
