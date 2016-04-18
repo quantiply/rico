@@ -79,38 +79,6 @@ dataSources:
         title: Unique Users
         expression: $main.countDistinct($user_unique)
 
-  - name: metrics
-    title: Metrics Quickstart
-    engine: druid # Set the engine to druid
-    source: metrics # The druid dataSource
-
-    timeAttribute: time
-
-    refreshRule:
-      rule: query
-      refresh: PT5S
-
-    measures:
-      - name: count
-        title: Count
-        expression: $main.sum($count)
-
-      - name: value_sum
-        title: Sum
-        expression: $main.sum($value_sum)
-
-      - name: value_avg
-        title: Average
-        expression: $main.sum($value_sum) / $main.sum($count)
-
-      - name: value_min
-        title: Min
-        expression: $main.min($value_min)
-
-      - name: value_max
-        title: Max
-        expression: $main.max($value_max)
-
   - name: metrics-kafka
     title: Metrics Kafka Quickstart
     engine: druid # Set the engine to druid
