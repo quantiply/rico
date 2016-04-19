@@ -30,8 +30,8 @@ public class TranquilitySystemProducerMetrics {
   public final Counter triggerMaxInterval;
   public final Histogram lagFromReceiveMs;
   public final Histogram lagFromOriginMs;
-  public final Counter received;
   public final Counter sent;
+  public final Counter dropped;
   private final MetricsRegistry registry;
   private final String group;
   private final String systemName;
@@ -51,8 +51,8 @@ public class TranquilitySystemProducerMetrics {
     triggerMaxInterval = newCounter("bulk-send-trigger-max-interval");
     lagFromReceiveMs = newHistogram(adaptor, "lag-from-receive-ms");
     lagFromOriginMs = newHistogram(adaptor, "lag-from-origin-ms");
-    received = newCounter("received");
     sent = newCounter("sent");
+    dropped = newCounter("dropped");
   }
 
   private Histogram newHistogram(MetricAdaptor adaptor, String name) {

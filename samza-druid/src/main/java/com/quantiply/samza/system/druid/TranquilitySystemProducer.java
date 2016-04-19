@@ -147,8 +147,10 @@ public class TranquilitySystemProducer implements SystemProducer {
           metrics.triggerFlushCmd.inc();
           break;
       }
-      metrics.received.inc(report.response.received);
       metrics.sent.inc(report.response.sent);
+      if (report.response.received > report.response.sent) {
+        metrics.dropped.inc(report.response.received - report.response.sent);
+      }
 
       for (HTTPTranquilityLoader.SourcedIndexRequest req: report.requests) {
         metrics.lagFromReceiveMs.update(tsNowMs - req.request.receivedTsMs);

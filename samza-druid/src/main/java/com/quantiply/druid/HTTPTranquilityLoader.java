@@ -394,7 +394,7 @@ public class HTTPTranquilityLoader {
         int statusCode = response.getStatusLine().getStatusCode();
         HttpEntity respEntity = response.getEntity();
         if (statusCode != 200) {
-          String bodyStr = respEntity == null ? null : EntityUtils.toString(response.getEntity());
+          String bodyStr = respEntity == null ? null : EntityUtils.toString(respEntity);
           throw new IOException(String.format("Tranquility server error. Status code %s: %s", statusCode, bodyStr));
         }
         return parseResponse(respEntity);
@@ -403,8 +403,10 @@ public class HTTPTranquilityLoader {
 
     protected Response parseResponse(HttpEntity respEntity) throws IOException {
       try {
-        Map<String, Integer> results = (Map<String, Integer>) jsonSerde.fromBytes(EntityUtils.toByteArray(respEntity));
-        return new Response(results.get("received"), results.get("sent"));
+        Map<String, Map<String, Integer>> reply = (Map<String, Map<String, Integer>>) jsonSerde.fromBytes(EntityUtils.toByteArray(respEntity));
+        Map<String, Integer> result = reply.get("result");
+        assert result != null;
+        return new Response(result.get("received"), result.get("sent"));
       }
       catch (Exception e) {
         throw new IOException("Error parsing response from Tranquility server", e);
