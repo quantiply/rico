@@ -270,7 +270,7 @@ public class HTTPTranquilityLoader {
    */
   protected class Writer implements Callable<Void> {
     protected final byte[] newLineBytes = "\n".getBytes(StandardCharsets.UTF_8);
-    protected final CloseableHttpClient httpclient;
+    protected final CloseableHttpClient httpClient;
     protected final Config config;
     protected final Optional<Consumer<BulkReport>> onFlushOpt;
     protected final BlockingQueue<WriterCommand> cmdQueue;
@@ -284,7 +284,7 @@ public class HTTPTranquilityLoader {
       this.cmdQueue = cmdQueue;
       this.onFlushOpt = onFlushOpt;
       this.requests = new ArrayList<>(config.flushMaxRecords);
-      httpclient = HttpClients.createDefault();
+      httpClient = HttpClients.createDefault();
       jsonSerde = new JsonSerdeFactory().getSerde("json", null);
     }
 
@@ -390,7 +390,7 @@ public class HTTPTranquilityLoader {
       httpPost.setEntity(entity);
       httpPost.setHeader("Content-type", "application/json");
 
-      try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
+      try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
         int statusCode = response.getStatusLine().getStatusCode();
         HttpEntity respEntity = response.getEntity();
         if (statusCode != 200) {
