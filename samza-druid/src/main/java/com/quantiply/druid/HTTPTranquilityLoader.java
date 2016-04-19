@@ -16,6 +16,7 @@
 package com.quantiply.druid;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -40,15 +41,28 @@ import java.util.stream.Collectors;
 
 public class HTTPTranquilityLoader {
 
-  public static class Config {
+  public static class HTTPClientConfig {
+    public final int connectTimeoutMs;
+
+    public HTTPClientConfig(int connectTimeoutMs, int readTimeoutMs) {
+      this.connectTimeoutMs = connectTimeoutMs;
+      this.readTimeoutMs = readTimeoutMs;
+    }
+
+    public final int readTimeoutMs;
+  }
+
+  public static class WriterConfig {
     public final String name;
     public final String tranquilityServerUrl;
+    public final HTTPClientConfig httpClientConfig;
     public final int flushMaxRecords;
     public final Optional<Integer> flushMaxIntervalMs;
 
-    public Config(String name, String tranquilityServerUrl, int flushMaxRecords, Optional<Integer> flushMaxIntervalMs) {
+    public WriterConfig(String name, String tranquilityServerUrl, HTTPClientConfig httpClientConfig, int flushMaxRecords, Optional<Integer> flushMaxIntervalMs) {
       this.name = name;
       this.tranquilityServerUrl = tranquilityServerUrl;
+      this.httpClientConfig =  httpClientConfig;
       this.flushMaxRecords = flushMaxRecords;
       this.flushMaxIntervalMs = flushMaxIntervalMs;
     }
@@ -145,7 +159,7 @@ public class HTTPTranquilityLoader {
    *   - API errors are checked here and are also considered fatal
    *   - No internal retry support - restart the process to retry
    */
-  public HTTPTranquilityLoader(String dataSource, Config config, Optional<Consumer<BulkReport>> onFlushOpt) {
+  public HTTPTranquilityLoader(String dataSource, WriterConfig config, Optional<Consumer<BulkReport>> onFlushOpt) {
     this.dataSource = dataSource;
     this.writerCmdQueue = new ArrayBlockingQueue<>(config.flushMaxRecords);
     final String name = config.name;
@@ -271,7 +285,7 @@ public class HTTPTranquilityLoader {
   protected class Writer implements Callable<Void> {
     protected final byte[] newLineBytes = "\n".getBytes(StandardCharsets.UTF_8);
     protected final CloseableHttpClient httpClient;
-    protected final Config config;
+    protected final WriterConfig config;
     protected final Optional<Consumer<BulkReport>> onFlushOpt;
     protected final BlockingQueue<WriterCommand> cmdQueue;
     protected final JsonSerde jsonSerde;
@@ -279,13 +293,23 @@ public class HTTPTranquilityLoader {
     protected final List<WriterCommand> requests;
     protected Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
-    public Writer(Config config, BlockingQueue<WriterCommand> cmdQueue, Optional<Consumer<BulkReport>> onFlushOpt) {
+    public Writer(WriterConfig config, BlockingQueue<WriterCommand> cmdQueue, Optional<Consumer<BulkReport>> onFlushOpt) {
       this.config = config;
       this.cmdQueue = cmdQueue;
       this.onFlushOpt = onFlushOpt;
       this.requests = new ArrayList<>(config.flushMaxRecords);
       httpClient = HttpClients.createDefault();
       jsonSerde = new JsonSerdeFactory().getSerde("json", null);
+    }
+
+    protected CloseableHttpClient getHttpClient(WriterConfig config) {
+      RequestConfig requestConfig = RequestConfig.custom()
+          .setConnectTimeout(config.httpClientConfig.connectTimeoutMs)
+          .setSocketTimeout(config.httpClientConfig.readTimeoutMs)
+          .build();
+      return HttpClients.custom()
+          .setDefaultRequestConfig(requestConfig)
+          .build();
     }
 
     @Override

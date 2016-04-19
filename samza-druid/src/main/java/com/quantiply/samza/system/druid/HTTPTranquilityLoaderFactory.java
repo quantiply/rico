@@ -31,9 +31,10 @@ public class HTTPTranquilityLoaderFactory {
   }
 
   public HTTPTranquilityLoader getBulkLoader(String systemName, Consumer<HTTPTranquilityLoader.BulkReport> onFlush) {
-    HTTPTranquilityLoader.Config loaderConf = new HTTPTranquilityLoader.Config(
+    HTTPTranquilityLoader.WriterConfig loaderConf = new HTTPTranquilityLoader.WriterConfig(
         systemName,
         config.getHTTPURL(),
+        new HTTPTranquilityLoader.HTTPClientConfig(config.getConnectTimeoutMs(), config.getReadTimeoutMs()),
         config.getBulkFlushMaxActions(),
         config.getBulkFlushIntervalMS()
     );
