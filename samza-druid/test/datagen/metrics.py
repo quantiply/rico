@@ -36,6 +36,8 @@ def main():
     parser.add_argument('-s', '--host', help='Host')
     parser.add_argument('-p', '--port', help='Port')
     parser.add_argument('-d', '--datasource', help='Datasource')
+    parser.add_argument('-c', '--console', help='Print to STDOUT.', action='store_true', default=False)
+
     args = parser.parse_args()
 
     batch_size = args.batch or 100
@@ -43,7 +45,7 @@ def main():
     host = args.host or 'localhost'
     port = args.port or 8200
     datasource = args.datasource or "metrics"
-    debug = False
+    debug = args.console
     url = "http://{host}:{port}/v1/post/{datasource}".format(
                 host=host,
                 port=port,
