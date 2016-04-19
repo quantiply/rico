@@ -1,4 +1,7 @@
 
+#From parent dir
+mvn package -Dmaven.test.skip=true && rm -rf test/deploy/samza && mkdir -p test/deploy/samza && tar -xvf ./target/rico-samza-druid-*-dist.tar.gz -C test/deploy/samza
+
 cd test
 bin/grid install all
 

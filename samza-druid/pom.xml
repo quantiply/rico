@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright 2014-2015 Quantiply Corporation. All rights reserved.
+Copyright 2014-2016 Quantiply Corporation. All rights reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -27,9 +27,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     <artifactId>rico-samza-druid</artifactId>
 
     <properties>
-        <jetty.version>8.1.11.v20130520</jetty.version>
-        <jackson.databind.version>2.4.6</jackson.databind.version>
-        <jackson.core.version>1.9.13</jackson.core.version>
+        <httpcomponents.version>4.3.3</httpcomponents.version>
     </properties>
 
     <dependencies>
@@ -38,39 +36,25 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>rico-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-jaxrs</artifactId>
-            <version>1.9.13</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-xc</artifactId>
-            <version>1.9.13</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-core-asl</artifactId>
-            <version>1.9.13</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-            <version>1.9.13</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-api</artifactId>
-            <version>${samza.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
             <artifactId>samza-core_2.10</artifactId>
-            <version>${samza.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${httpcomponents.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
-            <artifactId>samza-log4j</artifactId>
-            <version>${samza.version}</version>
+            <artifactId>samza-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.samza</groupId>
+            <artifactId>samza-core_2.10</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.samza</groupId>
@@ -78,129 +62,17 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <classifier>dist</classifier>
             <type>tgz</type>
             <version>${samza.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-yarn_2.10</artifactId>
-            <version>${samza.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>servlet-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-kv_2.10</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-kv-rocksdb_2.10</artifactId>
-            <version>${samza.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.samza</groupId>
-            <artifactId>samza-kafka_2.10</artifactId>
-            <version>${samza.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.10</artifactId>
-            <version>0.8.2.2</version>
-        </dependency>
-        <dependency>
-            <groupId>io.druid</groupId>
-            <artifactId>tranquility-core_2.10</artifactId>
-            <version>0.7.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.amazonaws</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.druid</groupId>
-            <artifactId>tranquility-samza_2.10</artifactId>
-            <version>0.7.4</version>
-        </dependency>
-        <dependency>
-            <groupId>io.druid.extensions</groupId>
-            <artifactId>druid-histogram</artifactId>
-            <version>0.8.2</version>
-        </dependency>
-
-        <!--The following deps are required because maven assembly plugin doesn't seem to respect the excludes above.-->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-webapp</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>16.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.zookeeper</groupId>
-            <artifactId>zookeeper</artifactId>
-            <version>3.4.6</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>my-local-repo</id>
-            <url>file://${user.home}/.m2/repository</url>
-        </repository>
-        <repository>
-            <id>apache-releases</id>
-            <url>https://repository.apache.org/content/groups/public</url>
-        </repository>
-        <repository>
-            <id>scala-tools.org</id>
-            <name>Scala-tools Maven2 Repository</name>
-            <url>https://oss.sonatype.org/content/groups/scala-tools</url>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>scala-tools.org</id>
-            <name>Scala-tools Maven2 Repository</name>
-            <url>http://scala-tools.org/repo-releases</url>
-        </pluginRepository>
-    </pluginRepositories>
 
     <build>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -211,14 +83,13 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                     <target>1.8</target>
                 </configuration>
             </plugin>
-            <!-- Uncomment this section to test against YARN.-->
-            <!--
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.3</version>
+                <version>2.5.5</version>
                 <configuration>
+                    <tarLongFileMode>posix</tarLongFileMode>
                     <descriptors>
-                        <descriptor>src/main/assembly/src.xml</descriptor>
+                        <descriptor>yarn-src.xml</descriptor>
                     </descriptors>
                 </configuration>
                 <executions>
@@ -231,7 +102,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                     </execution>
                 </executions>
             </plugin>
-            -->
         </plugins>
     </build>
 </project>
