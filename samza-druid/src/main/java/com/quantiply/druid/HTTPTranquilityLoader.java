@@ -175,9 +175,9 @@ public class HTTPTranquilityLoader {
    * Error contract: will throw an Exception if a fatal errors occur in the writer thread
    */
   public void addAction(String source, IndexRequest req) throws Throwable {
-    if (logger.isTraceEnabled()) {
-      logger.trace(String.format("Add index request: dataSource %s, time %s, record %s", dataSource, req.eventTsMs, new String(req.record)));
-    }
+//    if (logger.isTraceEnabled()) {
+//      logger.trace(String.format("Add index request: dataSource %s, time %s, record %s", dataSource, req.eventTsMs, new String(req.record)));
+//    }
     WriterCommand addCmd = WriterCommand.getAddCmd(new SourcedIndexRequest(source, req));
     sendCmd(addCmd);
   }
