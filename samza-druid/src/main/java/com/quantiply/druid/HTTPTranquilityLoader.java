@@ -66,11 +66,11 @@ public class HTTPTranquilityLoader {
   }
 
   public static class IndexRequest {
-    public final long eventTsMs;
+    public final Optional<Long> eventTsMs;
     public final long receivedTsMs;
     public final byte[] record;
 
-    public IndexRequest(long eventTsMs, long receivedTsMs, byte[] record) {
+    public IndexRequest(Optional<Long> eventTsMs, long receivedTsMs, byte[] record) {
       this.eventTsMs = eventTsMs;
       this.receivedTsMs = receivedTsMs;
       this.record = record;
@@ -127,7 +127,7 @@ public class HTTPTranquilityLoader {
    *   - connection/protocol errors are handled here and considered fatal - they are detected on blocking operations
    *      - addAction (when cmd queue is full)
    *      - flush
-   *   - API errors are not checked here. Clients can check them in the onFlush callback and throw exception if fatal
+   *   - API errors are checked here and are also considered fatal
    *   - No internal retry support - restart the process to retry
    */
   public HTTPTranquilityLoader(String dataSource, Config config, Optional<Consumer<BulkReport>> onFlushOpt) {

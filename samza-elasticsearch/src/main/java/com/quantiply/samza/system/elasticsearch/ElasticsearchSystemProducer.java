@@ -72,7 +72,7 @@ public class ElasticsearchSystemProducer implements SystemProducer {
 
   @Override
   public void start() {
-    LOGGER.info("Starting Elasticsearch writer thread");
+    LOGGER.info("Starting Elasticsearch system producer");
     bulkLoader.start();
   }
 
