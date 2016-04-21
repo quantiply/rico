@@ -31,11 +31,12 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
         <kafka.version>0.8.2.1</kafka.version>
         <jackson.databind.version>2.2.2</jackson.databind.version>
         <jackson.core.version>1.8.5</jackson.core.version>
+        <httpcomponents.version>4.5.1</httpcomponents.version>
     </properties>
 
     <groupId>com.quantiply.rico</groupId>
     <artifactId>parent</artifactId>
-    <version>1.0.14-SNAPSHOT</version>
+    <version>1.0.14</version>
     <packaging>pom</packaging>
 
     <name>Quantiply Rico Parent</name>
@@ -143,6 +144,11 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
               <groupId>io.dropwizard.metrics</groupId>
               <artifactId>metrics-core</artifactId>
               <version>3.1.1</version>
+            </dependency>
+            <dependency>
+              <groupId>org.apache.httpcomponents</groupId>
+              <artifactId>httpclient</artifactId>
+              <version>${httpcomponents.version}</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>

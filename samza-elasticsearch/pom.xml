@@ -18,7 +18,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.quantiply.rico</groupId>
-        <version>1.0.14-SNAPSHOT</version>
+        <version>1.0.14</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -26,7 +26,6 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
 
     <properties>
         <jest.version>2.0.0</jest.version>
-        <httpcomponents.version>4.4.4</httpcomponents.version>
         <guava.version>18.0</guava.version>
     </properties>
 
@@ -44,12 +43,15 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
             <artifactId>jest</artifactId>
             <version>${jest.version}</version>
         </dependency>
-        <!-- rhoover: explicitly setting these to override YARN -->
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-          <version>${httpcomponents.version}</version>
+          <artifactId>httpclient</artifactId>
         </dependency>
+        <!-- rhoover: explicitly setting these to override YARN -->
+        <!-- <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
+        </dependency> -->
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
