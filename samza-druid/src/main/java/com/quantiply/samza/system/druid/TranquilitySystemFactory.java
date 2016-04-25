@@ -22,10 +22,13 @@ import org.apache.samza.system.SystemAdmin;
 import org.apache.samza.system.SystemConsumer;
 import org.apache.samza.system.SystemFactory;
 import org.apache.samza.system.SystemProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
 public class TranquilitySystemFactory implements SystemFactory {
+  private Logger logger = LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
   @Override
   public SystemConsumer getConsumer(String name, Config config, MetricsRegistry metricsRegistry) {
@@ -35,10 +38,16 @@ public class TranquilitySystemFactory implements SystemFactory {
   @Override
   public SystemProducer getProducer(String name, Config config, MetricsRegistry metricsRegistry) {
     TranquilityConfig tranquilityConfig = new TranquilityConfig(name, config);
-    return new TranquilitySystemProducer(name,
-        getBulkLoaderFactory(tranquilityConfig),
-        getExtractor(tranquilityConfig),
-        new TranquilitySystemProducerMetrics(name, metricsRegistry));
+    try {
+      return new TranquilitySystemProducer(name,
+          getBulkLoaderFactory(tranquilityConfig),
+          getExtractor(tranquilityConfig, config),
+          new TranquilitySystemProducerMetrics(name, metricsRegistry));
+    }
+    catch (Exception e) {
+      logger.error("Could not create tranquility system producer", e);
+      throw e;
+    }
   }
 
   @Override
@@ -51,8 +60,8 @@ public class TranquilitySystemFactory implements SystemFactory {
     return new HTTPTranquilityLoaderFactory(config);
   }
 
-  protected static Optional<EventTimeExtractor> getExtractor(TranquilityConfig config) {
-    String factoryClass = config.getEventTimeExtractorFactory();
+  protected static Optional<EventTimeExtractor> getExtractor(TranquilityConfig tranquilityConfig, Config config) {
+    String factoryClass = tranquilityConfig.getEventTimeExtractorFactory();
     if (factoryClass == null) {
       return Optional.empty();
     }
