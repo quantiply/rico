@@ -18,7 +18,7 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.quantiply.rico</groupId>
-        <version>1.0.15</version>
+        <version>1.0.16-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
